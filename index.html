@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Urixie Embedded Lab - XYJ 的嵌入式工程项目、调试笔记与实用工具。">
-  <title>Urixie Embedded Lab | XYJ</title>
+  <meta name="description" content="嵌入式工程实验室 - XYJ 的嵌入式工程项目、调试笔记与实用工具。">
+  <title>嵌入式工程实验室 | XYJ</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -13,31 +13,33 @@
       <div>
         <div class="profile">
           <div class="avatar" aria-hidden="true">XYJ</div>
-          <h1>Urixie Embedded Lab</h1>
-          <p>Embedded systems · engineering notes</p>
+          <h1>嵌入式工程实验室</h1>
+          <p class="brand-subtitle">Urixie Embedded Lab</p>
+          <p>嵌入式工程 · 项目与技术笔记</p>
         </div>
-        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">MENU</button>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">菜单</button>
         <nav class="nav" id="site-nav">
-          <a class="active" href="#home">HOME</a>
-          <a href="#projects">PROJECTS</a>
-          <a href="#notes">NOTES</a>
-          <a href="#tools">TOOLS</a>
-          <a href="#about">ABOUT</a>
+          <a class="active" href="#home">首页</a>
+          <a href="#projects">项目</a>
+          <a href="#notes">笔记</a>
+          <a href="#tools">工具</a>
+          <a href="#about">关于</a>
         </nav>
       </div>
       <div class="sidebar-footer">
         <a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a>
-        <span>© <span data-current-year></span> XYJ</span>
+        <span>© <span data-current-year></span> 嵌入式工程实验室，由 XYJ 维护。</span>
+        <span>基于 HTML / CSS / JavaScript 构建。</span>
       </div>
     </aside>
 
     <main class="content">
       <section class="hero card" id="home">
-        <div class="eyebrow">// URIXIE EMBEDDED LAB</div>
+        <div class="eyebrow">// 嵌入式工程实验室</div>
         <h2>XYJ</h2>
-        <h3>Embedded Software Engineer</h3>
-        <p>5 年嵌入式软件开发经验，专注于嵌入式软件、ESP32、LVGL、FPGA 数据采集、嵌入式 Web 服务与本地大模型部署。</p>
-        <p>这里是 <strong>Urixie Embedded Lab</strong>，用于记录我的工程项目、调试笔记、技术文章和实用工具。</p>
+        <h3>嵌入式软件工程师 <span class="english-subtitle">Embedded Software Engineer</span></h3>
+        <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，专注于嵌入式软件、ESP32、LVGL、FPGA 数据采集、嵌入式 Web 服务与本地大模型部署。</p>
+        <p>这里是 <strong>嵌入式工程实验室</strong>，用于记录我的工程项目、调试笔记、技术文章和实用工具。</p>
         <div class="hero-actions">
           <a class="button primary" href="#projects">查看项目</a>
           <a class="button" href="mailto:xyj.work@qq.com">联系我</a>
@@ -48,41 +50,43 @@
       </section>
 
       <section class="section-block" id="projects">
-        <div class="section-title"><span>01</span><h2>Selected Projects</h2></div>
+        <div class="section-title"><span>01</span><h2>精选项目</h2></div>
         <div class="post-list">
-          <article class="post-card"><div class="post-meta">FPGA · ESP32 · WEB</div><h3>FPGA ADC Waveform Display</h3><p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p></article>
-          <article class="post-card"><div class="post-meta">ESP32 · HTTP · FLASH</div><h3>ESP32 Wireless File Server</h3><p>基于 ESP32 的网页文件服务器与无线 U 盘功能，支持文件管理、网页访问、内部 Flash 存储和嵌入式 Web UI。</p></article>
-          <article class="post-card"><div class="post-meta">ESP32-P4 · LVGL · FILESYSTEM</div><h3>LVGL Screenshot System</h3><p>基于 ESP32-P4 / LVGL 的屏幕截图、图片保存和网页预览系统，关注 PNG/JPEG 格式选择、文件系统存储和界面实时查看。</p></article>
-          <article class="post-card"><div class="post-meta">RTX 5090 · LLAMA.CPP · LAN API</div><h3>Local LLM Deployment</h3><p>基于 RTX 5090 / llama.cpp 的本地大模型多人部署实践，关注上下文长度、KV Cache、并发访问、局域网 API 服务和资源占用优化。</p></article>
+          <article class="post-card"><div class="post-meta">FPGA · ESP32 · WEB</div><h3>FPGA ADC 实时波形显示 <span class="english-subtitle">FPGA ADC Waveform Display</span></h3><p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p></article>
+          <article class="post-card"><div class="post-meta">ESP32 · HTTP · FLASH</div><h3>ESP32 无线文件服务器 <span class="english-subtitle">ESP32 Wireless File Server</span></h3><p>基于 ESP32 的网页文件服务器与无线 U 盘功能，支持文件管理、网页访问、内部 Flash 存储和嵌入式 Web UI。</p></article>
+          <article class="post-card"><div class="post-meta">ESP32-P4 · LVGL · FILESYSTEM</div><h3>LVGL 截图系统 <span class="english-subtitle">LVGL Screenshot System</span></h3><p>基于 ESP32-P4 / LVGL 的屏幕截图、图片保存和网页预览系统，关注 PNG/JPEG 格式选择、文件系统存储和界面实时查看。</p></article>
+          <article class="post-card"><div class="post-meta">RTX 5090 · LLAMA.CPP · LAN API</div><h3>本地大模型部署 <span class="english-subtitle">Local LLM Deployment</span></h3><p>基于 RTX 5090 / llama.cpp 的本地大模型多人部署实践，关注上下文长度、KV Cache、并发访问、局域网 API 服务和资源占用优化。</p></article>
         </div>
       </section>
 
       <section class="section-block" id="notes">
-        <div class="section-title"><span>02</span><h2>Engineering Notes</h2></div>
+        <div class="section-title"><span>02</span><h2>工程笔记</h2></div>
         <div class="note-list">
-          <article class="note-item"><div class="date">NOTES</div><div><h3>Engineering Notes</h3><p>记录嵌入式开发、调试过程、工具链配置和工程问题排查。</p></div></article>
-          <article class="note-item"><div class="date">DEBUG</div><div><h3>Debug Stories</h3><p>整理 SPI 数据错乱、LVGL 显示异常、ESP-IDF 构建问题、本地大模型部署问题等真实排查过程。</p></div></article>
+          <article class="note-item"><div class="date">笔记</div><div><h3>工程笔记</h3><p>记录嵌入式开发、调试过程、工具链配置和工程问题排查。</p></div></article>
+          <article class="note-item"><div class="date">调试</div><div><h3>调试记录</h3><p>整理 SPI 数据错乱、LVGL 显示异常、ESP-IDF 构建问题、本地大模型部署问题等真实排查过程。</p></div></article>
         </div>
       </section>
 
       <section class="section-block" id="tools">
-        <div class="section-title"><span>03</span><h2>Tools Lab</h2></div>
+        <div class="section-title"><span>03</span><h2>工具实验室</h2></div>
         <div class="tool-grid">
-          <article class="tool-card"><h3>Tools Lab</h3><p>放置一些纯前端小工具，例如 ADC 电压计算器、RGB565 颜色转换器、SPI 速率计算器、KV Cache 估算器。</p></article>
-          <article class="tool-card"><h3>Practical Utilities</h3><p>为日常调试准备轻量、可离线打开的工程计算和格式转换工具。</p></article>
+          <article class="tool-card"><h3>工具实验室</h3><p>放置一些纯前端小工具，例如 ADC 电压计算器、RGB565 颜色转换器、SPI 速率计算器、KV Cache 估算器。</p></article>
+          <article class="tool-card"><h3>实用工具</h3><p>为日常调试准备轻量、可离线打开的工程计算和格式转换工具。</p></article>
         </div>
       </section>
 
       <section class="section-block" id="about">
-        <div class="section-title"><span>04</span><h2>About</h2></div>
-        <div class="about-card card"><p>XYJ 是一名拥有 5 年经验的嵌入式软件工程师，主要关注嵌入式软件开发、ESP32、LVGL、FPGA 数据采集、嵌入式 Web 服务和本地大模型部署。</p><p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。</p><p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p></div>
+        <div class="section-title"><span>04</span><h2>关于本站</h2></div>
+        <div class="about-card card"><p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注嵌入式软件开发、ESP32、LVGL、FPGA 数据采集、嵌入式 Web 服务和本地大模型部署。</p><p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。</p><p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p></div>
       </section>
     </main>
 
     <aside class="rightbar" aria-label="站点信息">
-      <section class="widget status-widget"><h3>Recent Update</h3><p>Urixie Embedded Lab 首页已建立，持续整理嵌入式项目与调试笔记。</p></section>
-      <section class="widget"><h3>Trending Tags</h3><div class="tag-cloud"><a href="#projects">ESP32</a><a href="#projects">LVGL</a><a href="#projects">FPGA</a><a href="#notes">ESP-IDF</a><a href="#tools">Web Server</a><a href="#projects">Local LLM</a></div></section>
-      <section class="widget"><h3>Quick Jump</h3><a href="#projects">Selected Projects</a><a href="#notes">Engineering Notes</a><a href="#tools">Tools Lab</a><a href="#about">About XYJ</a></section>
+      <section class="widget"><h3>最近更新</h3><p>嵌入式工程实验室首页已建立，持续整理嵌入式项目与调试笔记。</p></section>
+      <section class="widget status-widget"><h3>当前状态</h3><p>持续沉淀项目经验、调试记录与工程工具。</p></section>
+      <section class="widget"><h3>热门标签</h3><div class="tag-cloud"><a href="#projects">ESP32</a><a href="#projects">LVGL</a><a href="#projects">FPGA</a><a href="#notes">ESP-IDF</a><a href="#tools">Web Server</a><a href="#projects">Local LLM</a></div></section>
+      <section class="widget"><h3>联系方式</h3><a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></section>
+      <section class="widget"><h3>快捷导航</h3><a href="#projects">精选项目</a><a href="#notes">工程笔记</a><a href="#tools">工具实验室</a><a href="#about">关于本站</a></section>
     </aside>
   </div>
   <script src="assets/js/main.js"></script>

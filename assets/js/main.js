@@ -7,6 +7,18 @@ yearTargets.forEach(target => {
   target.textContent = new Date().getFullYear();
 });
 
+function getWorkExperience(startYear, startMonth) {
+  const now = new Date();
+  let months = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth);
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  return remainingMonths ? `${years} 年 ${remainingMonths} 个月` : `${years} 年`;
+}
+
+document.querySelectorAll('#work-experience, #work-experience-about').forEach(target => {
+  target.textContent = getWorkExperience(2022, 1);
+});
+
 if (menuToggle && nav) {
   menuToggle.addEventListener('click', () => {
     const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
