@@ -126,6 +126,44 @@ a {
   font-size: 13px;
 }
 
+.profile-email {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  margin-top: 12px;
+  padding: 7px 11px;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  border-radius: 999px;
+  color: var(--link);
+  background: rgba(125, 211, 252, 0.045);
+  font-family: Consolas, "JetBrains Mono", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  transition: 0.2s ease;
+}
+
+.profile-email:hover {
+  color: var(--accent);
+  border-color: rgba(0, 230, 118, 0.36);
+  background: rgba(0, 230, 118, 0.07);
+  transform: translateY(-1px);
+}
+
+.profile-email-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
+.profile-email span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .profile .brand-subtitle,
 .english-subtitle {
   display: block;

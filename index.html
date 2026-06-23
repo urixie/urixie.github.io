@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="XYJ 的嵌入式工程项目、技术栈、项目经验与实用工具。">
   <title>XYJ</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=6153f951c697">
+  <link rel="stylesheet" href="assets/css/style.css?v=9aab92e37271">
 </head>
 <body>
   <div class="page-shell">
@@ -13,10 +13,19 @@
       <div>
         <div class="profile">
           <div class="avatar">
-            <img src="assets/img/avatar-surf.jpg?v=6153f951c697" alt="XYJ 网站头像">
+            <img src="assets/img/avatar-surf.jpg?v=9aab92e37271" alt="XYJ 网站头像">
           </div>
           <h1>XYJ</h1>
-          <p class="brand-subtitle">嵌入式工程 · 项目与技术笔记</p>
+          <p class="brand-subtitle">
+            嵌入式软件工程师
+            <span class="english-subtitle">Embedded Software Engineer</span>
+          </p>
+          <a class="profile-email" href="mailto:xyj.work@qq.com" aria-label="发送邮件到 xyj.work@qq.com">
+            <svg class="profile-email-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2Zm0 2v.4l8 5.1 8-5.1V7H4Zm0 2.7V17h16V9.7l-7.46 4.76a1 1 0 0 1-1.08 0L4 9.7Z"/>
+            </svg>
+            <span>xyj.work@qq.com</span>
+          </a>
         </div>
 
         <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">菜单</button>
@@ -38,16 +47,12 @@
       </div>
 
       <div class="sidebar-footer">
-        <a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a>
         <span>© <span data-current-year></span> XYJ。</span>
       </div>
     </aside>
 
     <main class="content">
       <section class="hero card" id="home">
-        <div class="eyebrow">// XYJ</div>
-        <h2>XYJ</h2>
-        <h3>嵌入式软件工程师 <span class="english-subtitle">Embedded Software Engineer</span></h3>
         <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，长期关注 MCU、SOC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集与本地 AI 工程实践。</p>
         <p>用于记录我的工程项目、调试笔记、技术文章和实用工具。</p>
 
@@ -190,11 +195,11 @@
             <div class="platform-category">
               <h4>Rockchip</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html?v=6153f951c697">
+                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html?v=9aab92e37271">
                   <strong>RK3568 · USB Ethernet Gadget</strong>
                   <span>Linux 4.19 / USB Gadget / RNDIS / Ubuntu Base 22 · 已整理虚拟网卡配置记录</span>
                 </a>
-                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html?v=6153f951c697">
+                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html?v=9aab92e37271">
                   <strong>RK3568 · SPI / spidev</strong>
                   <span>Linux 5.10 / SPI / spidev / Ubuntu Base 22 · 已整理 SPI 功能调试记录</span>
                 </a>
@@ -210,7 +215,7 @@
             <div class="platform-category">
               <h4>传感器与低速总线</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html?v=6153f951c697">
+                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html?v=9aab92e37271">
                   <strong>AHT20 · IIC / CRC8 / Verilog</strong>
                   <span>基于 Verilog 实现 IIC 主机、AHT20 温湿度读取、CRC8 校验和数据滤波</span>
                 </a>
@@ -220,7 +225,7 @@
             <div class="platform-category">
               <h4>存储器 IP 与片上 RAM</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/fpga/ef2-single-port-ram.html?v=6153f951c697">
+                <a class="platform-item" href="articles/fpga/ef2-single-port-ram.html?v=9aab92e37271">
                   <strong>EF2L45 · Single Port RAM</strong>
                   <span>基于 IP Generator 配置单口 BRAM，完成 8bit x 200 深度 RAM 的写入、读出和 Verilog 自检</span>
                 </a>
@@ -340,7 +345,7 @@
           <article class="post-card">
             <div class="post-meta">FPGA · VERILOG · IIC · AHT20 · CRC8</div>
             <h3>
-              <a href="articles/fpga/aht20-iic-verilog.html?v=6153f951c697">
+              <a href="articles/fpga/aht20-iic-verilog.html?v=9aab92e37271">
                 Verilog 实现 AHT20 温湿度传感器读取
                 <span class="english-subtitle">AHT20 IIC Sensor Reader in Verilog</span>
               </a>
@@ -351,7 +356,7 @@
           <article class="post-card">
             <div class="post-meta">FPGA · EF2L45LG144B · BRAM · SINGLE PORT RAM</div>
             <h3>
-              <a href="articles/fpga/ef2-single-port-ram.html?v=6153f951c697">
+              <a href="articles/fpga/ef2-single-port-ram.html?v=9aab92e37271">
                 EF2L45 单口 BRAM IP 配置与读写验证
                 <span class="english-subtitle">EF2L45 Single Port BRAM Verification</span>
               </a>
@@ -362,7 +367,7 @@
           <article class="post-card">
             <div class="post-meta">RK3568 · LINUX 5.10 · SPI · SPIDEV · UBUNTU BASE 22</div>
             <h3>
-              <a href="articles/soc/rk3568-spi-spidev.html?v=6153f951c697">
+              <a href="articles/soc/rk3568-spi-spidev.html?v=9aab92e37271">
                 RK3568 SPI / spidev 功能调试记录
                 <span class="english-subtitle">RK3568 SPI spidev Debugging</span>
               </a>
@@ -373,7 +378,7 @@
           <article class="post-card">
             <div class="post-meta">RK3568 · LINUX 4.19 · USB GADGET · RNDIS · UBUNTU BASE 22</div>
             <h3>
-              <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=6153f951c697">
+              <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=9aab92e37271">
                 RK3568 USB Ethernet Gadget 配置记录
                 <span class="english-subtitle">RK3568 USB Ethernet Gadget</span>
               </a>
@@ -441,16 +446,16 @@
       <section class="widget">
         <h3>热门标签</h3>
         <div class="tag-cloud">
-          <a href="articles/fpga/ef2-single-port-ram.html?v=6153f951c697">BRAM</a>
-          <a href="articles/fpga/ef2-single-port-ram.html?v=6153f951c697">Single Port RAM</a>
-          <a href="articles/fpga/ef2-single-port-ram.html?v=6153f951c697">IP Generator</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=6153f951c697">AHT20</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=6153f951c697">IIC</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=6153f951c697">CRC8</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=9aab92e37271">BRAM</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=9aab92e37271">Single Port RAM</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=9aab92e37271">IP Generator</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=9aab92e37271">AHT20</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=9aab92e37271">IIC</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=9aab92e37271">CRC8</a>
           <a href="#fpga-stack">FPGA</a>
           <a href="#soc-stack">RK3568</a>
-          <a href="articles/soc/rk3568-spi-spidev.html?v=6153f951c697">SPI</a>
-          <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=6153f951c697">USB Gadget</a>
+          <a href="articles/soc/rk3568-spi-spidev.html?v=9aab92e37271">SPI</a>
+          <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=9aab92e37271">USB Gadget</a>
           <a href="#gui-stack">LVGL</a>
         </div>
       </section>
@@ -474,6 +479,6 @@
     </aside>
   </div>
 
-  <script src="assets/js/main.js?v=6153f951c697"></script>
+  <script src="assets/js/main.js?v=9aab92e37271"></script>
 </body>
 </html>
