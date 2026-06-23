@@ -56,6 +56,11 @@
 
         <div class="tags" aria-label="技术标签">
           <span>C/C++</span>
+          <span>Verilog</span>
+          <span>IIC</span>
+          <span>I2C</span>
+          <span>AHT20</span>
+          <span>CRC8</span>
           <span>STM32F103</span>
           <span>STM32F407</span>
           <span>CW32</span>
@@ -195,7 +200,17 @@
           <article class="stack-card" id="fpga-stack">
             <div class="post-meta">FPGA PLATFORM</div>
             <h3>FPGA</h3>
-            <p>涉及 FPGA 逻辑设计、数据采集、SPI 通信、RAM 缓冲、软硬件协同调试和实时波形显示。</p>
+            <p>涉及 FPGA 逻辑设计、数据采集、IIC / SPI 通信、CRC 校验、RAM 缓冲、软硬件协同调试和实时波形显示。</p>
+
+            <div class="platform-category">
+              <h4>传感器与低速总线</h4>
+              <div class="platform-items">
+                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html">
+                  <strong>AHT20 · IIC / CRC8 / Verilog</strong>
+                  <span>基于 Verilog 实现 IIC 主机、AHT20 温湿度读取、CRC8 校验和数据滤波</span>
+                </a>
+              </div>
+            </div>
 
             <div class="platform-category">
               <h4>SOC FPGA</h4>
@@ -308,6 +323,17 @@
 
         <div class="post-list">
           <article class="post-card">
+            <div class="post-meta">FPGA · VERILOG · IIC · AHT20 · CRC8</div>
+            <h3>
+              <a href="articles/fpga/aht20-iic-verilog.html">
+                Verilog 实现 AHT20 温湿度传感器读取
+                <span class="english-subtitle">AHT20 IIC Sensor Reader in Verilog</span>
+              </a>
+            </h3>
+            <p>基于 Verilog 实现 IIC 主机控制器、AHT20 温湿度传感器读取流程、CRC8/ITU 校验、20bit 温湿度原始数据解析和 8 次滑动平均滤波，适合 FPGA 侧低速传感器采集与时序控制场景。</p>
+          </article>
+
+          <article class="post-card">
             <div class="post-meta">RK3568 · LINUX 5.10 · SPI · SPIDEV · UBUNTU BASE 22</div>
             <h3>
               <a href="articles/soc/rk3568-spi-spidev.html">
@@ -378,7 +404,7 @@
     <aside class="rightbar" aria-label="站点信息">
       <section class="widget">
         <h3>最近更新</h3>
-        <p>已新增 RK3568 SPI / spidev 功能调试记录，补充 Linux 5.10 下 SPI 外设适配经验。</p>
+        <p>已新增 Verilog 实现 AHT20 温湿度传感器读取文章，补充 FPGA IIC、CRC8 和传感器采集经验。</p>
       </section>
 
       <section class="widget status-widget">
@@ -389,15 +415,15 @@
       <section class="widget">
         <h3>热门标签</h3>
         <div class="tag-cloud">
+          <a href="articles/fpga/aht20-iic-verilog.html">AHT20</a>
+          <a href="articles/fpga/aht20-iic-verilog.html">IIC</a>
+          <a href="articles/fpga/aht20-iic-verilog.html">CRC8</a>
+          <a href="#fpga-stack">FPGA</a>
           <a href="#soc-stack">RK3568</a>
           <a href="articles/soc/rk3568-spi-spidev.html">SPI</a>
-          <a href="articles/soc/rk3568-spi-spidev.html">spidev</a>
           <a href="articles/soc/rk3568-usb-ethernet-gadget.html">USB Gadget</a>
-          <a href="articles/soc/rk3568-usb-ethernet-gadget.html">RNDIS</a>
           <a href="#mcu-stack">STM32F103</a>
           <a href="#mcu-stack">ESP32-S3</a>
-          <a href="#mcu-stack">ESP32-P4</a>
-          <a href="#fpga-stack">FPGA</a>
           <a href="#gui-stack">LVGL</a>
         </div>
       </section>
