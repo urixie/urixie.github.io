@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EFM8BB10F8I-A-QFN20 开发笔记 - XYJ</title>
   <meta name="description" content="整理 EFM8BB10F8I-A-QFN20 的内核、存储器、I/O、交叉开关、中断、PCA、定时器、ADC、C2 调试和参考代码。">
-  <link rel="stylesheet" href="../../assets/css/style.css?v=08b65f64912f">
+  <link rel="stylesheet" href="../../assets/css/style.css?v=a1c284ad0b5d">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../index.html?v=08b65f64912f">← 返回首页</a>
-      <a href="../../index.html?v=08b65f64912f#mcu-stack">返回 MCU 平台</a>
+      <a href="../../index.html?v=a1c284ad0b5d">← 返回首页</a>
+      <a href="../../index.html?v=a1c284ad0b5d#mcu-stack">返回 MCU 平台</a>
     </div>
 
     <article class="article card">
@@ -54,7 +54,7 @@
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/01-part-number.png" alt="EFM8BB1 部件编号说明">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/01-part-number.png?v=a1c284ad0b5d" alt="EFM8BB1 部件编号说明">
           <figcaption>图 1：EFM8BB1 部件编号说明。</figcaption>
         </figure>
 
@@ -63,7 +63,7 @@
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/02-ordering-guide.png" alt="EFM8BB1 产品选型表">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/02-ordering-guide.png?v=a1c284ad0b5d" alt="EFM8BB1 产品选型表">
           <figcaption>图 2：EFM8BB1 产品选型表。</figcaption>
         </figure>
       </section>
@@ -76,7 +76,7 @@
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/03-block-diagram.png" alt="EFM8BB1 系统框图">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/03-block-diagram.png?v=a1c284ad0b5d" alt="EFM8BB1 系统框图">
           <figcaption>图 3：EFM8BB1 系统框图。</figcaption>
         </figure>
 
@@ -102,7 +102,7 @@
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/04-interrupt-vector-table.png" alt="EFM8BB1 中断源与向量表">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/04-interrupt-vector-table.png?v=a1c284ad0b5d" alt="EFM8BB1 中断源与向量表">
           <figcaption>图 4：EFM8BB1 中断源与向量表。</figcaption>
         </figure>
 
@@ -149,7 +149,7 @@ EX0   外部中断 0 使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/05-port-io-overview.png" alt="EFM8BB1 端口 I/O 总体框图">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/05-port-io-overview.png?v=a1c284ad0b5d" alt="EFM8BB1 端口 I/O 总体框图">
           <figcaption>图 5：端口 I/O 总体框图。</figcaption>
         </figure>
 
@@ -164,7 +164,7 @@ EX0   外部中断 0 使能</code></pre>
         </ol>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/06-port-io-cell.png" alt="EFM8BB1 端口 I/O 单元框图">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/06-port-io-cell.png?v=a1c284ad0b5d" alt="EFM8BB1 端口 I/O 单元框图">
           <figcaption>图 6：端口 I/O 单元框图。</figcaption>
         </figure>
 
@@ -197,12 +197,12 @@ PnMDOUT.n = 1</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/07-crossbar-priority-example.png" alt="EFM8BB1 交叉开关优先级分配示例">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/07-crossbar-priority-example.png?v=a1c284ad0b5d" alt="EFM8BB1 交叉开关优先级分配示例">
           <figcaption>图 7：交叉开关优先级分配示例。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/08-crossbar-function-map.png" alt="EFM8BB1 交叉开关功能映射表">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/08-crossbar-function-map.png?v=a1c284ad0b5d" alt="EFM8BB1 交叉开关功能映射表">
           <figcaption>图 8：交叉开关功能映射表。</figcaption>
         </figure>
 
@@ -255,7 +255,7 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/09-pca-block-diagram.png" alt="EFM8BB1 PCA0 模块框图">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/09-pca-block-diagram.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA0 模块框图">
           <figcaption>图 9：PCA0 模块框图。</figcaption>
         </figure>
 
@@ -270,22 +270,22 @@ XBARE    交叉开关使能</code></pre>
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/10-pca-edge-capture.png" alt="EFM8BB1 PCA 边沿捕获模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/10-pca-edge-capture.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 边沿捕获模式">
           <figcaption>图 10：PCA 边沿捕获模式。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/11-pca-software-timer.png" alt="EFM8BB1 PCA 软件定时器模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/11-pca-software-timer.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 软件定时器模式">
           <figcaption>图 11：PCA 软件定时器模式。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/12-pca-high-speed-output.png" alt="EFM8BB1 PCA 高速输出模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/12-pca-high-speed-output.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 高速输出模式">
           <figcaption>图 12：PCA 高速输出模式。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/13-pca-frequency-output.png" alt="EFM8BB1 PCA 频率输出模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/13-pca-frequency-output.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 频率输出模式">
           <figcaption>图 13：PCA 频率输出模式。</figcaption>
         </figure>
 
@@ -296,27 +296,27 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/14-pca-edge-aligned-pwm-1.png" alt="EFM8BB1 PCA 边沿对齐 PWM 图 1">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/14-pca-edge-aligned-pwm-1.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 边沿对齐 PWM 图 1">
           <figcaption>图 14：PCA 边沿对齐 PWM 示例 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/15-pca-edge-aligned-pwm-2.png" alt="EFM8BB1 PCA 边沿对齐 PWM 图 2">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/15-pca-edge-aligned-pwm-2.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 边沿对齐 PWM 图 2">
           <figcaption>图 15：PCA 边沿对齐 PWM 示例 2。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/16-pca-edge-aligned-pwm-3.png" alt="EFM8BB1 PCA 边沿对齐 PWM 图 3">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/16-pca-edge-aligned-pwm-3.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 边沿对齐 PWM 图 3">
           <figcaption>图 16：PCA 边沿对齐 PWM 示例 3。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/17-pca-center-aligned-pwm-1.png" alt="EFM8BB1 PCA 中心对齐 PWM 图 1">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/17-pca-center-aligned-pwm-1.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 中心对齐 PWM 图 1">
           <figcaption>图 17：PCA 中心对齐 PWM 示例 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/18-pca-center-aligned-pwm-2.png" alt="EFM8BB1 PCA 中心对齐 PWM 图 2">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/18-pca-center-aligned-pwm-2.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 中心对齐 PWM 图 2">
           <figcaption>图 18：PCA 中心对齐 PWM 示例 2。</figcaption>
         </figure>
 
@@ -327,12 +327,12 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/19-pca-comparator-clear-1.png" alt="EFM8BB1 PCA 比较器清零功能图 1">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/19-pca-comparator-clear-1.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 比较器清零功能图 1">
           <figcaption>图 19：PCA 比较器清零功能示例 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/20-pca-comparator-clear-2.png" alt="EFM8BB1 PCA 比较器清零功能图 2">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/20-pca-comparator-clear-2.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA 比较器清零功能图 2">
           <figcaption>图 20：PCA 比较器清零功能示例 2。</figcaption>
         </figure>
 
@@ -358,42 +358,42 @@ XBARE    交叉开关使能</code></pre>
         <h3>10.1 Timer0 / Timer1</h3>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/21-timer0-mode0.png" alt="EFM8BB1 Timer0 模式 0">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/21-timer0-mode0.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 0">
           <figcaption>图 21：Timer0 模式 0。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/22-timer1-mode0.png" alt="EFM8BB1 Timer1 模式 0">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/22-timer1-mode0.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer1 模式 0">
           <figcaption>图 22：Timer1 模式 0。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/23-timer0-mode1.png" alt="EFM8BB1 Timer0 模式 1">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/23-timer0-mode1.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 1">
           <figcaption>图 23：Timer0 模式 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/24-timer0-mode2-rate.png" alt="EFM8BB1 Timer0 模式 2 溢出率">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/24-timer0-mode2-rate.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 2 溢出率">
           <figcaption>图 24：Timer0 模式 2 溢出率。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/25-timer0-mode2-flow.png" alt="EFM8BB1 Timer0 模式 2 工作方式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/25-timer0-mode2-flow.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 2 工作方式">
           <figcaption>图 25：Timer0 模式 2 工作方式。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/26-timer0-mode3-low-rate.png" alt="EFM8BB1 Timer0 模式 3 低字节溢出率">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/26-timer0-mode3-low-rate.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 3 低字节溢出率">
           <figcaption>图 26：Timer0 模式 3 低字节溢出率。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/27-timer0-mode3-high-rate.png" alt="EFM8BB1 Timer0 模式 3 高字节溢出率">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/27-timer0-mode3-high-rate.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 3 高字节溢出率">
           <figcaption>图 27：Timer0 模式 3 高字节溢出率。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/28-timer0-mode3.png" alt="EFM8BB1 Timer0 模式 3">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/28-timer0-mode3.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 模式 3">
           <figcaption>图 28：Timer0 模式 3。</figcaption>
         </figure>
 
@@ -404,47 +404,47 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/29-timer2-3-overview.png" alt="EFM8BB1 Timer2 Timer3 总览">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/29-timer2-3-overview.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer2 Timer3 总览">
           <figcaption>图 29：Timer2 / Timer3 总览。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/30-timer2-3-clock.png" alt="EFM8BB1 Timer2 Timer3 时钟配置">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/30-timer2-3-clock.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer2 Timer3 时钟配置">
           <figcaption>图 30：Timer2 / Timer3 时钟配置。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/31-timer2-3-capture.png" alt="EFM8BB1 Timer2 Timer3 捕获模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/31-timer2-3-capture.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer2 Timer3 捕获模式">
           <figcaption>图 31：Timer2 / Timer3 捕获模式。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/32-timer16-reload-rate-1.png" alt="EFM8BB1 16 位自动重载定时器溢出率 1">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/32-timer16-reload-rate-1.png?v=a1c284ad0b5d" alt="EFM8BB1 16 位自动重载定时器溢出率 1">
           <figcaption>图 32：16 位自动重载定时器溢出率 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/33-timer16-reload-rate-2.png" alt="EFM8BB1 16 位自动重载定时器溢出率 2">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/33-timer16-reload-rate-2.png?v=a1c284ad0b5d" alt="EFM8BB1 16 位自动重载定时器溢出率 2">
           <figcaption>图 33：16 位自动重载定时器溢出率 2。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/34-timer8-split-low-rate.png" alt="EFM8BB1 8 位拆分模式低字节溢出率">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/34-timer8-split-low-rate.png?v=a1c284ad0b5d" alt="EFM8BB1 8 位拆分模式低字节溢出率">
           <figcaption>图 34：8 位拆分模式低字节溢出率。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/35-timer8-split-high-rate.png" alt="EFM8BB1 8 位拆分模式高字节溢出率">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/35-timer8-split-high-rate.png?v=a1c284ad0b5d" alt="EFM8BB1 8 位拆分模式高字节溢出率">
           <figcaption>图 35：8 位拆分模式高字节溢出率。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/36-timer8-split-mode.png" alt="EFM8BB1 8 位拆分模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/36-timer8-split-mode.png?v=a1c284ad0b5d" alt="EFM8BB1 8 位拆分模式">
           <figcaption>图 36：8 位自动重装载拆分模式。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/37-timer-capture-mode.png" alt="EFM8BB1 定时器捕获模式">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/37-timer-capture-mode.png?v=a1c284ad0b5d" alt="EFM8BB1 定时器捕获模式">
           <figcaption>图 37：定时器捕获模式。</figcaption>
         </figure>
 
@@ -483,12 +483,12 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/38-adc-overview.png" alt="EFM8BB1 ADC 模块总览">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/38-adc-overview.png?v=a1c284ad0b5d" alt="EFM8BB1 ADC 模块总览">
           <figcaption>图 38：ADC 模块总览。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/39-adc-input-mux.png" alt="EFM8BB1 ADC 输入多路复用器">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/39-adc-input-mux.png?v=a1c284ad0b5d" alt="EFM8BB1 ADC 输入多路复用器">
           <figcaption>图 39：ADC 输入多路复用器。</figcaption>
         </figure>
 
@@ -508,7 +508,7 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/40-bootloader-flash-map.png" alt="EFM8BB1 带引导加载程序的 Flash 映射">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/40-bootloader-flash-map.png?v=a1c284ad0b5d" alt="EFM8BB1 带引导加载程序的 Flash 映射">
           <figcaption>图 40：带引导加载程序的 Flash 映射。</figcaption>
         </figure>
 
@@ -517,17 +517,17 @@ XBARE    交叉开关使能</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/41-c2-debug-connection.png" alt="EFM8BB1 C2 调试连接">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/41-c2-debug-connection.png?v=a1c284ad0b5d" alt="EFM8BB1 C2 调试连接">
           <figcaption>图 41：C2 调试连接。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/42-c2-pin-sharing-resistors.png" alt="EFM8BB1 C2 引脚共享电阻连接">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/42-c2-pin-sharing-resistors.png?v=a1c284ad0b5d" alt="EFM8BB1 C2 引脚共享电阻连接">
           <figcaption>图 42：C2 引脚共享电阻连接。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/43-c2-debug-adapter.png" alt="EFM8BB1 C2 调试器连接示例">
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/43-c2-debug-adapter.png?v=a1c284ad0b5d" alt="EFM8BB1 C2 调试器连接示例">
           <figcaption>图 43：C2 调试器连接示例。</figcaption>
         </figure>
       </section>
@@ -539,21 +539,21 @@ XBARE    交叉开关使能</code></pre>
           EFM8BB1 的参考代码覆盖 ADC、GPIO、外部中断、PCA、定时器、振荡器和串口输出等常见功能。建议先跑通 Blinky、PortIO、UART 和 Timer 示例，再逐步加入 ADC、PCA 和外部通信功能。
         </p>
 
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/44-example-adc-external-input.png" alt="EFM8BB1 ADC ExternalInput 示例"><figcaption>图 44：ADC ExternalInput 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/45-example-adc-lib-polled.png" alt="EFM8BB1 ADC Lib Polled 示例"><figcaption>图 45：ADC Lib Polled 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/46-example-adc-temp-sensor.png" alt="EFM8BB1 ADC TempSensor 示例"><figcaption>图 46：ADC TempSensor 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/47-example-blinky-simple.png" alt="EFM8BB1 Blinky Simple 示例"><figcaption>图 47：Blinky Simple 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/48-example-cpt112s-demo.png" alt="EFM8BB1 CPT112S Demo 示例"><figcaption>图 48：CPT112S Demo 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/49-example-external-interrupts.png" alt="EFM8BB1 ExternalInterrupts 示例"><figcaption>图 49：ExternalInterrupts 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/50-example-oscillators-hfosc.png" alt="EFM8BB1 Oscillators HFOSC 示例"><figcaption>图 50：Oscillators HFOSC 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/51-example-pca-frequency-output.png" alt="EFM8BB1 PCA FrequencyOutput 示例"><figcaption>图 51：PCA FrequencyOutput 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/52-example-pca-frequency-output-waveform-1.png" alt="EFM8BB1 PCA FrequencyOutput 波形 1"><figcaption>图 52：PCA FrequencyOutput 波形 1。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/53-example-pca-frequency-output-waveform-2.png" alt="EFM8BB1 PCA FrequencyOutput 波形 2"><figcaption>图 53：PCA FrequencyOutput 波形 2。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/54-example-pca-lib-frequency-output.png" alt="EFM8BB1 PCA Lib FrequencyOutput 示例"><figcaption>图 54：PCA Lib FrequencyOutput 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/55-example-portio-switch-led.png" alt="EFM8BB1 PortIO SwitchLED 示例"><figcaption>图 55：PortIO SwitchLED 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/56-example-timer0-16bit.png" alt="EFM8BB1 Timer0 16bit 示例"><figcaption>图 56：Timer0 16bit 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/57-example-timer2-two8bit.png" alt="EFM8BB1 Timer2 two8bit 示例"><figcaption>图 57：Timer2 two8bit 示例。</figcaption></figure>
-        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/58-example-voltmeter.png" alt="EFM8BB1 Voltmeter 示例"><figcaption>图 58：Voltmeter 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/44-example-adc-external-input.png?v=a1c284ad0b5d" alt="EFM8BB1 ADC ExternalInput 示例"><figcaption>图 44：ADC ExternalInput 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/45-example-adc-lib-polled.png?v=a1c284ad0b5d" alt="EFM8BB1 ADC Lib Polled 示例"><figcaption>图 45：ADC Lib Polled 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/46-example-adc-temp-sensor.png?v=a1c284ad0b5d" alt="EFM8BB1 ADC TempSensor 示例"><figcaption>图 46：ADC TempSensor 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/47-example-blinky-simple.png?v=a1c284ad0b5d" alt="EFM8BB1 Blinky Simple 示例"><figcaption>图 47：Blinky Simple 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/48-example-cpt112s-demo.png?v=a1c284ad0b5d" alt="EFM8BB1 CPT112S Demo 示例"><figcaption>图 48：CPT112S Demo 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/49-example-external-interrupts.png?v=a1c284ad0b5d" alt="EFM8BB1 ExternalInterrupts 示例"><figcaption>图 49：ExternalInterrupts 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/50-example-oscillators-hfosc.png?v=a1c284ad0b5d" alt="EFM8BB1 Oscillators HFOSC 示例"><figcaption>图 50：Oscillators HFOSC 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/51-example-pca-frequency-output.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA FrequencyOutput 示例"><figcaption>图 51：PCA FrequencyOutput 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/52-example-pca-frequency-output-waveform-1.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA FrequencyOutput 波形 1"><figcaption>图 52：PCA FrequencyOutput 波形 1。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/53-example-pca-frequency-output-waveform-2.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA FrequencyOutput 波形 2"><figcaption>图 53：PCA FrequencyOutput 波形 2。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/54-example-pca-lib-frequency-output.png?v=a1c284ad0b5d" alt="EFM8BB1 PCA Lib FrequencyOutput 示例"><figcaption>图 54：PCA Lib FrequencyOutput 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/55-example-portio-switch-led.png?v=a1c284ad0b5d" alt="EFM8BB1 PortIO SwitchLED 示例"><figcaption>图 55：PortIO SwitchLED 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/56-example-timer0-16bit.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer0 16bit 示例"><figcaption>图 56：Timer0 16bit 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/57-example-timer2-two8bit.png?v=a1c284ad0b5d" alt="EFM8BB1 Timer2 two8bit 示例"><figcaption>图 57：Timer2 two8bit 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/58-example-voltmeter.png?v=a1c284ad0b5d" alt="EFM8BB1 Voltmeter 示例"><figcaption>图 58：Voltmeter 示例。</figcaption></figure>
       </section>
 
       <section>
@@ -586,6 +586,6 @@ XBARE    交叉开关使能</code></pre>
     </article>
   </main>
 
-  <script src="../../assets/js/main.js?v=08b65f64912f"></script>
+  <script src="../../assets/js/main.js?v=a1c284ad0b5d"></script>
 </body>
 </html>

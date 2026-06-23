@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PIC16(L)F188XX 存储器编程规范整理 - XYJ</title>
   <meta name="description" content="整理 PIC16(L)F188XX 系列 MCU 的 ICSP 编程入口、NVM 编程命令、程序闪存擦写、EEPROM 写入、代码保护和 HEX 文件处理规则。">
-  <link rel="stylesheet" href="../../assets/css/style.css?v=08b65f64912f">
+  <link rel="stylesheet" href="../../assets/css/style.css?v=a1c284ad0b5d">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../index.html?v=08b65f64912f">← 返回首页</a>
-      <a href="../../index.html?v=08b65f64912f#mcu-stack">返回 MCU 平台</a>
+      <a href="../../index.html?v=a1c284ad0b5d">← 返回首页</a>
+      <a href="../../index.html?v=a1c284ad0b5d#mcu-stack">返回 MCU 平台</a>
     </div>
 
     <article class="article card">
@@ -43,17 +43,17 @@
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/01-memory-map.png" alt="PIC16(L)F188XX 存储器映射">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/01-memory-map.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 存储器映射">
           <figcaption>图 1：PIC16(L)F188XX 存储器映射。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/02-deviceid-register.png" alt="PIC16(L)F188XX DEVICEID 设备 ID 寄存器">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/02-deviceid-register.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX DEVICEID 设备 ID 寄存器">
           <figcaption>图 2：DEVICEID 设备 ID 寄存器。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/03-revisionid-register.png" alt="PIC16(L)F188XX REVISIONID 版本 ID 寄存器">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/03-revisionid-register.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX REVISIONID 版本 ID 寄存器">
           <figcaption>图 3：REVISIONID 版本 ID 寄存器。</figcaption>
         </figure>
       </section>
@@ -104,7 +104,7 @@
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/04-hvp-entry-exit-timing.png" alt="PIC16(L)F188XX 高压编程进入与退出时序">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/04-hvp-entry-exit-timing.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 高压编程进入与退出时序">
           <figcaption>图 4：高压编程 / 校验模式进入与退出时序。</figcaption>
         </figure>
 
@@ -128,7 +128,7 @@ M C H P
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/05-lvp-entry-exit-timing.png" alt="PIC16(L)F188XX 低压 LVP 编程进入与退出时序">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/05-lvp-entry-exit-timing.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 低压 LVP 编程进入与退出时序">
           <figcaption>图 5：低压 LVP 编程 / 校验模式进入与退出时序。</figcaption>
         </figure>
       </section>
@@ -152,7 +152,7 @@ M C H P
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/06-icsp-command-data-timing.png" alt="PIC16(L)F188XX ICSP 命令与数据时序">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/06-icsp-command-data-timing.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX ICSP 命令与数据时序">
           <figcaption>图 6：ICSP 命令与数据时序。</figcaption>
         </figure>
       </section>
@@ -171,12 +171,12 @@ M C H P
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/07-load-data-pfm.png" alt="PIC16(L)F188XX 为程序闪存加载数据的有效载荷格式">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/07-load-data-pfm.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 为程序闪存加载数据的有效载荷格式">
           <figcaption>图 7：为程序闪存 PFM 加载数据。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/08-load-data-dfm.png" alt="PIC16(L)F188XX 为数据闪存加载数据的有效载荷格式">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/08-load-data-dfm.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 为数据闪存加载数据的有效载荷格式">
           <figcaption>图 8：为数据闪存 DFM / EEPROM 加载数据。</figcaption>
         </figure>
 
@@ -191,7 +191,7 @@ M C H P
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/09-read-data-pfm.png" alt="PIC16(L)F188XX 从程序闪存读取数据">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/09-read-data-pfm.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 从程序闪存读取数据">
           <figcaption>图 9：从程序闪存 PFM 读取数据。</figcaption>
         </figure>
       </section>
@@ -210,12 +210,12 @@ M C H P
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/10-increment-address.png" alt="PIC16(L)F188XX 递增地址命令">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/10-increment-address.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 递增地址命令">
           <figcaption>图 10：递增地址命令。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/11-load-pc-address.png" alt="PIC16(L)F188XX 加载 PC 地址命令">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/11-load-pc-address.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 加载 PC 地址命令">
           <figcaption>图 11：加载 PC 地址命令。</figcaption>
         </figure>
       </section>
@@ -230,7 +230,7 @@ M C H P
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/12-begin-internal-timed-programming.png" alt="PIC16(L)F188XX 启动内部定时编程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/12-begin-internal-timed-programming.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 启动内部定时编程">
           <figcaption>图 12：启动内部定时编程。</figcaption>
         </figure>
 
@@ -241,12 +241,12 @@ M C H P
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/13-begin-external-timed-programming.png" alt="PIC16(L)F188XX 启动外部定时编程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/13-begin-external-timed-programming.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 启动外部定时编程">
           <figcaption>图 13：启动外部定时编程。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/14-end-external-timed-programming.png" alt="PIC16(L)F188XX 结束外部定时编程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/14-end-external-timed-programming.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 结束外部定时编程">
           <figcaption>图 14：结束外部定时编程。</figcaption>
         </figure>
       </section>
@@ -265,7 +265,7 @@ M C H P
         </div>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/15-bulk-erase-timing.png" alt="PIC16(L)F188XX 批量擦除时序">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/15-bulk-erase-timing.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 批量擦除时序">
           <figcaption>图 15：批量擦除时序。</figcaption>
         </figure>
 
@@ -280,7 +280,7 @@ M C H P
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/16-row-erase-timing.png" alt="PIC16(L)F188XX 行擦除时序">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/16-row-erase-timing.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 行擦除时序">
           <figcaption>图 16：行擦除时序。</figcaption>
         </figure>
       </section>
@@ -304,32 +304,32 @@ M C H P
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/17-programming-flow-overview.png" alt="PIC16(L)F188XX 编程流程总览">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/17-programming-flow-overview.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程流程总览">
           <figcaption>图 17：编程流程总览。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/18-user-id-config-programming-flow.png" alt="PIC16(L)F188XX 用户 ID 和配置字编程流程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/18-user-id-config-programming-flow.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 用户 ID 和配置字编程流程">
           <figcaption>图 18：用户 ID 与配置字编程流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/19-program-flash-row-flow.png" alt="PIC16(L)F188XX 程序闪存行编程流程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/19-program-flash-row-flow.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 程序闪存行编程流程">
           <figcaption>图 19：程序闪存行编程流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/20-eeprom-row-flow.png" alt="PIC16(L)F188XX EEPROM 行编程流程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/20-eeprom-row-flow.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX EEPROM 行编程流程">
           <figcaption>图 20：EEPROM 行编程流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/21-program-flash-verify-flow.png" alt="PIC16(L)F188XX 程序闪存校验流程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/21-program-flash-verify-flow.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 程序闪存校验流程">
           <figcaption>图 21：程序闪存校验流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/22-data-eeprom-verify-flow.png" alt="PIC16(L)F188XX 数据 EEPROM 校验流程">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/22-data-eeprom-verify-flow.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 数据 EEPROM 校验流程">
           <figcaption>图 22：数据 EEPROM 校验流程。</figcaption>
         </figure>
       </section>
@@ -396,37 +396,37 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </ul>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/23-electrical-spec-table-1.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 1">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/23-electrical-spec-table-1.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 1">
           <figcaption>图 23：编程 / 校验模式电气规格表 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/24-electrical-spec-table-2.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 2">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/24-electrical-spec-table-2.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 2">
           <figcaption>图 24：编程 / 校验模式电气规格表 2。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/25-electrical-spec-table-3.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 3">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/25-electrical-spec-table-3.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 3">
           <figcaption>图 25：编程 / 校验模式电气规格表 3。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/26-electrical-spec-table-4.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 4">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/26-electrical-spec-table-4.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 4">
           <figcaption>图 26：编程 / 校验模式电气规格表 4。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/27-electrical-spec-table-5.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 5">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/27-electrical-spec-table-5.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 5">
           <figcaption>图 27：编程 / 校验模式电气规格表 5。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/28-electrical-spec-table-6.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 6">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/28-electrical-spec-table-6.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 6">
           <figcaption>图 28：编程 / 校验模式电气规格表 6。</figcaption>
         </figure>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/29-electrical-spec-table-7.png" alt="PIC16(L)F188XX 编程校验模式电气规格表 7">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/29-electrical-spec-table-7.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 编程校验模式电气规格表 7">
           <figcaption>图 29：编程 / 校验模式电气规格表 7。</figcaption>
         </figure>
       </section>
@@ -445,7 +445,7 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/30-config-word-1-fosc.png" alt="PIC16(L)F188XX 配置字 1 振荡器相关位定义">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/30-config-word-1-fosc.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 配置字 1 振荡器相关位定义">
           <figcaption>图 30：配置字 1，振荡器与时钟相关位定义。</figcaption>
         </figure>
 
@@ -456,7 +456,7 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/31-config-word-2-debug-bor-mclr.png" alt="PIC16(L)F188XX 配置字 2 调试 BOR MCLR 位定义">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/31-config-word-2-debug-bor-mclr.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 配置字 2 调试 BOR MCLR 位定义">
           <figcaption>图 31：配置字 2，调试、BOR 与 MCLR 相关位定义。</figcaption>
         </figure>
 
@@ -467,7 +467,7 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/32-config-word-3-wdt.png" alt="PIC16(L)F188XX 看门狗配置字位定义">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/32-config-word-3-wdt.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX 看门狗配置字位定义">
           <figcaption>图 32：看门狗定时器相关配置位定义。</figcaption>
         </figure>
 
@@ -482,7 +482,7 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/33-config-word-4-lvp-wrt.png" alt="PIC16(L)F188XX LVP 与 WRT 配置字位定义">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/33-config-word-4-lvp-wrt.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX LVP 与 WRT 配置字位定义">
           <figcaption>图 33：LVP 与 WRT 写保护相关配置位定义。</figcaption>
         </figure>
 
@@ -493,7 +493,7 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/pic16f188xx-memory-programming/34-config-word-5-code-protection.png" alt="PIC16(L)F188XX CP 与 CPD 代码保护配置字位定义">
+          <img src="../../assets/img/articles/pic16f188xx-memory-programming/34-config-word-5-code-protection.png?v=a1c284ad0b5d" alt="PIC16(L)F188XX CP 与 CPD 代码保护配置字位定义">
           <figcaption>图 34：CP 与 CPD 代码保护相关配置位定义。</figcaption>
         </figure>
       </section>
@@ -537,6 +537,6 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
     </article>
   </main>
 
-  <script src="../../assets/js/main.js?v=08b65f64912f"></script>
+  <script src="../../assets/js/main.js?v=a1c284ad0b5d"></script>
 </body>
 </html>
