@@ -1,0 +1,591 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EFM8BB10F8I-A-QFN20 开发笔记 - XYJ</title>
+  <meta name="description" content="整理 EFM8BB10F8I-A-QFN20 的内核、存储器、I/O、交叉开关、中断、PCA、定时器、ADC、C2 调试和参考代码。">
+  <link rel="stylesheet" href="../../assets/css/style.css?v=08b65f64912f">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../index.html?v=08b65f64912f">← 返回首页</a>
+      <a href="../../index.html?v=08b65f64912f#mcu-stack">返回 MCU 平台</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">EFM8BB1 · 8051 · C2 DEBUG · GPIO · PCA · TIMER · ADC</div>
+
+      <h1>EFM8BB10F8I-A-QFN20 开发笔记</h1>
+
+      <p>
+        本文整理 EFM8BB10F8I-A-QFN20 的开发要点，覆盖 Busy Bee 1 系列 MCU 的内核、存储器、电源、I/O、交叉开关、中断、PCA、定时器、ADC、C2 调试接口和常用参考代码，适合作为后续工程移植、外设初始化和调试排错的速查笔记。
+      </p>
+
+      <div class="article-note">
+        EFM8BB1 采用流水线 CIP-51 内核，与标准 8051 指令集兼容，最高运行频率 25MHz，片上集成 Flash、RAM、XRAM、ADC、比较器、UART、SPI、SMBus/I2C、PCA、定时器、看门狗和 C2 调试接口。
+      </div>
+
+      <section>
+        <h2>一、器件特性概览</h2>
+
+        <p>
+          EFM8BB1 是 Silicon Labs Busy Bee 1 系列 8 位 MCU，定位为小封装、低成本、外设较完整的 8051 兼容控制器。EFM8BB10F8I-A-QFN20 属于 8KB Flash、QFN20 封装、工业级温度范围的型号，适合小型控制、传感器采集、简单通信和低成本嵌入式控制场景。
+        </p>
+
+        <ul>
+          <li>内核：流水线 CIP-51 内核，兼容标准 8051 指令集，最高 25MHz。</li>
+          <li>存储器：最高 8KB 片上 Flash，支持在系统重新编程；片上 512 字节 RAM，其中包含标准 8051 RAM 和 XRAM。</li>
+          <li>电源：内部 LDO、上电复位、欠压检测和多种低功耗模式。</li>
+          <li>I/O：多达 18 个多功能 I/O，引脚可承受 5V 偏置，支持交叉开关外设路由。</li>
+          <li>时钟：24.5MHz 内部振荡器、80kHz 低频振荡器和外部 CMOS 时钟输入。</li>
+          <li>通信：UART、SPI、SMBus/I2C。</li>
+          <li>模拟：12 位 ADC、温度传感器、内部参考和 2 个比较器。</li>
+          <li>调试：C2 调试接口，支持全速在线调试、断点和寄存器检查。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>二、部件编号与选型</h2>
+
+        <p>
+          EFM8BB1 的部件编号包含产品线、系列、Flash 容量、温度等级、封装和包装方式等信息。以 EFM8BB10F8G-A-QSOP24R 为例，EFM8 表示 EFM8 产品线，BB1 表示 Busy Bee 1 系列，F8 表示 Flash 容量为 8KB，后续字段表示温度等级、版本、封装和编带包装。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/01-part-number.png" alt="EFM8BB1 部件编号说明">
+          <figcaption>图 1：EFM8BB1 部件编号说明。</figcaption>
+        </figure>
+
+        <p>
+          选型时需要关注 Flash 容量、封装引脚数量、温度等级、可用外设和引脚复用情况。QFN20 封装尺寸较小，但部分 P1、P2 引脚数量少于 QSOP24，因此在分配 UART、SPI、SMBus、PCA、ADC 和调试接口时要提前确认引脚资源。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/02-ordering-guide.png" alt="EFM8BB1 产品选型表">
+          <figcaption>图 2：EFM8BB1 产品选型表。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>三、系统框图与内部资源</h2>
+
+        <p>
+          EFM8BB1 内部由 CIP-51 内核、Flash、SRAM、XRAM、调试编程硬件、电源管理、时钟系统、数字外设、模拟外设和端口 I/O 组成。C2CK/RSTB 和 C2D 用于调试和编程，端口引脚通过交叉开关连接 UART、SPI、SMBus、PCA 和定时器等外设。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/03-block-diagram.png" alt="EFM8BB1 系统框图">
+          <figcaption>图 3：EFM8BB1 系统框图。</figcaption>
+        </figure>
+
+        <ul>
+          <li>CIP-51 Core：8051 兼容内核。</li>
+          <li>Debug / Programming Hardware：C2 调试与编程硬件。</li>
+          <li>System Clock Configuration：内部高频、低频和外部 CMOS 时钟配置。</li>
+          <li>Crossbar Control：外设到端口的交叉开关路由。</li>
+          <li>Analog：ADC、温度传感器、内部参考和比较器。</li>
+          <li>Digital：UART、SPI、SMBus、PCA、CRC 和定时器。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>四、中断系统</h2>
+
+        <p>
+          CIP-51 内核包含扩展中断系统，支持多个中断源和优先级。中断源的待处理标志位于相关外设的 SFR 中，当外设或外部引脚满足中断条件时，对应标志会置位。若全局中断和单独中断使能均打开，CPU 会在当前指令执行完成后跳转到对应中断向量执行 ISR。
+        </p>
+
+        <p>
+          每个中断服务程序末尾必须执行 RETI。部分中断标志由硬件自动清除，部分需要软件在 ISR 中手动清除。如果 RETI 后中断标志仍保持置位，CPU 可能会再次进入同一个中断。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/04-interrupt-vector-table.png" alt="EFM8BB1 中断源与向量表">
+          <figcaption>图 4：EFM8BB1 中断源与向量表。</figcaption>
+        </figure>
+
+        <h3>中断相关寄存器</h3>
+
+        <ul>
+          <li>IE：中断使能寄存器，地址 0xA8，可按位寻址。</li>
+          <li>IP：中断优先级寄存器，地址 0xB8，可按位寻址。</li>
+          <li>EIE1：扩展中断使能寄存器 1，地址 0xE6。</li>
+          <li>EIP1：扩展中断优先级寄存器 1，地址 0xF3。</li>
+        </ul>
+
+        <pre><code>IE 关键位：
+EA    全局中断使能
+ESP0  SPI0 中断使能
+ET2   Timer2 中断使能
+ES0   UART0 中断使能
+ET1   Timer1 中断使能
+EX1   外部中断 1 使能
+ET0   Timer0 中断使能
+EX0   外部中断 0 使能</code></pre>
+      </section>
+
+      <section>
+        <h2>五、电源模式</h2>
+
+        <p>
+          EFM8BB1 内部电路由 VDD 供电，内部核心电压由片上 LDO 产生。固件可以通过关闭不用的外设、停止数字外设时钟和进入低功耗模式来降低功耗。常见电源模式包括 Normal、Idle、Stop 和 Shutdown。
+        </p>
+
+        <ul>
+          <li>Normal：内核和外设全功能运行。</li>
+          <li>Idle：CPU 停止执行，外设时钟继续运行，可由中断唤醒。</li>
+          <li>Stop：内部电源网络关闭，引脚保持状态，可由复位源唤醒。</li>
+          <li>Shutdown：内部电源网络关闭，通常由 RSTB 或上电复位唤醒。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>六、I/O 与交叉开关</h2>
+
+        <p>
+          EFM8BB1 的多功能 I/O 可配置为 GPIO、数字外设引脚或模拟输入。P0.0 至 P1.7 可作为通用 I/O 并通过交叉开关分配给外设，P2.0 和 P2.1 也可作为 GPIO，其中 P2.0 与 C2D 调试数据信号复用。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/05-port-io-overview.png" alt="EFM8BB1 端口 I/O 总体框图">
+          <figcaption>图 5：端口 I/O 总体框图。</figcaption>
+        </figure>
+
+        <h3>6.1 端口初始化基本步骤</h3>
+
+        <ol>
+          <li>使用 PnMDIN 选择模拟输入或数字输入。</li>
+          <li>使用 PnMDOUT 选择开漏输出或推挽输出。</li>
+          <li>使用 PnSKIP 决定交叉开关是否跳过该引脚。</li>
+          <li>通过 XBR0、XBR1 选择需要路由的数字外设。</li>
+          <li>设置 XBR2.XBARE 使能交叉开关。</li>
+        </ol>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/06-port-io-cell.png" alt="EFM8BB1 端口 I/O 单元框图">
+          <figcaption>图 6：端口 I/O 单元框图。</figcaption>
+        </figure>
+
+        <h3>6.2 模拟输入配置</h3>
+
+        <p>
+          用作 ADC 或比较器输入的引脚应配置为模拟模式。模拟模式会关闭弱上拉、数字驱动器和数字接收器，从而降低功耗并减少模拟噪声。
+        </p>
+
+        <pre><code>模拟输入配置思路：
+1. PnMDIN.n = 0，选择模拟模式
+2. Pn.n = 1，端口锁存置 1
+3. PnSKIP.n = 1，让交叉开关跳过该引脚</code></pre>
+
+        <h3>6.3 数字输入与推挽输出配置</h3>
+
+        <pre><code>数字输入：
+PnMDIN.n  = 1
+PnMDOUT.n = 0
+Pn.n      = 1
+
+数字推挽输出：
+PnMDIN.n  = 1
+PnMDOUT.n = 1</code></pre>
+
+        <h3>6.4 交叉开关分配规则</h3>
+
+        <p>
+          交叉开关按外设优先级顺序为外设分配未占用的最低有效端口引脚。UART0 优先级较高且 TX/RX 通常固定到 P0.4 和 P0.5。SPI0、SMBus、PCA、定时器等外设会继续分配到未跳过、未占用的引脚。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/07-crossbar-priority-example.png" alt="EFM8BB1 交叉开关优先级分配示例">
+          <figcaption>图 7：交叉开关优先级分配示例。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/08-crossbar-function-map.png" alt="EFM8BB1 交叉开关功能映射表">
+          <figcaption>图 8：交叉开关功能映射表。</figcaption>
+        </figure>
+
+        <h3>6.5 交叉开关相关寄存器</h3>
+
+        <ul>
+          <li>XBR0：控制 UART0、SPI0、SMBus、比较器输出和 SYSCLK 输出。</li>
+          <li>XBR1：控制 Timer0、Timer1、Timer2、PCA ECI 和 PCA 通道输出。</li>
+          <li>XBR2：控制弱上拉和交叉开关总使能。</li>
+          <li>PRTDRV：按端口设置驱动强度。</li>
+          <li>P0SKIP / P1SKIP：控制端口引脚是否被交叉开关跳过。</li>
+        </ul>
+
+        <pre><code>XBR2 关键位：
+WEAKPUD  弱上拉禁用
+XBARE    交叉开关使能</code></pre>
+      </section>
+
+      <section>
+        <h2>七、INT0、INT1 与端口匹配</h2>
+
+        <p>
+          EFM8BB1 提供两个直接引脚数字中断源 INT0 和 INT1，可连接到端口 0 引脚。它们可配置为高电平或低电平有效，也可配置为边沿触发或电平触发。引脚分配由 IT01CF 寄存器控制，触发方式由 TCON 中的 IT0 和 IT1 控制。
+        </p>
+
+        <p>
+          端口匹配功能可让一个或多个端口输入逻辑变化触发系统事件。PnMATCH 存储期望电平，PnMASK 决定哪些引脚参与比较。当输入引脚逻辑值与期望值不匹配时，就会产生端口匹配事件，可用于中断或低功耗唤醒。
+        </p>
+      </section>
+
+      <section>
+        <h2>八、时钟系统</h2>
+
+        <p>
+          EFM8BB1 支持 24.5MHz 内部高频振荡器、80kHz 低频振荡器和外部 CMOS 时钟输入。实际工程中，如果对 UART 波特率、定时器精度或 PWM 频率要求较高，应优先明确系统时钟来源和分频设置。
+        </p>
+
+        <ul>
+          <li>24.5MHz 内部振荡器：常用主时钟，精度约 ±2%。</li>
+          <li>80kHz 低频振荡器：常用于低功耗或看门狗相关场景。</li>
+          <li>外部 CMOS 时钟：适合需要更高精度外部时钟的场景。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>九、PCA 可编程计数器阵列</h2>
+
+        <p>
+          PCA0 是 3 通道可编程计数器阵列，每个捕获 / 比较模块都可以独立配置为边沿捕获、软件定时器、高速输出、频率输出或 PWM 输出。PCA 是 EFM8BB1 中非常重要的定时、测频和 PWM 资源。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/09-pca-block-diagram.png" alt="EFM8BB1 PCA0 模块框图">
+          <figcaption>图 9：PCA0 模块框图。</figcaption>
+        </figure>
+
+        <h3>9.1 PCA 工作模式</h3>
+
+        <ul>
+          <li>边沿触发捕获：捕获 CEXn 引脚跳变时的 PCA 计数值。</li>
+          <li>软件定时器：比较寄存器匹配时产生标志或中断。</li>
+          <li>高速输出：匹配时切换或设置输出状态。</li>
+          <li>频率输出：输出固定频率方波。</li>
+          <li>PWM 输出：支持 8 至 11 位 PWM 和 16 位 PWM。</li>
+        </ul>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/10-pca-edge-capture.png" alt="EFM8BB1 PCA 边沿捕获模式">
+          <figcaption>图 10：PCA 边沿捕获模式。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/11-pca-software-timer.png" alt="EFM8BB1 PCA 软件定时器模式">
+          <figcaption>图 11：PCA 软件定时器模式。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/12-pca-high-speed-output.png" alt="EFM8BB1 PCA 高速输出模式">
+          <figcaption>图 12：PCA 高速输出模式。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/13-pca-frequency-output.png" alt="EFM8BB1 PCA 频率输出模式">
+          <figcaption>图 13：PCA 频率输出模式。</figcaption>
+        </figure>
+
+        <h3>9.2 PWM 波形生成</h3>
+
+        <p>
+          PCA PWM 可配置为边沿对齐或中心对齐。PWM 分辨率由模式配置决定，占空比由 PCA0CPn 捕获 / 比较寄存器控制。更新占空比时要注意寄存器写入顺序，通常应先写低字节，再写高字节。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/14-pca-edge-aligned-pwm-1.png" alt="EFM8BB1 PCA 边沿对齐 PWM 图 1">
+          <figcaption>图 14：PCA 边沿对齐 PWM 示例 1。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/15-pca-edge-aligned-pwm-2.png" alt="EFM8BB1 PCA 边沿对齐 PWM 图 2">
+          <figcaption>图 15：PCA 边沿对齐 PWM 示例 2。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/16-pca-edge-aligned-pwm-3.png" alt="EFM8BB1 PCA 边沿对齐 PWM 图 3">
+          <figcaption>图 16：PCA 边沿对齐 PWM 示例 3。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/17-pca-center-aligned-pwm-1.png" alt="EFM8BB1 PCA 中心对齐 PWM 图 1">
+          <figcaption>图 17：PCA 中心对齐 PWM 示例 1。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/18-pca-center-aligned-pwm-2.png" alt="EFM8BB1 PCA 中心对齐 PWM 图 2">
+          <figcaption>图 18：PCA 中心对齐 PWM 示例 2。</figcaption>
+        </figure>
+
+        <h3>9.3 比较器清零功能</h3>
+
+        <p>
+          PCA 的比较器清零功能可用于在特定比较器状态下清除 CEXn 输出，适合需要由模拟比较器参与 PWM 保护或闭环控制的场景。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/19-pca-comparator-clear-1.png" alt="EFM8BB1 PCA 比较器清零功能图 1">
+          <figcaption>图 19：PCA 比较器清零功能示例 1。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/20-pca-comparator-clear-2.png" alt="EFM8BB1 PCA 比较器清零功能图 2">
+          <figcaption>图 20：PCA 比较器清零功能示例 2。</figcaption>
+        </figure>
+
+        <h3>9.4 PCA 关键寄存器</h3>
+
+        <ul>
+          <li>PCA0CN0：PCA 控制寄存器。</li>
+          <li>PCA0MD：PCA 模式寄存器。</li>
+          <li>PCA0PWM：PCA PWM 配置寄存器。</li>
+          <li>PCA0L / PCA0H：PCA 计数器低 / 高字节。</li>
+          <li>PCA0CPM0/1/2：各通道捕获 / 比较模式寄存器。</li>
+          <li>PCA0CPLn / PCA0CPHn：各通道捕获 / 比较低 / 高字节。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十、定时器资源</h2>
+
+        <p>
+          EFM8BB1 提供 Timer0、Timer1、Timer2 和 Timer3。Timer0 和 Timer1 兼容 8051 传统定时器模式，可配置为 13 位、16 位、8 位自动重装载或拆分模式。Timer2 和 Timer3 更适合 16 位自动重装载、8 位拆分和捕获测量等场景。
+        </p>
+
+        <h3>10.1 Timer0 / Timer1</h3>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/21-timer0-mode0.png" alt="EFM8BB1 Timer0 模式 0">
+          <figcaption>图 21：Timer0 模式 0。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/22-timer1-mode0.png" alt="EFM8BB1 Timer1 模式 0">
+          <figcaption>图 22：Timer1 模式 0。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/23-timer0-mode1.png" alt="EFM8BB1 Timer0 模式 1">
+          <figcaption>图 23：Timer0 模式 1。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/24-timer0-mode2-rate.png" alt="EFM8BB1 Timer0 模式 2 溢出率">
+          <figcaption>图 24：Timer0 模式 2 溢出率。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/25-timer0-mode2-flow.png" alt="EFM8BB1 Timer0 模式 2 工作方式">
+          <figcaption>图 25：Timer0 模式 2 工作方式。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/26-timer0-mode3-low-rate.png" alt="EFM8BB1 Timer0 模式 3 低字节溢出率">
+          <figcaption>图 26：Timer0 模式 3 低字节溢出率。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/27-timer0-mode3-high-rate.png" alt="EFM8BB1 Timer0 模式 3 高字节溢出率">
+          <figcaption>图 27：Timer0 模式 3 高字节溢出率。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/28-timer0-mode3.png" alt="EFM8BB1 Timer0 模式 3">
+          <figcaption>图 28：Timer0 模式 3。</figcaption>
+        </figure>
+
+        <h3>10.2 Timer2 / Timer3</h3>
+
+        <p>
+          Timer2 和 Timer3 可以使用系统时钟、系统时钟 12 分频或外部时钟作为时钟源。它们支持 16 位自动重装载、8 位自动重装载拆分模式和捕获模式，适合周期中断、波形测量和低频信号捕获。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/29-timer2-3-overview.png" alt="EFM8BB1 Timer2 Timer3 总览">
+          <figcaption>图 29：Timer2 / Timer3 总览。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/30-timer2-3-clock.png" alt="EFM8BB1 Timer2 Timer3 时钟配置">
+          <figcaption>图 30：Timer2 / Timer3 时钟配置。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/31-timer2-3-capture.png" alt="EFM8BB1 Timer2 Timer3 捕获模式">
+          <figcaption>图 31：Timer2 / Timer3 捕获模式。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/32-timer16-reload-rate-1.png" alt="EFM8BB1 16 位自动重载定时器溢出率 1">
+          <figcaption>图 32：16 位自动重载定时器溢出率 1。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/33-timer16-reload-rate-2.png" alt="EFM8BB1 16 位自动重载定时器溢出率 2">
+          <figcaption>图 33：16 位自动重载定时器溢出率 2。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/34-timer8-split-low-rate.png" alt="EFM8BB1 8 位拆分模式低字节溢出率">
+          <figcaption>图 34：8 位拆分模式低字节溢出率。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/35-timer8-split-high-rate.png" alt="EFM8BB1 8 位拆分模式高字节溢出率">
+          <figcaption>图 35：8 位拆分模式高字节溢出率。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/36-timer8-split-mode.png" alt="EFM8BB1 8 位拆分模式">
+          <figcaption>图 36：8 位自动重装载拆分模式。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/37-timer-capture-mode.png" alt="EFM8BB1 定时器捕获模式">
+          <figcaption>图 37：定时器捕获模式。</figcaption>
+        </figure>
+
+        <h3>10.3 定时器相关寄存器</h3>
+
+        <ul>
+          <li>TCON：Timer0 / Timer1 控制寄存器。</li>
+          <li>TMOD：Timer0 / Timer1 模式寄存器。</li>
+          <li>TL0 / TH0：Timer0 低 / 高字节。</li>
+          <li>TL1 / TH1：Timer1 低 / 高字节。</li>
+          <li>TMR2CN0：Timer2 控制寄存器。</li>
+          <li>TMR3CN0：Timer3 控制寄存器。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十一、通信与数字外设</h2>
+
+        <p>
+          EFM8BB1 集成 UART、SPI、SMBus/I2C 和 CRC 单元。UART 适合串口调试和简单通信，SPI 适合外接 Flash、ADC、显示屏或其他高速外设，SMBus/I2C 适合连接传感器和配置类芯片，CRC 可用于数据校验或 Flash 校验。
+        </p>
+
+        <ul>
+          <li>UART0：可通过交叉开关路由到固定或指定端口。</li>
+          <li>SPI0：支持主 / 从模式，NSS 仅在四线模式时引出。</li>
+          <li>SMBus/I2C：支持主 / 从通信。</li>
+          <li>CRC：16 位 CRC 单元，可用于数据完整性检查。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十二、ADC 与模拟外设</h2>
+
+        <p>
+          EFM8BB1 的 ADC 支持外部引脚、片上温度传感器、内部稳压电源、VDD 和 GND 等输入源。ADC 输入通道通过 ADC0MX 选择，转换启动可由软件、定时器或其他触发源控制。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/38-adc-overview.png" alt="EFM8BB1 ADC 模块总览">
+          <figcaption>图 38：ADC 模块总览。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/39-adc-input-mux.png" alt="EFM8BB1 ADC 输入多路复用器">
+          <figcaption>图 39：ADC 输入多路复用器。</figcaption>
+        </figure>
+
+        <ul>
+          <li>ADC 输入引脚必须配置为模拟模式。</li>
+          <li>ADC 参考电压可选择内部参考或其他参考源。</li>
+          <li>采样前应保证输入信号有足够跟踪时间。</li>
+          <li>温度传感器可用于粗略温度测量，但未经校准时精度有限。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十三、复位源、调试和引导加载程序</h2>
+
+        <p>
+          EFM8BB1 集成多种复位源，包括上电复位、欠压复位、外部复位、看门狗复位和软件相关复位。C2 接口用于在线调试和编程，通常由 C2CK/RSTB 与 C2D 两根信号组成。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/40-bootloader-flash-map.png" alt="EFM8BB1 带引导加载程序的 Flash 映射">
+          <figcaption>图 40：带引导加载程序的 Flash 映射。</figcaption>
+        </figure>
+
+        <p>
+          C2 调试接口和用户电路共享引脚时，需要注意外部电路对调试时序的影响。常见做法是在 C2CK 和 C2D 与外部系统之间串联电阻，降低外部电路对调试器的干扰。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/41-c2-debug-connection.png" alt="EFM8BB1 C2 调试连接">
+          <figcaption>图 41：C2 调试连接。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/42-c2-pin-sharing-resistors.png" alt="EFM8BB1 C2 引脚共享电阻连接">
+          <figcaption>图 42：C2 引脚共享电阻连接。</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/43-c2-debug-adapter.png" alt="EFM8BB1 C2 调试器连接示例">
+          <figcaption>图 43：C2 调试器连接示例。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>十四、参考代码与示例工程</h2>
+
+        <p>
+          EFM8BB1 的参考代码覆盖 ADC、GPIO、外部中断、PCA、定时器、振荡器和串口输出等常见功能。建议先跑通 Blinky、PortIO、UART 和 Timer 示例，再逐步加入 ADC、PCA 和外部通信功能。
+        </p>
+
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/44-example-adc-external-input.png" alt="EFM8BB1 ADC ExternalInput 示例"><figcaption>图 44：ADC ExternalInput 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/45-example-adc-lib-polled.png" alt="EFM8BB1 ADC Lib Polled 示例"><figcaption>图 45：ADC Lib Polled 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/46-example-adc-temp-sensor.png" alt="EFM8BB1 ADC TempSensor 示例"><figcaption>图 46：ADC TempSensor 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/47-example-blinky-simple.png" alt="EFM8BB1 Blinky Simple 示例"><figcaption>图 47：Blinky Simple 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/48-example-cpt112s-demo.png" alt="EFM8BB1 CPT112S Demo 示例"><figcaption>图 48：CPT112S Demo 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/49-example-external-interrupts.png" alt="EFM8BB1 ExternalInterrupts 示例"><figcaption>图 49：ExternalInterrupts 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/50-example-oscillators-hfosc.png" alt="EFM8BB1 Oscillators HFOSC 示例"><figcaption>图 50：Oscillators HFOSC 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/51-example-pca-frequency-output.png" alt="EFM8BB1 PCA FrequencyOutput 示例"><figcaption>图 51：PCA FrequencyOutput 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/52-example-pca-frequency-output-waveform-1.png" alt="EFM8BB1 PCA FrequencyOutput 波形 1"><figcaption>图 52：PCA FrequencyOutput 波形 1。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/53-example-pca-frequency-output-waveform-2.png" alt="EFM8BB1 PCA FrequencyOutput 波形 2"><figcaption>图 53：PCA FrequencyOutput 波形 2。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/54-example-pca-lib-frequency-output.png" alt="EFM8BB1 PCA Lib FrequencyOutput 示例"><figcaption>图 54：PCA Lib FrequencyOutput 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/55-example-portio-switch-led.png" alt="EFM8BB1 PortIO SwitchLED 示例"><figcaption>图 55：PortIO SwitchLED 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/56-example-timer0-16bit.png" alt="EFM8BB1 Timer0 16bit 示例"><figcaption>图 56：Timer0 16bit 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/57-example-timer2-two8bit.png" alt="EFM8BB1 Timer2 two8bit 示例"><figcaption>图 57：Timer2 two8bit 示例。</figcaption></figure>
+        <figure><img src="../../assets/img/articles/efm8bb10f8i-qfn20-development-notes/58-example-voltmeter.png" alt="EFM8BB1 Voltmeter 示例"><figcaption>图 58：Voltmeter 示例。</figcaption></figure>
+      </section>
+
+      <section>
+        <h2>十五、工程开发建议</h2>
+
+        <p>
+          开发 EFM8BB10F8I-A-QFN20 时，建议先建立一套固定的初始化模板：系统时钟、交叉开关、GPIO、UART、定时器和调试接口优先配置稳定。然后再根据项目需要逐步打开 ADC、PCA、SPI、SMBus 和外部中断。
+        </p>
+
+        <ul>
+          <li>所有未用模拟引脚应明确配置，避免悬空导致功耗或噪声问题。</li>
+          <li>使用交叉开关前，先规划 UART、SPI、PCA、ADC 和 C2D 引脚冲突。</li>
+          <li>使用 C2 调试时，避免外部电路强驱 C2D 或 C2CK/RSTB。</li>
+          <li>配置 PWM 时，重点检查 PCA 时钟源、分频、分辨率和比较寄存器写入顺序。</li>
+          <li>配置 ADC 时，重点检查引脚模拟模式、参考电压、输入通道和跟踪时间。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十六、总结</h2>
+
+        <p>
+          EFM8BB10F8I-A-QFN20 虽然属于 8 位 MCU，但片上外设较完整，I/O 复用也比较灵活。实际开发中，最容易出问题的部分通常不是单个外设本身，而是端口模式、交叉开关分配、C2 调试引脚共享、PCA 输出路由和 ADC 引脚模拟配置。因此，工程模板中应优先固化这些基础配置，再逐步扩展业务逻辑。
+        </p>
+      </section>
+
+      <footer class="article-footer">
+        <p>整理方向：EFM8BB10F8I-A-QFN20 · 8051 · C2 调试 · I/O 交叉开关 · PCA · Timer · ADC。</p>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../../assets/js/main.js?v=08b65f64912f"></script>
+</body>
+</html>
