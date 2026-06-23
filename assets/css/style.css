@@ -368,6 +368,56 @@ a:focus-visible {
   line-height: 1.35;
 }
 
+.platform-category {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.platform-category h4 {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.platform-items {
+  display: grid;
+  gap: 8px;
+}
+
+.platform-item {
+  display: block;
+  padding: 12px 13px;
+  border: 1px solid rgba(125, 211, 252, 0.13);
+  border-radius: 14px;
+  background: rgba(125, 211, 252, 0.035);
+  transition: 0.2s ease;
+}
+
+.platform-item:hover {
+  border-color: rgba(0, 230, 118, 0.36);
+  background: rgba(0, 230, 118, 0.07);
+  transform: translateY(-1px);
+}
+
+.platform-item strong {
+  display: block;
+  color: var(--text);
+  font-family: Consolas, "JetBrains Mono", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.platform-item span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .post-card {
   padding: 26px;
   border-radius: 22px;
