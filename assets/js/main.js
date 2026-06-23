@@ -93,9 +93,6 @@ function buildArticleNav() {
     }
   });
 
-  const articleTitle = article.querySelector('h1')?.textContent.trim() || '文章目录';
-  const articleMeta = article.querySelector('.post-meta')?.textContent.trim() || 'ARTICLE';
-
   const topbarLinks = articleTopbar
     ? Array.from(articleTopbar.querySelectorAll('a')).map(link => ({
         text: link.textContent.trim(),
@@ -112,19 +109,6 @@ function buildArticleNav() {
 
   const articleNavCard = document.createElement('div');
   articleNavCard.className = 'article-nav-card';
-
-  const articleNavHeader = document.createElement('div');
-  articleNavHeader.className = 'article-nav-header';
-
-  const meta = document.createElement('div');
-  meta.className = 'article-nav-meta';
-  meta.textContent = articleMeta;
-
-  const title = document.createElement('h2');
-  title.textContent = articleTitle;
-
-  articleNavHeader.appendChild(meta);
-  articleNavHeader.appendChild(title);
 
   const quickLinks = document.createElement('div');
   quickLinks.className = 'article-nav-actions';
@@ -154,8 +138,6 @@ function buildArticleNav() {
 
     articleNav.appendChild(link);
   });
-
-  articleNavCard.appendChild(articleNavHeader);
 
   if (quickLinks.children.length > 0) {
     articleNavCard.appendChild(quickLinks);
