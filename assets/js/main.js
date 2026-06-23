@@ -37,7 +37,10 @@ navLinks.forEach(link => {
 });
 
 const sections = Array.from(navLinks)
-  .map(link => document.querySelector(link.getAttribute('href')))
+  .map(link => {
+    const href = link.getAttribute('href');
+    return href && href.startsWith('#') ? document.querySelector(href) : null;
+  })
   .filter(Boolean);
 
 function updateActiveNav() {
@@ -53,5 +56,141 @@ function updateActiveNav() {
   });
 }
 
-window.addEventListener('scroll', updateActiveNav, { passive: true });
-updateActiveNav();
+if (sections.length > 0) {
+  window.addEventListener('scroll', updateActiveNav, { passive: true });
+  updateActiveNav();
+}
+
+/*
+ * Article navigation
+ * 自动为文章页生成左侧目录导航。
+ * 适用页面结构：
+ * <main class="article-page-shell">
+ *   <div class="article-topbar">...</div>
+ *   <article class="article card">...</article>
+ * </main>
+ */
+function normalizeHeadingId(text, index) {
+  return `article-section-${index + 1}`;
+}
+
+function buildArticleNav() {
+  const articleShell = document.querySelector('.article-page-shell');
+  const article = document.querySelector('.article');
+  const articleTopbar = document.querySelector('.article-topbar');
+
+  if (!articleShell || !article) return;
+
+  const headings = Array.from(article.querySelectorAll('section h2'));
+  if (headings.length === 0) return;
+
+  headings.forEach((heading, index) => {
+    const section = heading.closest('section');
+    if (!section) return;
+
+    if (!section.id) {
+      section.id = normalizeHeadingId(heading.textContent.trim(), index);
+    }
+  });
+
+  const articleTitle = article.querySelector('h1')?.textContent.trim() || '文章目录';
+  const articleMeta = article.querySelector('.post-meta')?.textContent.trim() || 'ARTICLE';
+
+  const topbarLinks = articleTopbar
+    ? Array.from(articleTopbar.querySelectorAll('a')).map(link => ({
+        text: link.textContent.trim(),
+        href: link.getAttribute('href')
+      }))
+    : [];
+
+  const articleSidebar = document.createElement('aside');
+  articleSidebar.className = 'article-sidebar';
+  articleSidebar.setAttribute('aria-label', '文章导航');
+
+  const articleNavCard = document.createElement('div');
+  articleNavCard.className = 'article-nav-card';
+
+  const articleNavHeader = document.createElement('div');
+  articleNavHeader.className = 'article-nav-header';
+
+  const meta = document.createElement('div');
+  meta.className = 'article-nav-meta';
+  meta.textContent = articleMeta;
+
+  const title = document.createElement('h2');
+  title.textContent = articleTitle;
+
+  articleNavHeader.appendChild(meta);
+  articleNavHeader.appendChild(title);
+
+  const quickLinks = document.createElement('div');
+  quickLinks.className = 'article-nav-actions';
+
+  topbarLinks.forEach(item => {
+    const a = document.createElement('a');
+    a.href = item.href;
+    a.textContent = item.text;
+    quickLinks.appendChild(a);
+  });
+
+  const navTitle = document.createElement('div');
+  navTitle.className = 'article-nav-title';
+  navTitle.textContent = '文章目录';
+
+  const articleNav = document.createElement('nav');
+  articleNav.className = 'article-nav';
+
+  headings.forEach((heading, index) => {
+    const section = heading.closest('section');
+    if (!section) return;
+
+    const link = document.createElement('a');
+    link.href = `#${section.id}`;
+    link.textContent = heading.textContent.trim();
+    if (index === 0) link.classList.add('active');
+
+    articleNav.appendChild(link);
+  });
+
+  articleNavCard.appendChild(articleNavHeader);
+
+  if (quickLinks.children.length > 0) {
+    articleNavCard.appendChild(quickLinks);
+  }
+
+  articleNavCard.appendChild(navTitle);
+  articleNavCard.appendChild(articleNav);
+  articleSidebar.appendChild(articleNavCard);
+
+  articleShell.insertBefore(articleSidebar, articleShell.firstElementChild);
+
+  const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
+  const articleSections = headings
+    .map(heading => heading.closest('section'))
+    .filter(Boolean);
+
+  function updateActiveArticleNav() {
+    const current = articleSections
+      .slice()
+      .reverse()
+      .find(section => window.scrollY >= section.offsetTop - 160);
+
+    if (!current) return;
+
+    articleNavLinks.forEach(link => {
+      link.classList.toggle('active', link.getAttribute('href') === `#${current.id}`);
+    });
+  }
+
+  articleNavLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      articleNavLinks.forEach(item => item.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+
+  window.addEventListener('scroll', updateActiveArticleNav, { passive: true });
+  updateActiveArticleNav();
+}
+
+buildArticleNav();
