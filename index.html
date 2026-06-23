@@ -25,8 +25,8 @@
 
           <div class="nav-group-title">平台分类 / PLATFORMS</div>
           <a class="nav-sub" href="#mcu-stack">MCU</a>
-          <a class="nav-sub" href="#soc-stack">SOC</a>
-          <a class="nav-sub" href="#fpga-stack">FPGA</a>
+          <a class="nav-sub" href="#soc-stack">SoC 平台</a>
+          <a class="nav-sub" href="#fpga-stack">FPGA 平台</a>
           <a class="nav-sub" href="#gui-stack">GUI / HMI</a>
           <a class="nav-sub" href="#host-stack">上位机 / 客户端</a>
 
@@ -46,7 +46,7 @@
         <div class="eyebrow">// XYJ</div>
         <h2>XYJ</h2>
         <h3>嵌入式软件工程师 <span class="english-subtitle">Embedded Software Engineer</span></h3>
-        <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，长期关注 MCU、SOC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集与本地 AI 工程实践。</p>
+        <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，长期关注 MCU、SoC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集与本地 AI 工程实践。</p>
         <p>用于记录我的工程项目、调试笔记、技术文章和实用工具。</p>
 
         <div class="hero-actions">
@@ -65,6 +65,9 @@
           <span>ESP32-P4</span>
           <span>MicroBlaze</span>
           <span>RK3568</span>
+          <span>Linux 4.19</span>
+          <span>USB Gadget</span>
+          <span>RNDIS</span>
           <span>SmartFusion2</span>
           <span>MachXO2</span>
           <span>EF2L45</span>
@@ -158,37 +161,37 @@
 
           <article class="stack-card" id="soc-stack">
             <div class="post-meta">SOC PLATFORM</div>
-            <h3>SOC</h3>
-            <p>面向应用处理器和国产 SOC，整理系统移植、外设调试、Linux / 嵌入式系统开发经验。</p>
+            <h3>SoC 平台</h3>
+            <p>面向应用处理器和国产 SoC 平台，整理系统移植、外设调试、Linux / 嵌入式系统开发经验。</p>
 
             <div class="platform-category">
-              <h4>国产 SOC</h4>
+              <h4>国产 SoC</h4>
               <div class="platform-items">
                 <div class="platform-item">
                   <strong>欧比特玉龙 810A</strong>
-                  <span>国产 SOC  · 后续整理技术文章</span>
+                  <span>国产 SoC 平台 · 后续整理技术文章</span>
                 </div>
               </div>
             </div>
 
             <div class="platform-category">
-              <h4>Rockchip</h4>
+              <h4>Rockchip 平台</h4>
               <div class="platform-items">
-                <div class="platform-item">
+                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html">
                   <strong>RK3568</strong>
-                  <span>Linux / 外设 / 应用处理器 · 后续整理技术文章</span>
-                </div>
+                  <span>Linux / USB Gadget / RNDIS / Ubuntu Base 22 · 已整理 USB Ethernet Gadget 配置记录</span>
+                </a>
               </div>
             </div>
           </article>
 
           <article class="stack-card" id="fpga-stack">
             <div class="post-meta">FPGA PLATFORM</div>
-            <h3>FPGA</h3>
+            <h3>FPGA 平台</h3>
             <p>涉及 FPGA 逻辑设计、数据采集、SPI 通信、RAM 缓冲、软硬件协同调试和实时波形显示。</p>
 
             <div class="platform-category">
-              <h4>SOC FPGA</h4>
+              <h4>SoC FPGA</h4>
               <div class="platform-items">
                 <div class="platform-item">
                   <strong>Microchip SmartFusion2</strong>
@@ -298,6 +301,17 @@
 
         <div class="post-list">
           <article class="post-card">
+            <div class="post-meta">RK3568 · LINUX 4.19 · USB GADGET · RNDIS · UBUNTU BASE 22</div>
+            <h3>
+              <a href="articles/soc/rk3568-usb-ethernet-gadget.html">
+                RK3568 USB Ethernet Gadget 配置记录
+                <span class="english-subtitle">RK3568 USB Ethernet Gadget</span>
+              </a>
+            </h3>
+            <p>基于讯为 RK3568 开发板、Linux 4.19 内核和 Ubuntu Base 22 文件系统，完成 USB Ethernet Gadget 虚拟网卡功能配置，整理内核配置、ConfigFS 初始化、systemd 服务、usb0 静态网络配置以及网口冲突处理方法。</p>
+          </article>
+
+          <article class="post-card">
             <div class="post-meta">EF2L45LG144B · ADC · SPI · ESP32 · WEB</div>
             <h3>FPGA ADC 实时波形显示 <span class="english-subtitle">FPGA ADC Waveform Display</span></h3>
             <p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p>
@@ -336,7 +350,7 @@
         </div>
 
         <div class="about-card card">
-          <p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU、SOC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p>
+          <p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU、SoC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p>
           <p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。后续会按具体芯片型号、开发平台和工程方向持续补充文章。</p>
           <p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p>
         </div>
@@ -346,7 +360,7 @@
     <aside class="rightbar" aria-label="站点信息">
       <section class="widget">
         <h3>最近更新</h3>
-        <p>已将技术栈矩阵改为纵向卡片结构，便于后续为每个平台和型号补充文章。</p>
+        <p>已新增 RK3568 USB Ethernet Gadget 配置记录，补充 Linux SoC 外设适配经验。</p>
       </section>
 
       <section class="widget status-widget">
@@ -357,15 +371,16 @@
       <section class="widget">
         <h3>热门标签</h3>
         <div class="tag-cloud">
+          <a href="#soc-stack">RK3568</a>
+          <a href="articles/soc/rk3568-usb-ethernet-gadget.html">USB Gadget</a>
+          <a href="articles/soc/rk3568-usb-ethernet-gadget.html">RNDIS</a>
           <a href="#mcu-stack">STM32F103</a>
           <a href="#mcu-stack">ESP32-S3</a>
           <a href="#mcu-stack">ESP32-P4</a>
           <a href="#mcu-stack">EFM8BB10F8I</a>
           <a href="#fpga-stack">FPGA</a>
           <a href="#gui-stack">LVGL</a>
-          <a href="#soc-stack">RK3568</a>
           <a href="#host-stack">微信小程序</a>
-          <a href="#host-stack">上位机</a>
         </div>
       </section>
 
@@ -378,8 +393,8 @@
         <h3>快捷导航</h3>
         <a href="#hardware-stack">技术栈矩阵</a>
         <a href="#mcu-stack">MCU</a>
-        <a href="#soc-stack">SOC</a>
-        <a href="#fpga-stack">FPGA</a>
+        <a href="#soc-stack">SoC 平台</a>
+        <a href="#fpga-stack">FPGA 平台</a>
         <a href="#gui-stack">GUI / HMI</a>
         <a href="#host-stack">上位机 / 客户端</a>
         <a href="#projects">精选项目</a>

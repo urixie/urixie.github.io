@@ -35,6 +35,7 @@ navLinks.forEach(link => {
     }
   });
 });
+
 const sections = Array.from(navLinks)
   .map(link => document.querySelector(link.getAttribute('href')))
   .filter(Boolean);
