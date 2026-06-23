@@ -9,7 +9,7 @@ yearTargets.forEach(target => {
 
 function getWorkExperience(startYear, startMonth) {
   const now = new Date();
-  let months = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth);
+  const months = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth);
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
   return remainingMonths ? `${years} 年 ${remainingMonths} 个月` : `${years} 年`;
@@ -63,14 +63,11 @@ if (sections.length > 0) {
 
 /*
  * Article navigation
- * 自动为文章页生成左侧目录导航。
- * 适用页面结构：
- * <main class="article-page-shell">
- *   <div class="article-topbar">...</div> (链接会移入左侧导航)
- *   <article class="article card">...</article>
- * </main>
+ * 自动为文章页生成目录。
+ * 电脑端：左侧 sticky 目录
+ * 手机端：顶部目录块
  */
-function normalizeHeadingId(text, index) {
+function normalizeHeadingId(index) {
   return `article-section-${index + 1}`;
 }
 
@@ -80,6 +77,7 @@ function buildArticleNav() {
   const articleTopbar = document.querySelector('.article-topbar');
 
   if (!articleShell || !article) return;
+  if (articleShell.querySelector('.article-sidebar')) return;
 
   const headings = Array.from(article.querySelectorAll('section h2'));
   if (headings.length === 0) return;
@@ -89,7 +87,7 @@ function buildArticleNav() {
     if (!section) return;
 
     if (!section.id) {
-      section.id = normalizeHeadingId(heading.textContent.trim(), index);
+      section.id = normalizeHeadingId(index);
     }
   });
 
@@ -99,9 +97,6 @@ function buildArticleNav() {
         href: link.getAttribute('href')
       }))
     : [];
-
-  // 顶部快捷链接只作为左侧导航的数据源，避免在文章内容上方重复显示。
-  articleTopbar?.remove();
 
   const articleSidebar = document.createElement('aside');
   articleSidebar.className = 'article-sidebar';
@@ -114,6 +109,8 @@ function buildArticleNav() {
   quickLinks.className = 'article-nav-actions';
 
   topbarLinks.forEach(item => {
+    if (!item.href || !item.text) return;
+
     const a = document.createElement('a');
     a.href = item.href;
     a.textContent = item.text;
@@ -134,7 +131,10 @@ function buildArticleNav() {
     const link = document.createElement('a');
     link.href = `#${section.id}`;
     link.textContent = heading.textContent.trim();
-    if (index === 0) link.classList.add('active');
+
+    if (index === 0) {
+      link.classList.add('active');
+    }
 
     articleNav.appendChild(link);
   });
@@ -147,7 +147,11 @@ function buildArticleNav() {
   articleNavCard.appendChild(articleNav);
   articleSidebar.appendChild(articleNavCard);
 
-  articleShell.insertBefore(articleSidebar, articleShell.firstElementChild);
+  if (articleTopbar) {
+    articleTopbar.insertAdjacentElement('afterend', articleSidebar);
+  } else {
+    articleShell.insertBefore(articleSidebar, articleShell.firstElementChild);
+  }
 
   const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
   const articleSections = headings
@@ -158,7 +162,7 @@ function buildArticleNav() {
     const current = articleSections
       .slice()
       .reverse()
-      .find(section => window.scrollY >= section.offsetTop - 160);
+      .find(section => window.scrollY >= section.offsetTop - 170);
 
     if (!current) return;
 
