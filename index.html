@@ -19,10 +19,16 @@
         <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">菜单</button>
         <nav class="nav" id="site-nav">
           <a class="active" href="#home">首页</a>
-          <a href="#projects">项目</a>
-          <a href="#notes">笔记</a>
-          <a href="#tools">工具</a>
-          <a href="#about">关于</a>
+          <a href="#projects">精选项目</a>
+          <a href="#hardware-stack">技术栈矩阵</a>
+          <div class="nav-group-title">平台分类 / PLATFORMS</div>
+          <a class="nav-sub" href="#mcu-stack">MCU / 软核</a>
+          <a class="nav-sub" href="#soc-stack">SoC 平台</a>
+          <a class="nav-sub" href="#fpga-stack">FPGA 平台</a>
+          <a class="nav-sub" href="#gui-stack">GUI / HMI</a>
+          <a href="#notes">工程笔记</a>
+          <a href="#tools">工具实验室</a>
+          <a href="#about">关于本站</a>
         </nav>
       </div>
       <div class="sidebar-footer">
@@ -36,29 +42,59 @@
         <div class="eyebrow">// XYJ</div>
         <h2>XYJ</h2>
         <h3>嵌入式软件工程师 <span class="english-subtitle">Embedded Software Engineer</span></h3>
-        <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，专注于嵌入式软件、ESP32、LVGL、FPGA 数据采集、嵌入式 Web 服务与本地大模型部署。</p>
+        <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，长期关注 MCU、SoC、FPGA、GUI / HMI、嵌入式 Web 服务、数据采集与本地 AI 工程实践。</p>
         <p>用于记录我的工程项目、调试笔记、技术文章和实用工具。</p>
         <div class="hero-actions">
           <a class="button primary" href="#projects">查看项目</a>
           <a class="button" href="mailto:xyj.work@qq.com">联系我</a>
         </div>
         <div class="tags" aria-label="技术标签">
-          <span>C/C++</span><span>ESP-IDF</span><span>ESP32</span><span>ESP32-S3</span><span>ESP32-P4</span><span>LVGL</span><span>FreeRTOS</span><span>FPGA</span><span>Verilog</span><span>SPI</span><span>I2C</span><span>UART</span><span>Web Server</span><span>HTML/CSS/JavaScript</span><span>llama.cpp</span><span>Local LLM</span>
+          <span>C/C++</span><span>MicroBlaze</span><span>STM32</span><span>CW32</span><span>PIC16</span><span>ESP32-S3</span><span>ESP32-P4</span><span>RK3568</span><span>SmartFusion2</span><span>MachXO2</span><span>EF2L45</span><span>GuiGuider</span><span>LVGL</span><span>FPGA</span><span>Embedded Web</span><span>Local AI</span>
+        </div>
+      </section>
+
+      <section class="section-block" id="hardware-stack">
+        <div class="section-title"><span>01</span><div><h2>技术栈矩阵</h2><span class="english-subtitle">Embedded Hardware Stack</span></div></div>
+        <div class="stack-grid">
+          <article class="stack-card" id="mcu-stack">
+            <div class="post-meta">MCU / SOFT CORE</div>
+            <h3>MCU / 软核</h3>
+            <p>覆盖 ARM Cortex-M、国产 MCU、Microchip PIC、Espressif ESP32，以及 FPGA 内 MicroBlaze 软核处理器的工程开发与调试。</p>
+            <div class="chip-list"><span class="chip">Xilinx MicroBlaze</span><span class="chip">STM32F013</span><span class="chip">STM32F407</span><span class="chip">CW32L011K8U6</span><span class="chip">PIC16(L)F18854</span><span class="chip">ESP32-S3</span><span class="chip">ESP32-P4</span></div>
+          </article>
+          <article class="stack-card" id="soc-stack">
+            <div class="post-meta">SOC PLATFORM</div>
+            <h3>SoC 平台</h3>
+            <p>具备面向应用处理器和国产 SoC 平台的系统移植、外设调试、Linux / 嵌入式系统开发经验。</p>
+            <div class="chip-list"><span class="chip">欧比特玉龙 810A</span><span class="chip">RK3568</span></div>
+          </article>
+          <article class="stack-card" id="fpga-stack">
+            <div class="post-meta">FPGA PLATFORM</div>
+            <h3>FPGA 平台</h3>
+            <p>涉及 FPGA 逻辑设计、数据采集、SPI 通信、RAM 缓冲、软硬件协同调试和实时波形显示。</p>
+            <div class="chip-list"><span class="chip">Microchip SmartFusion2</span><span class="chip">Lattice MachXO2 / MXO2</span><span class="chip">Anlogic EF2L45LG144B</span></div>
+          </article>
+          <article class="stack-card" id="gui-stack">
+            <div class="post-meta">GUI / HMI</div>
+            <h3>GUI / HMI</h3>
+            <p>关注嵌入式图形界面、触摸交互、仪表盘 UI、文件管理页面、截图预览和设备端 Web UI。</p>
+            <div class="chip-list"><span class="chip">GuiGuider</span><span class="chip">LVGL</span><span class="chip">Embedded UI</span><span class="chip">HMI</span><span class="chip">Web UI</span></div>
+          </article>
         </div>
       </section>
 
       <section class="section-block" id="projects">
-        <div class="section-title"><span>01</span><h2>精选项目</h2></div>
+        <div class="section-title"><span>02</span><h2>精选项目</h2></div>
         <div class="post-list">
-          <article class="post-card"><div class="post-meta">FPGA · ESP32 · WEB</div><h3>FPGA ADC 实时波形显示 <span class="english-subtitle">FPGA ADC Waveform Display</span></h3><p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p></article>
-          <article class="post-card"><div class="post-meta">ESP32 · HTTP · FLASH</div><h3>ESP32 无线文件服务器 <span class="english-subtitle">ESP32 Wireless File Server</span></h3><p>基于 ESP32 的网页文件服务器与无线 U 盘功能，支持文件管理、网页访问、内部 Flash 存储和嵌入式 Web UI。</p></article>
-          <article class="post-card"><div class="post-meta">ESP32-P4 · LVGL · FILESYSTEM</div><h3>LVGL 截图系统 <span class="english-subtitle">LVGL Screenshot System</span></h3><p>基于 ESP32-P4 / LVGL 的屏幕截图、图片保存和网页预览系统，关注 PNG/JPEG 格式选择、文件系统存储和界面实时查看。</p></article>
-          <article class="post-card"><div class="post-meta">RTX 5090 · LLAMA.CPP · LAN API</div><h3>本地大模型部署 <span class="english-subtitle">Local LLM Deployment</span></h3><p>基于 RTX 5090 / llama.cpp 的本地大模型多人部署实践，关注上下文长度、KV Cache、并发访问、局域网 API 服务和资源占用优化。</p></article>
+          <article class="post-card"><div class="post-meta">EF2L45LG144B · ADC · SPI · ESP32 · WEB</div><h3>FPGA ADC 实时波形显示 <span class="english-subtitle">FPGA ADC Waveform Display</span></h3><p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p></article>
+          <article class="post-card"><div class="post-meta">ESP32-S3 / ESP32-P4 · HTTP · FLASH · WEB UI</div><h3>ESP32 无线文件服务器 <span class="english-subtitle">ESP32 Wireless File Server</span></h3><p>基于 ESP32 的网页文件服务器与无线 U 盘功能，支持文件管理、网页访问、内部 Flash 存储和嵌入式 Web UI。</p></article>
+          <article class="post-card"><div class="post-meta">ESP32-P4 · LVGL · GUIGUIDER · PNG/JPEG</div><h3>LVGL 截图系统 <span class="english-subtitle">LVGL Screenshot System</span></h3><p>基于 ESP32-P4 / LVGL 的屏幕截图、图片保存和网页预览系统，关注 PNG/JPEG 格式选择、文件系统存储和界面实时查看。</p></article>
+          <article class="post-card"><div class="post-meta">ENGINEERING TOOLS · LLAMA.CPP · LAN API</div><h3>本地大模型部署 <span class="english-subtitle">Local AI Assisted Development</span></h3><p>作为工程工具与本地 AI 辅助开发方向，探索 llama.cpp 的多人部署、上下文长度、KV Cache、局域网 API 服务和资源占用优化。</p></article>
         </div>
       </section>
 
       <section class="section-block" id="notes">
-        <div class="section-title"><span>02</span><h2>工程笔记</h2></div>
+        <div class="section-title"><span>03</span><h2>工程笔记</h2></div>
         <div class="note-list">
           <article class="note-item"><div class="date">笔记</div><div><h3>工程笔记</h3><p>记录嵌入式开发、调试过程、工具链配置和工程问题排查。</p></div></article>
           <article class="note-item"><div class="date">调试</div><div><h3>调试记录</h3><p>整理 SPI 数据错乱、LVGL 显示异常、ESP-IDF 构建问题、本地大模型部署问题等真实排查过程。</p></div></article>
@@ -66,7 +102,7 @@
       </section>
 
       <section class="section-block" id="tools">
-        <div class="section-title"><span>03</span><h2>工具实验室</h2></div>
+        <div class="section-title"><span>04</span><h2>工具实验室</h2></div>
         <div class="tool-grid">
           <article class="tool-card"><h3>工具实验室</h3><p>放置一些纯前端小工具，例如 ADC 电压计算器、RGB565 颜色转换器、SPI 速率计算器、KV Cache 估算器。</p></article>
           <article class="tool-card"><h3>实用工具</h3><p>为日常调试准备轻量、可离线打开的工程计算和格式转换工具。</p></article>
@@ -74,17 +110,17 @@
       </section>
 
       <section class="section-block" id="about">
-        <div class="section-title"><span>04</span><h2>关于本站</h2></div>
-        <div class="about-card card"><p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注嵌入式软件开发、ESP32、LVGL、FPGA 数据采集、嵌入式 Web 服务和本地大模型部署。</p><p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。</p><p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p></div>
+        <div class="section-title"><span>05</span><h2>关于本站</h2></div>
+        <div class="about-card card"><p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU / 软核、SoC、FPGA、GUI / HMI、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p><p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。</p><p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p></div>
       </section>
     </main>
 
     <aside class="rightbar" aria-label="站点信息">
-      <section class="widget"><h3>最近更新</h3><p>首页已建立，持续整理嵌入式项目与调试笔记。</p></section>
-      <section class="widget status-widget"><h3>当前状态</h3><p>持续沉淀项目经验、调试记录与工程工具。</p></section>
-      <section class="widget"><h3>热门标签</h3><div class="tag-cloud"><a href="#projects">ESP32</a><a href="#projects">LVGL</a><a href="#projects">FPGA</a><a href="#notes">ESP-IDF</a><a href="#tools">Web Server</a><a href="#projects">Local LLM</a></div></section>
+      <section class="widget"><h3>最近更新</h3><p>已补充 MCU、SoC、FPGA 与 GUI/HMI 技术栈矩阵。</p></section>
+      <section class="widget status-widget"><h3>当前状态</h3><p>持续整理嵌入式平台适配、驱动调试、GUI 界面和工程工具。</p></section>
+      <section class="widget"><h3>热门标签</h3><div class="tag-cloud"><a href="#mcu-stack">ESP32-S3</a><a href="#mcu-stack">ESP32-P4</a><a href="#mcu-stack">STM32</a><a href="#fpga-stack">FPGA</a><a href="#gui-stack">LVGL</a><a href="#soc-stack">RK3568</a><a href="#mcu-stack">MicroBlaze</a><a href="#gui-stack">GuiGuider</a></div></section>
       <section class="widget"><h3>联系方式</h3><a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></section>
-      <section class="widget"><h3>快捷导航</h3><a href="#projects">精选项目</a><a href="#notes">工程笔记</a><a href="#tools">工具实验室</a><a href="#about">关于本站</a></section>
+      <section class="widget"><h3>快捷导航</h3><a href="#projects">精选项目</a><a href="#hardware-stack">技术栈矩阵</a><a href="#mcu-stack">MCU / 软核</a><a href="#fpga-stack">FPGA 平台</a><a href="#notes">工程笔记</a><a href="#tools">工具实验室</a></section>
     </aside>
   </div>
   <script src="assets/js/main.js"></script>

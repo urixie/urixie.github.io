@@ -164,6 +164,22 @@ a:focus-visible {
   background: var(--accent-soft);
 }
 
+.nav-group-title {
+  margin: 10px 14px 1px;
+  color: var(--weak);
+  font-family: Consolas, "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.nav a.nav-sub {
+  margin-left: 14px;
+  padding: 8px 12px;
+  border-left: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 0 10px 10px 0;
+  font-size: 12px;
+}
+
 .sidebar-footer {
   display: grid;
   gap: 8px;
@@ -182,6 +198,7 @@ a:focus-visible {
 
 .card,
 .post-card,
+.stack-card,
 .tool-card,
 .note-item,
 .widget {
@@ -272,6 +289,10 @@ a:focus-visible {
   margin-top: 34px;
 }
 
+.section-block [id] {
+  scroll-margin-top: 28px;
+}
+
 .section-title {
   display: flex;
   align-items: center;
@@ -279,7 +300,7 @@ a:focus-visible {
   margin-bottom: 18px;
 }
 
-.section-title span {
+.section-title > span {
   color: var(--accent);
   font-family: Consolas, "JetBrains Mono", monospace;
   font-weight: 800;
@@ -298,6 +319,53 @@ a:focus-visible {
 .post-list {
   display: grid;
   gap: 18px;
+}
+
+.stack-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.stack-card {
+  min-width: 0;
+  padding: 24px;
+  border-radius: 22px;
+  transition: 0.22s ease;
+}
+
+.stack-card:hover {
+  border-color: rgba(0, 230, 118, 0.42);
+  transform: translateY(-2px);
+}
+
+.stack-card h3 {
+  margin: 8px 0 10px;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.stack-card p {
+  margin: 0;
+  color: #aeb8c5;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.chip {
+  padding: 5px 9px;
+  border: 1px solid rgba(0, 230, 118, 0.22);
+  border-radius: 999px;
+  color: #b8f7d0;
+  background: rgba(0, 230, 118, 0.07);
+  font-family: Consolas, "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .post-card {
@@ -471,17 +539,25 @@ a:focus-visible {
 
   .nav {
     display: none;
-    flex-wrap: wrap;
-    justify-content: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin: 24px 0;
   }
 
   .nav.is-open {
-    display: flex;
+    display: grid;
   }
 
   .nav a {
     padding: 9px 11px;
+  }
+
+  .nav-group-title {
+    grid-column: 1 / -1;
+    margin: 10px 4px 1px;
+  }
+
+  .nav a.nav-sub {
+    margin-left: 0;
   }
 
   .hero {
@@ -489,6 +565,10 @@ a:focus-visible {
   }
 
   .tool-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stack-grid {
     grid-template-columns: 1fr;
   }
 
