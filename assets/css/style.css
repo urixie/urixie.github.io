@@ -199,8 +199,6 @@ a:focus-visible {
 .card,
 .post-card,
 .stack-card,
-.tool-card,
-.note-item,
 .widget {
   border: 1px solid var(--border);
   background: rgba(17, 24, 34, 0.78);
@@ -244,6 +242,10 @@ a:focus-visible {
   margin: 0;
   color: #b8c1ce;
   font-size: 17px;
+}
+
+.hero p + p {
+  margin-top: 8px;
 }
 
 .hero strong {
@@ -316,20 +318,19 @@ a:focus-visible {
   margin-bottom: 10px;
 }
 
-.post-list {
+.stack-list {
   display: grid;
   gap: 18px;
 }
 
 .stack-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .stack-card {
   min-width: 0;
-  padding: 24px;
+  padding: 26px;
   border-radius: 22px;
   transition: 0.22s ease;
 }
@@ -341,7 +342,7 @@ a:focus-visible {
 
 .stack-card h3 {
   margin: 8px 0 10px;
-  font-size: 21px;
+  font-size: 22px;
   letter-spacing: -0.02em;
 }
 
@@ -418,15 +419,18 @@ a:focus-visible {
   line-height: 1.5;
 }
 
+.post-list {
+  display: grid;
+  gap: 18px;
+}
+
 .post-card {
   padding: 26px;
   border-radius: 22px;
   transition: 0.22s ease;
 }
 
-.post-card:hover,
-.note-item:hover,
-.tool-card:hover {
+.post-card:hover {
   border-color: rgba(0, 230, 118, 0.42);
   transform: translateY(-2px);
 }
@@ -438,17 +442,13 @@ a:focus-visible {
   letter-spacing: 0.06em;
 }
 
-.post-card h3,
-.note-item h3,
-.tool-card h3 {
+.post-card h3 {
   margin: 8px 0 8px;
   font-size: 22px;
   letter-spacing: -0.02em;
 }
 
 .post-card p,
-.note-item p,
-.tool-card p,
 .about-card p,
 .widget p {
   margin: 0;
@@ -471,38 +471,6 @@ a:focus-visible {
   background: rgba(125, 211, 252, 0.05);
   font-family: Consolas, "JetBrains Mono", monospace;
   font-size: 12px;
-}
-
-.note-list {
-  display: grid;
-  gap: 14px;
-}
-
-.note-item {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 18px;
-  padding: 22px;
-  border-radius: 20px;
-  transition: 0.22s ease;
-}
-
-.date {
-  color: var(--accent);
-  font-family: Consolas, "JetBrains Mono", monospace;
-  font-size: 12px;
-}
-
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.tool-card {
-  padding: 22px;
-  border-radius: 20px;
-  transition: 0.22s ease;
 }
 
 .about-card {
@@ -614,16 +582,8 @@ a:focus-visible {
     padding: 30px 24px;
   }
 
-  .tool-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .stack-list,
   .stack-grid {
     grid-template-columns: 1fr;
-  }
-
-  .note-item {
-    grid-template-columns: 1fr;
-    gap: 6px;
   }
 }

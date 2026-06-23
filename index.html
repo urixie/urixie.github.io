@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="XYJ 的嵌入式工程项目、调试笔记与实用工具。">
+  <meta name="description" content="XYJ 的嵌入式工程项目、技术栈、项目经验与实用工具。">
   <title>XYJ</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -21,7 +21,6 @@
 
         <nav class="nav" id="site-nav">
           <a class="active" href="#home">首页</a>
-          <a href="#projects">精选项目</a>
           <a href="#hardware-stack">技术栈矩阵</a>
 
           <div class="nav-group-title">平台分类 / PLATFORMS</div>
@@ -31,8 +30,7 @@
           <a class="nav-sub" href="#gui-stack">GUI / HMI</a>
           <a class="nav-sub" href="#host-stack">上位机 / 客户端</a>
 
-          <a href="#notes">工程笔记</a>
-          <a href="#tools">工具实验室</a>
+          <a href="#projects">精选项目</a>
           <a href="#about">关于本站</a>
         </nav>
       </div>
@@ -89,7 +87,7 @@
           </div>
         </div>
 
-        <div class="stack-grid">
+        <div class="stack-list">
           <article class="stack-card" id="mcu-stack">
             <div class="post-meta">MCU PLATFORM</div>
             <h3>MCU</h3>
@@ -98,62 +96,62 @@
             <div class="platform-category">
               <h4>STM32 系列</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>STM32F103</strong>
                   <span>ARM Cortex-M3 · 后续整理技术文章</span>
-                </a>
-                <a class="platform-item" href="#notes">
+                </div>
+                <div class="platform-item">
                   <strong>STM32F407</strong>
                   <span>ARM Cortex-M4 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>国产 MCU</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>CW32L011K8U6</strong>
                   <span>低功耗 MCU · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>8 位 MCU</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>PIC16(L)F18854</strong>
                   <span>Microchip PIC16 · 后续整理技术文章</span>
-                </a>
-                <a class="platform-item" href="#notes">
+                </div>
+                <div class="platform-item">
                   <strong>EFM8BB10F8I</strong>
                   <span>Silicon Labs 8051 内核 MCU · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>Espressif ESP32</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>ESP32-S3</strong>
                   <span>ESP-IDF · Wi-Fi / BLE · 后续整理技术文章</span>
-                </a>
-                <a class="platform-item" href="#notes">
+                </div>
+                <div class="platform-item">
                   <strong>ESP32-P4</strong>
                   <span>GUI / HMI / LVGL · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>软核处理器</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>Xilinx MicroBlaze</strong>
                   <span>FPGA 软核处理器 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
           </article>
@@ -166,20 +164,20 @@
             <div class="platform-category">
               <h4>国产 SoC</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>欧比特玉龙 810A</strong>
                   <span>国产 SoC 平台 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>Rockchip 平台</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>RK3568</strong>
                   <span>Linux / 外设 / 应用处理器 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
           </article>
@@ -192,30 +190,30 @@
             <div class="platform-category">
               <h4>SoC FPGA</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>Microchip SmartFusion2</strong>
                   <span>FPGA + 处理器系统 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>CPLD / 小型 FPGA</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>Lattice MachXO2 / MXO2</strong>
                   <span>低功耗可编程逻辑 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>国产 FPGA</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>Anlogic EF2L45LG144B</strong>
                   <span>ADC 采集 / SPI / RAM 缓冲 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
           </article>
@@ -228,30 +226,30 @@
             <div class="platform-category">
               <h4>界面设计工具</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>GuiGuider</strong>
                   <span>LVGL 界面设计与导出 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>嵌入式 GUI 框架</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>LVGL</strong>
                   <span>控件、主题、截图、触摸交互 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>设备端界面</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>Embedded UI / HMI</strong>
                   <span>设备仪表盘、文件管理、Web UI · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
           </article>
@@ -264,28 +262,28 @@
             <div class="platform-category">
               <h4>无线通信客户端</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>蓝牙通信</strong>
                   <span>BLE 连接、参数配置、状态查看 · 后续整理技术文章</span>
-                </a>
-                <a class="platform-item" href="#notes">
+                </div>
+                <div class="platform-item">
                   <strong>微信小程序</strong>
                   <span>设备控制、无线调试、轻量客户端 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
 
             <div class="platform-category">
               <h4>调试与配置工具</h4>
               <div class="platform-items">
-                <a class="platform-item" href="#notes">
+                <div class="platform-item">
                   <strong>调试上位机</strong>
                   <span>参数配置、数据查看、设备控制 · 后续整理技术文章</span>
-                </a>
-                <a class="platform-item" href="#notes">
+                </div>
+                <div class="platform-item">
                   <strong>Web 控制台</strong>
                   <span>嵌入式 Web 服务与网页工具 · 后续整理技术文章</span>
-                </a>
+                </div>
               </div>
             </div>
           </article>
@@ -293,7 +291,11 @@
       </section>
 
       <section class="section-block" id="projects">
-        <div class="section-title"><span>02</span><h2>精选项目</h2></div>
+        <div class="section-title">
+          <span>02</span>
+          <h2>精选项目</h2>
+        </div>
+
         <div class="post-list">
           <article class="post-card">
             <div class="post-meta">EF2L45LG144B · ADC · SPI · ESP32 · WEB</div>
@@ -327,52 +329,12 @@
         </div>
       </section>
 
-      <section class="section-block" id="notes">
-        <div class="section-title"><span>03</span><h2>工程笔记</h2></div>
-        <div class="note-list">
-          <article class="note-item">
-            <div class="date">笔记</div>
-            <div>
-              <h3>工程笔记</h3>
-              <p>记录嵌入式开发、调试过程、工具链配置和工程问题排查。</p>
-            </div>
-          </article>
-
-          <article class="note-item">
-            <div class="date">文章</div>
-            <div>
-              <h3>平台技术文章</h3>
-              <p>后续按 MCU、SoC、FPGA、GUI / HMI、上位机 / 客户端分类整理每个平台和型号的技术文章。</p>
-            </div>
-          </article>
-
-          <article class="note-item">
-            <div class="date">调试</div>
-            <div>
-              <h3>调试记录</h3>
-              <p>整理 SPI 数据错乱、LVGL 显示异常、ESP-IDF 构建问题、本地大模型部署问题等真实排查过程。</p>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="section-block" id="tools">
-        <div class="section-title"><span>04</span><h2>工具实验室</h2></div>
-        <div class="tool-grid">
-          <article class="tool-card">
-            <h3>工具实验室</h3>
-            <p>放置一些纯前端小工具，例如 ADC 电压计算器、RGB565 颜色转换器、SPI 速率计算器、KV Cache 估算器。</p>
-          </article>
-
-          <article class="tool-card">
-            <h3>实用工具</h3>
-            <p>为日常调试准备轻量、可离线打开的工程计算和格式转换工具。</p>
-          </article>
-        </div>
-      </section>
-
       <section class="section-block" id="about">
-        <div class="section-title"><span>05</span><h2>关于本站</h2></div>
+        <div class="section-title">
+          <span>03</span>
+          <h2>关于本站</h2>
+        </div>
+
         <div class="about-card card">
           <p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU、SoC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p>
           <p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。后续会按具体芯片型号、开发平台和工程方向持续补充文章。</p>
@@ -384,12 +346,12 @@
     <aside class="rightbar" aria-label="站点信息">
       <section class="widget">
         <h3>最近更新</h3>
-        <p>已将 MCU、SoC、FPGA、GUI/HMI 和上位机模块整理为可扩展的文章入口结构。</p>
+        <p>已将技术栈矩阵改为纵向卡片结构，便于后续为每个平台和型号补充文章。</p>
       </section>
 
       <section class="widget status-widget">
         <h3>当前状态</h3>
-        <p>持续整理嵌入式平台适配、驱动调试、GUI 界面、上位机工具和工程文章。</p>
+        <p>持续整理嵌入式平台适配、驱动调试、GUI 界面、上位机工具和精选项目。</p>
       </section>
 
       <section class="widget">
@@ -414,15 +376,14 @@
 
       <section class="widget">
         <h3>快捷导航</h3>
-        <a href="#projects">精选项目</a>
         <a href="#hardware-stack">技术栈矩阵</a>
         <a href="#mcu-stack">MCU</a>
         <a href="#soc-stack">SoC 平台</a>
         <a href="#fpga-stack">FPGA 平台</a>
         <a href="#gui-stack">GUI / HMI</a>
         <a href="#host-stack">上位机 / 客户端</a>
-        <a href="#notes">工程笔记</a>
-        <a href="#tools">工具实验室</a>
+        <a href="#projects">精选项目</a>
+        <a href="#about">关于本站</a>
       </section>
     </aside>
   </div>
