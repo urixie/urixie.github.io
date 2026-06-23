@@ -1,0 +1,4 @@
+interface:
+  display_name: "Markdown 文章发布"
+  short_description: "从 Markdown 自动发布带本地图片和目录的技术文章"
+  default_prompt: "使用 $markdown-article-publisher 将指定 Markdown 发布为本站文章页并下载远程图片。"
