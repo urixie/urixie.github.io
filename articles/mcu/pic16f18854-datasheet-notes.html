@@ -1,0 +1,2283 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PIC16F18854 数据手册中断、PPS、PWM、定时器、CCP 与 CLC 模块资料整理。">
+  <title>PIC16F18854 单片机数据手册资料整理 - XYJ</title>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=5b0f6decf605">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../index.html?v=5b0f6decf605">← 返回首页</a>
+          <a href="../../index.html?v=5b0f6decf605#mcu-stack">返回 MCU 平台</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav class="article-nav" aria-label="文章目录">
+          <a href="#7-0-中断功能概述">7.0 中断功能概述</a>
+          <a href="#7-1-中断操作-operation">7.1 中断操作（Operation）</a>
+          <a href="#7-2-中断延迟-interrupt-latency">7.2 中断延迟（Interrupt Latency）</a>
+          <a href="#7-3-睡眠期间的中断-interrupts-during-sleep">7.3 睡眠期间的中断（Interrupts During Sleep）</a>
+          <a href="#7-4-int-引脚-int-pin">7.4 INT 引脚（INT Pin）</a>
+          <a href="#7-5-自动上下文保存-automatic-context-saving">7.5 自动上下文保存（Automatic Context Saving）</a>
+          <a href="#7-6-寄存器描述">7.6 寄存器描述</a>
+          <a href="#7-6-1-intcon-寄存器功能概述">7.6.1 INTCON 寄存器功能概述</a>
+          <a href="#7-6-2-pie1寄存器功能概述">7.6.2 PIE1寄存器功能概述</a>
+          <a href="#7-6-3-pie2寄存器功能概述">7.6.3 PIE2寄存器功能概述</a>
+          <a href="#7-6-4-pie3寄存器功能概述">7.6.4 PIE3寄存器功能概述</a>
+          <a href="#7-6-5-pie4寄存器功能概述">7.6.5 PIE4寄存器功能概述</a>
+          <a href="#7-6-6-pie5寄存器功能概述">7.6.6 PIE5寄存器功能概述</a>
+          <a href="#7-6-7-pie6寄存器功能概述">7.6.7 PIE6寄存器功能概述</a>
+          <a href="#7-6-8-pie7寄存器功能概述">7.6.8 PIE7寄存器功能概述</a>
+          <a href="#7-6-9-pie8寄存器功能概述">7.6.9 PIE8寄存器功能概述</a>
+          <a href="#7-6-10-pir0寄存器功能概述">7.6.10 PIR0寄存器功能概述</a>
+          <a href="#7-6-11-pir1寄存器功能概述">7.6.11 PIR1寄存器功能概述</a>
+          <a href="#7-6-12-pir2寄存器功能概述">7.6.12 PIR2寄存器功能概述</a>
+          <a href="#7-6-13-pir3寄存器功能概述">7.6.13 PIR3寄存器功能概述</a>
+          <a href="#7-6-14-pir4寄存器功能概述">7.6.14 PIR4寄存器功能概述</a>
+          <a href="#7-6-15-pir5寄存器功能概述">7.6.15 PIR5寄存器功能概述</a>
+          <a href="#7-6-16-pir6寄存器功能概述">7.6.16 PIR6寄存器功能概述</a>
+          <a href="#7-6-17-pir6寄存器功能概述">7.6.17 PIR6寄存器功能概述</a>
+          <a href="#7-6-18-pir7寄存器功能概述">7.6.18 PIR7寄存器功能概述</a>
+          <a href="#7-6-19-pir8寄存器功能概述">7.6.19 PIR8寄存器功能概述</a>
+          <a href="#7-6-20-寄存器功能概述">7.6.20 寄存器功能概述</a>
+          <a href="#13-0-pps-模块功能概述">13.0 PPS 模块功能概述</a>
+          <a href="#13-1-pps-输入">13.1 PPS 输入</a>
+          <a href="#13-2-pps-输出">13.2 PPS 输出</a>
+          <a href="#13-3-双向引脚">13.3 双向引脚</a>
+          <a href="#13-4-pps-锁定">13.4 PPS 锁定</a>
+          <a href="#13-5-pps-永久锁定">13.5 PPS 永久锁定</a>
+          <a href="#13-6-睡眠模式下的操作">13.6 睡眠模式下的操作</a>
+          <a href="#13-7-复位的影响">13.7 复位的影响</a>
+          <a href="#13-8-寄存器概述">13.8 寄存器概述</a>
+          <a href="#13-8-1-xxxpps">13.8.1 xxxPPS</a>
+          <a href="#13-8-2-rxypps-寄存器-引脚输出源选择寄存器">13.8.2 RxyPPS 寄存器（引脚输出源选择寄存器 ）</a>
+          <a href="#13-8-2-ppslock-寄存器-pps-锁定寄存器">13.8.2 PPSLOCK 寄存器（PPS 锁定寄存器 ）</a>
+          <a href="#19-0-pwm-模块功能概述">19.0 PWM 模块功能概述</a>
+          <a href="#19-1-pwm-模块功能概述">19.1 PWM 模块功能概述</a>
+          <a href="#19-1-1-pwm-时钟选择">19.1.1 PWM 时钟选择</a>
+          <a href="#19-1-2-使用-tmr2-4-6-作为-pwm-时基">19.1.2 使用 TMR2/4/6 作为 PWM 时基</a>
+          <a href="#19-1-3-pwm-周期">19.1.3 PWM 周期</a>
+          <a href="#19-1-4-pwm-占空比">19.1.4 PWM 占空比</a>
+          <a href="#19-1-5-pwm-分辨率">19.1.5 PWM 分辨率</a>
+          <a href="#19-1-6-睡眠模式下的操作">19.1.6 睡眠模式下的操作</a>
+          <a href="#19-1-7-系统时钟频率变化">19.1.7 系统时钟频率变化</a>
+          <a href="#19-1-8-复位影响">19.1.8 复位影响</a>
+          <a href="#19-1-9-pwm-频率和分辨率示例">19.1.9 PWM 频率和分辨率示例</a>
+          <a href="#19-2-寄存器功能概述">19.2 寄存器功能概述</a>
+          <a href="#19-2-1-pwmxcon-寄存器概述"><strong>19.2.1 PWMxCON</strong>  寄存器概述</a>
+          <a href="#19-2-2-pwmxdch-寄存器概述"><strong>19.2.2 PWMxDCH </strong>寄存器概述</a>
+          <a href="#19-2-3-pwmxdch-寄存器概述"><strong>19.2.3 PWMxDCH </strong>寄存器概述</a>
+          <a href="#29-0-timer2-timer4-timer6模块功能概述">29.0 Timer2、Timer4、Timer6模块功能概述</a>
+          <a href="#29-1-可配置逻辑单元-clc-模块功能概述定时器2工作模式">29.1 可配置逻辑单元（CLC）模块功能概述定时器2工作模式</a>
+          <a href="#29-2-timer2-输出"><strong>29.2 Timer2 输出</strong></a>
+          <a href="#29-3-timer2-输出"><strong>29.3 Timer2 输出</strong></a>
+          <a href="#30-0-捕获模式-比较模式-pwm-模式">30.0 捕获模式、比较模式、PWM 模式</a>
+          <a href="#30-1-捕获模式功能">30.1 捕获模式功能</a>
+          <a href="#30-2-比较模式">30.2 比较模式</a>
+          <a href="#30-3-pwm-原理">30.3 PWM 原理</a>
+          <a href="#30-4-寄存器说明">30.4 寄存器说明</a>
+          <a href="#30-4-1-ccpxcon-寄存器-30-1">30.4.1 CCPxCON 寄存器（30 - 1）</a>
+          <a href="#30-4-2-ccpxcap-寄存器-30-2">30.4.2 CCPxCAP 寄存器（30 - 2）</a>
+          <a href="#30-4-3-ccprxl-寄存器-30-3">30.4.3 CCPRxL 寄存器（30 - 3）</a>
+          <a href="#30-4-4-ccprxh-寄存器-30-4">30.4.4 CCPRxH 寄存器（30 - 4）</a>
+          <a href="#30-4-5-ccptmrs0-寄存器-30-5">30.4.5 CCPTMRS0 寄存器（30 - 5）</a>
+          <a href="#30-4-5-ccptmrs1-寄存器功能">30.4.5 CCPTMRS1 寄存器功能</a>
+          <a href="#22-0-可配置逻辑单元-clc-模块功能概述">22.0 可配置逻辑单元（CLC）模块功能概述</a>
+          <a href="#22-1-clcx-模块编程步骤">22.1 CLCx 模块编程步骤</a>
+          <a href="#22-1-1-数据选择具体实现"><strong>22.1.1 数据选择具体实现</strong></a>
+          <a href="#22-1-2-数据选通-data-gating">22.1.2 数据选通（Data Gating）</a>
+          <a href="#22-1-2-clcx-中断-clcx-interrupts">22.1.2 CLCx 中断（CLCx Interrupts）</a>
+          <a href="#22-3-输出镜像副本-output-mirror-copies"><strong>22.3 输出镜像副本（Output Mirror Copies）</strong></a>
+          <a href="#22-4-复位影响-effects-of-a-reset"><strong>22.4 复位影响（Effects of a Reset）</strong></a>
+          <a href="#22-5-睡眠期间操作-operation-during-sleep"><strong>22.5 睡眠期间操作（Operation During Sleep）</strong></a>
+          <a href="#22-6-clcx-设置步骤-clcx-setup-steps"><strong>22.6 CLCx 设置步骤（CLCx Setup Steps）</strong></a>
+          <a href="#22-7寄存器功能概述">22.7寄存器功能概述</a>
+          <a href="#22-7-1-clcxcon-寄存器">22.7.1 CLCxCON 寄存器</a>
+          <a href="#22-7-2-clcxpol-寄存器功能概述">22.7.2 CLCxPOL 寄存器功能概述</a>
+          <a href="#22-7-3-clcxsel0-寄存器功能概述">22.7.3 CLCxSEL0 寄存器功能概述</a>
+          <a href="#22-7-4-clcxsel1-寄存器功能概述">22.7.4 CLCxSEL1 寄存器功能概述</a>
+          <a href="#22-7-5-clcxsel2-寄存器功能概述">22.7.5 CLCxSEL2 寄存器功能概述</a>
+          <a href="#22-7-6-clcxsel3-寄存器功能概述">22.7.6 CLCxSEL3 寄存器功能概述</a>
+          <a href="#22-7-7-clcxgls0-寄存器功能概述">22.7.7 CLCxGLS0 寄存器功能概述</a>
+          <a href="#22-7-8-clcxgls1-寄存器功能概述">22.7.8 CLCxGLS1 寄存器功能概述</a>
+          <a href="#22-7-9-clcxgls2-寄存器功能概述">22.7.9 CLCxGLS2 寄存器功能概述</a>
+          <a href="#22-7-10-clcxgls3-寄存器功能概述">22.7.10 CLCxGLS3 寄存器功能概述</a>
+          <a href="#22-7-11-clcdata-寄存器功能概述">22.7.11 CLCDATA 寄存器功能概述</a>
+        </nav>
+      </div>
+    </aside>
+    <article class="article card">
+      <div class="post-meta">PIC16F18854 · INTERRUPT · PPS · PWM · TIMER · CCP · CLC</div>
+      <h1>PIC16F18854 单片机数据手册资料整理</h1>
+      <p>本文依据资料原文整理 PIC16F18854 的中断、外设引脚选择、PWM、定时器、CCP 与可配置逻辑单元等关键模块，便于工程开发时快速查阅。</p>
+      <h2 id="7-0-中断功能概述">7.0 中断功能概述</h2>
+      <p>中断功能允许特定事件中断正常程序流程，固件用于确定中断源并做出相应处理。部分中断可配置为将 MCU 从睡眠模式唤醒 。</p>
+      <p><strong>涵盖内容</strong></p>
+      <p>本章包含中断的以下信息：</p>
+      <ul>
+        <li>操作（Operation）：介绍中断的工作原理。</li>
+      </ul>
+      <ul>
+        <li>中断延迟（Interrupt Latency）：涉及从中断事件发生到开始执行中断服务程序的时间间隔相关内容。</li>
+      </ul>
+      <ul>
+        <li>睡眠期间的中断（Interrupts During Sleep）：说明在 MCU 睡眠模式下中断的工作情况 。</li>
+      </ul>
+      <ul>
+        <li>INT 引脚（INT Pin）：关于特定中断引脚的功能等。</li>
+      </ul>
+      <ul>
+        <li>自动上下文保存（Automatic Context Saving）：指 MCU 在响应中断时自动保存当前程序上下文（如寄存器值等），以便中断处理结束后能恢复继续执行原程序 。</li>
+      </ul>
+      <p><strong>中断逻辑框图解读</strong></p>
+      <p>图 7 - 1 展示了中断逻辑：</p>
+      <ul>
+        <li>外设中断（Peripheral Interrupts）：众多外设可产生中断，如定时器 TMR1（由 TMR1IF 标志位和 TMR1IE 使能位控制 ）。每个外设中断都需使能对应标志位（PIRn）和使能位（PIEn），相关信号经逻辑与后进入或门 。</li>
+      </ul>
+      <ul>
+        <li>其他中断信号：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>INT 中断：由 INTF 标志位和 INTE 使能位控制 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>端口变化中断（IOC）：由 IOCIF 标志位和 IOCIE 使能位控制 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>使能控制：这些中断信号经或门后，还需使能外设中断使能位 PEIE 和全局中断使能位 GIE，最终才能向 CPU 发出中断请求。若 MCU 处于睡眠模式，符合条件的中断可将其唤醒 。</li>
+      </ul>
+      <h3 id="7-1-中断操作-operation">7.1 中断操作（Operation）</h3>
+      <ul>
+        <li>中断使能：设备复位时中断默认禁用，需通过设置以下位来启用：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>INTCON 寄存器的 GIE 位：全局中断使能位，置 1 开启全局中断允许。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>特定中断的中断使能位：如定时器中断、外部中断等各自对应的使能位 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>INTCON 寄存器的 PEIE 位（若中断使能位在 PIEx 寄存器中） ：外设中断使能位，开启后允许外设中断。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>PIR 寄存器：PIR1、PIR2、PIR3 和 PIR4 寄存器通过中断标志位记录单个中断，即便 GIE、PEIE 及个别中断使能位状态如何，中断标志位都会置 1 。</li>
+      </ul>
+      <ul>
+        <li>中断事件发生时的操作：当 GIE 位为 1 且中断事件发生时：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>清除当前预取指令：清除当前已预取但未执行的指令。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>清零 GIE 位：关闭全局中断，防止处理中断时新中断干扰。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>压栈操作：将当前程序计数器（PC）压入堆栈 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>保存关键寄存器：自动将关键寄存器保存到影子寄存器（见 “7.5 自动上下文保存”） 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>加载中断向量：将 PC 加载为中断向量地址 0004h，程序跳转至中断服务程序（ISR） 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>确定中断源并处理：固件通过轮询中断标志位确定中断源，在退出 ISR 前必须清除中断标志位，避免重复中断。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>退出中断服务程序：RETFIE 指令从堆栈弹出先前地址，从影子寄存器恢复保存的上下文，设置 GIE 位，退出 ISR 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>注意事项：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>单个中断标志位会置 1，与其他使能位状态无关。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>GIE 位清零时忽略所有中断，GIE 位再次置 1 后，发生的中断会得到处理 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <h3 id="7-2-中断延迟-interrupt-latency">7.2 中断延迟（Interrupt Latency）</h3>
+      <ul>
+        <li>定义：中断延迟指从中断事件发生到中断向量处代码开始执行的时间 。</li>
+      </ul>
+      <ul>
+        <li>同步中断延迟：对于同步中断，延迟为 3 或 4 个指令周期 。</li>
+      </ul>
+      <ul>
+        <li>异步中断延迟：异步中断的延迟为 3 到 5 个指令周期，具体取决于中断发生时间，可参考图 7 - 2 和图 7 - 3 了解详情 。</li>
+      </ul>
+      <p><strong>图 7 - 2：中断延迟（Interrupt Latency）</strong></p>
+      <ul>
+        <li>横轴与时间单位：横轴以指令周期为单位，将一个指令周期细分为 Q1 - Q4 四个阶段，展示不同类型指令执行时中断发生的时间点及延迟情况。</li>
+      </ul>
+      <ul>
+        <li>中断采样：中断信号在 Q1 阶段被采样，一旦检测到中断，会依据当前执行指令的周期数产生不同延迟。</li>
+      </ul>
+      <ul>
+        <li>不同指令周期下的延迟：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>单周期指令：执行单周期指令时检测到中断，清除当前指令，插入两个空操作（NOP）指令，随后执行中断向量地址（0004h）处指令，总延迟为 3 个指令周期。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>双周期指令：执行双周期指令时检测到中断，同样清除当前指令，插入两个 NOP 指令，再执行中断向量处指令，延迟也是 3 个指令周期。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>三周期指令：执行三周期指令时，若在特定阶段检测到中断，可能需插入 3 个或 4 个 NOP 指令，延迟为 4 个指令周期 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <p><strong>图 7 - 3：INT 引脚中断时序（INT Pin Interrupt Timing）</strong></p>
+      <ul>
+        <li>信号标识：图中展示了 OSC1（时钟信号）、CLKOUT（时钟输出，并非在所有振荡模式下都可用 ）、INT 引脚信号、INTF（中断标志位）、GIE（全局中断使能位）、PC（程序计数器）等信号。</li>
+      </ul>
+      <ul>
+        <li>中断标志采样：INTF 标志位在每个 Q1 阶段被采样（注释 1 ）。</li>
+      </ul>
+      <ul>
+        <li>中断延迟：异步中断延迟为 3 - 5 个指令周期（TCY），同步中断延迟为 3 - 4 个指令周期（注释 2 ）。无论当前执行的是单周期还是双周期指令，延迟情况类似 。</li>
+      </ul>
+      <ul>
+        <li>其他说明：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CLKOUT 并非在所有振荡模式下都存在（注释 3 ）。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>关于 INT 脉冲最小宽度，参考 “37.0 电气规格” 部分（注释 4 ）。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>INTF 标志位可在 Q4 - Q1 周期内的任意时刻被使能置位（注释 5 ）</li>
+      </ul>
+      </ul>
+      </ul>
+      <h3 id="7-3-睡眠期间的中断-interrupts-during-sleep">7.3 睡眠期间的中断（Interrupts During Sleep）</h3>
+      <ul>
+        <li>唤醒条件：部分中断可用于将单片机从睡眠模式唤醒。要实现唤醒，外设需能在无系统时钟时运行，且在进入睡眠模式前，必须设置好中断源对应的中断使能位 。</li>
+      </ul>
+      <ul>
+        <li>唤醒后的处理：从睡眠模式唤醒后，若全局中断使能位 GIE 也已设置，处理器将跳转至中断向量处执行中断服务程序；若 GIE 未设置，处理器将在睡眠指令之后继续执行后续指令。在跳转至中断服务程序之前，睡眠指令后的第一条指令总会先执行。更多详情可参考 “8.0 节能操作模式” 章节 。</li>
+      </ul>
+      <h3 id="7-4-int-引脚-int-pin">7.4 INT 引脚（INT Pin）</h3>
+      <ul>
+        <li>中断触发方式：INT 引脚可用于产生异步边沿触发中断。通过设置 PIE0 寄存器的 INTE 位来使能该中断 。由 INTCON 寄存器的 INTEDG 位决定中断触发的边沿：INTEDG 位为 1 时，上升沿触发中断；INTEDG 位为 0 时，下降沿触发中断 。</li>
+      </ul>
+      <ul>
+        <li>中断标志及响应：当 INT 引脚上出现有效边沿时，PIR0 寄存器的 INTF 位将被置位。若此时 GIE 和 INTE 位也已设置，处理器将把程序执行重定向到中断向量处 。</li>
+      </ul>
+      <h3 id="7-5-自动上下文保存-automatic-context-saving">7.5 自动上下文保存（Automatic Context Saving）</h3>
+      <ul>
+        <li>进入中断时：进入中断时，返回的程序计数器（PC）地址会被保存到堆栈中。此外，以下寄存器会自动保存到影子寄存器中：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>W 寄存器 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>STATUS 寄存器（除了<em>TO</em>和<em>PD</em>位 ）。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>BSR 寄存器 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>FSR 寄存器 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>PCLATH 寄存器 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>退出中断时：退出中断服务程序时，这些寄存器会自动恢复。在中断服务程序中对这些寄存器的任何修改都会丢失。若希望修改这些寄存器的值，应修改对应的影子寄存器，退出中断服务程序时其值会被恢复。影子寄存器位于第 31 存储区，可读写。根据用户应用需求，可能还需要手动保存其他寄存器 。</li>
+      </ul>
+      <h3 id="7-6-寄存器描述">7.6 寄存器描述</h3>
+      <h4 id="7-6-1-intcon-寄存器功能概述">7.6.1 INTCON 寄存器功能概述</h4>
+      <p>INTCON 寄存器用于控制单片机的中断功能，包含全局中断使能、外设中断使能以及中断触发边沿选择等功能位。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - GIE（Global Interrupt Enable bit）：全局中断使能位。置 1 时，启用所有已激活的中断；置 0 时，禁用所有中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - PEIE（Peripheral Interrupt Enable bit）：外设中断使能位。置 1 时，启用所有已激活的外设中断；置 0 时，禁用所有外设中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 1：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - INTEDG（Interrupt Edge Select bit）：中断边沿选择位。置 1 时，INT 引脚上升沿触发中断；置 0 时，INT 引脚下降沿触发中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-2-pie1寄存器功能概述">7.6.2 PIE1寄存器功能概述</h4>
+      <p>PIE1 寄存器用于使能特定的外设中断，只有当该寄存器中的对应位被置 1，且 INTCON 寄存器中的 PEIE 位也为 1 时，相应的外设中断才能被启用。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - OSFIE（Oscillator Fail Interrupt Enable bit）：振荡器故障中断使能位。置 1 时，启用振荡器故障中断；置 0 时，禁用振荡器故障中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - CSWIE（Clock Switch Complete Interrupt Enable bit）：时钟切换完成中断使能位。置 1 时，启用时钟切换模块中断；置 0 时，禁用时钟切换模块中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 2：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - ADTIE（Analog - to - Digital Converter (ADC) Threshold Compare Interrupt Enable bit）：模数转换器（ADC）阈值比较中断使能位。置 1 时，启用 ADC 阈值比较中断；置 0 时，禁用 ADC 阈值比较中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - ADIE（Analog - to - Digital Converter (ADC) Interrupt Enable bit）：模数转换器（ADC）中断使能位。置 1 时，启用 ADC 中断；置 0 时，禁用 ADC 中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-3-pie2寄存器功能概述">7.6.3 PIE2寄存器功能概述</h4>
+      <p>PIE2 寄存器用于使能特定的外设中断，和 PIE1 等其他外设中断使能寄存器配合，共同管理外设中断的开启与关闭。同样，要启用 PIE2 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - ZCDIE（Zero - Cross Detection (ZCD) Interrupt Enable bit）：过零检测（ZCD）中断使能位。置 1 时，启用过零检测中断；置 0 时，禁用过零检测中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 2：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - C2IE（Comparator C2 Interrupt Enable bit）：比较器 C2 中断使能位。置 1 时，启用比较器 C2 中断；置 0 时，禁用比较器 C2 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - C1IE（Comparator C1 Interrupt Enable bit）：比较器 C1 中断使能位。置 1 时，启用比较器 C1 中断；置 0 时，禁用比较器 C1 中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-4-pie3寄存器功能概述">7.6.4 PIE3寄存器功能概述</h4>
+      <p>PIE3 寄存器用于使能特定的外设中断，主要涉及串口通信（USART）和同步串行端口（MSSP）相关的中断。要启用 PIE3 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - RCIE（USART Receive Interrupt Enable bit）：通用同步异步收发器（USART）接收中断使能位。置 1 时，启用 USART 接收中断；置 0 时，禁用 USART 接收中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - TXIE（USART Transmit Interrupt Enable bit）：USART 发送中断使能位。置 1 时，启用 USART 发送中断；置 0 时，禁用 USART 发送中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - BCL2IE（MSSP2 Bus Collision Interrupt Enable bit）：MSSP2 总线冲突中断使能位。置 1 时，启用 MSSP2 总线冲突中断；置 0 时，禁用 MSSP2 总线冲突中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - SSP2IE（Synchronous Serial Port (MSSP2) Interrupt Enable bit）：MSSP2 同步串行端口中断使能位。置 1 时，启用 MSSP2 中断；置 0 时，禁用 MSSP2 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - BCL1IE（MSSP1 Bus Collision Interrupt Enable bit）：MSSP1 总线冲突中断使能位。置 1 时，启用 MSSP1 总线冲突中断；置 0 时，禁用 MSSP1 总线冲突中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - SSP1IE（Synchronous Serial Port (MSSP1) Interrupt Enable bit）：MSSP1 同步串行端口中断使能位。置 1 时，启用 MSSP1 中断；置 0 时，禁用 MSSP1 中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-5-pie4寄存器功能概述">7.6.5 PIE4寄存器功能概述</h4>
+      <p>PIE4 寄存器用于使能特定定时器相关的外设中断。通过设置该寄存器中的相应位，可以开启或关闭对应定时器的中断功能。同样，要启用 PIE4 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - TMR6IE（TMR6 to PR6 Match Interrupt Enable bit）：定时器 6 与周期寄存器 6 匹配中断使能位。置 1 时，启用定时器 6 与 PR6 匹配中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - TMR5IE（Timer5 Overflow Interrupt Enable bit）：定时器 5 溢出中断使能位。置 1 时，启用定时器 5 溢出中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - TMR4IE（TMR4 to PR4 Match Interrupt Enable bit）：定时器 4 与周期寄存器 4 匹配中断使能位。置 1 时，启用定时器 4 与 PR4 匹配中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - TMR3IE（TMR3 Overflow Interrupt Enable bit）：定时器 3 溢出中断使能位。置 1 时，启用定时器 3 溢出中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - TMR2IE（TMR2 to PR2 Match Interrupt Enable bit）：定时器 2 与周期寄存器 2 匹配中断使能位。置 1 时，启用定时器 2 与 PR2 匹配中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - TMR1IE（Timer1 Overflow Interrupt Enable bit）：定时器 1 溢出中断使能位。置 1 时，启用定时器 1 溢出中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-6-pie5寄存器功能概述">7.6.6 PIE5寄存器功能概述</h4>
+      <p>PIE5 寄存器用于使能特定的外设中断，主要涉及 CLC（可配置逻辑单元）相关中断以及定时器门控采集相关中断。和其他外设中断使能寄存器一样，要启用 PIE5 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - CLC4IE（CLC4 Interrupt Enable bit）：可配置逻辑单元 4 中断使能位。置 1 时，启用 CLC4 中断；置 0 时，禁用 CLC4 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - CLC3IE（CLC3 Interrupt Enable bit）：可配置逻辑单元 3 中断使能位。置 1 时，启用 CLC3 中断；置 0 时，禁用 CLC3 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - CLC2IE（CLC2 Interrupt Enable bit）：可配置逻辑单元 2 中断使能位。置 1 时，启用 CLC2 中断；置 0 时，禁用 CLC2 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - CLC1IE（CLC1 Interrupt Enable bit）：可配置逻辑单元 1 中断使能位。置 1 时，启用 CLC1 中断；置 0 时，禁用 CLC1 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 3：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - TMR5GIE（Timer5 Gate Interrupt Enable bit）：定时器 5 门控采集中断使能位。置 1 时，启用定时器 5 门控采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - TMR3GIE（Timer3 Gate Interrupt Enable bit）：定时器 3 门控采集中断使能位。置 1 时，启用定时器 3 门控采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - TMR1GIE（Timer1 Gate Interrupt Enable bit）：定时器 1 门控采集中断使能位。置 1 时，启用定时器 1 门控采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-7-pie6寄存器功能概述">7.6.7 PIE6寄存器功能概述</h4>
+      <p>PIE6 寄存器用于使能与 CCP（捕捉 / 比较 / PWM）模块相关的外设中断。通过设置该寄存器中的相应位，可以开启或关闭对应 CCP 模块的中断功能。同样，要启用 PIE6 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 5：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - CCP5IE（CCP5 Interrupt Enable bit）：CCP 模块 5 中断使能位。置 1 时，启用 CCP5 中断；置 0 时，禁用 CCP5 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - CCP4IE（CCP4 Interrupt Enable bit）：CCP 模块 4 中断使能位。置 1 时，启用 CCP4 中断；置 0 时，禁用 CCP4 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - CCP3IE（CCP3 Interrupt Enable bit）：CCP 模块 3 中断使能位。置 1 时，启用 CCP3 中断；置 0 时，禁用 CCP3 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - CCP2IE（CCP2 Interrupt Enable bit）：CCP 模块 2 中断使能位。置 1 时，启用 CCP2 中断；置 0 时，禁用 CCP2 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - CCP1IE（CCP1 Interrupt Enable bit）：CCP 模块 1 中断使能位。置 1 时，启用 CCP1 中断；置 0 时，禁用 CCP1 中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-8-pie7寄存器功能概述">7.6.8 PIE7寄存器功能概述</h4>
+      <p>PIE7 寄存器用于使能特定的外设中断，涉及扫描器、CRC 计算、非易失性存储器（NVM）、数控振荡器（NCO）以及互补波形发生器（CWG）等相关中断。要启用 PIE7 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - SCANIE（Scanner Interrupt Enable bit）：扫描器中断使能位。置 1 时，启用扫描器中断；置 0 时，禁用扫描器中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - CRCIE（CRC Interrupt Enable bit）：CRC（循环冗余校验）中断使能位。置 1 时，启用 CRC 中断；置 0 时，禁用 CRC 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - NVMIE（NVM Interrupt Enable bit）：非易失性存储器任务完成中断使能位。置 1 时，启用 NVM 任务完成中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - NCO1IE（NCO Interrupt Enable bit）：数控振荡器溢出中断使能位。置 1 时，启用 NCO 溢出中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 3：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - CWG3IE（Complementary Waveform Generator (CWG) 3 Interrupt Enable bit）：互补波形发生器 3 中断使能位。置 1 时，启用 CWG3 中断；置 0 时，禁用 CWG3 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - CWG2IE（Complementary Waveform Generator (CWG) 2 Interrupt Enable bit）：互补波形发生器 2 中断使能位。置 1 时，启用 CWG2 中断；置 0 时，禁用 CWG2 中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - CWG1IE（Complementary Waveform Generator (CWG) 1 Interrupt Enable bit）：互补波形发生器 1 中断使能位。置 1 时，启用 CWG1 中断；置 0 时，禁用 CWG1 中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-9-pie8寄存器功能概述">7.6.9 PIE8寄存器功能概述</h4>
+      <p>PIE8 寄存器用于使能与 SMT（可能是特定的定时或测量模块 ）相关的外设中断。通过设置该寄存器中的相应位，可以开启或关闭对应 SMT 模块的中断功能。和其他外设中断使能寄存器一样，要启用 PIE8 中控制的外设中断，需同时满足 INTCON 寄存器中的 PEIE 位为 1 。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - SMT2PWAIE（SMT2 Pulse - Width Acquisition Interrupt Enable bit）：SMT2 脉宽采集中断使能位。置 1 时，启用 SMT2 脉宽采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - SMT2PRAIE（SMT2 Period Acquisition Interrupt Enable bit）：SMT2 周期采集中断使能位。置 1 时，启用 SMT2 周期采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - SMT2IE（SMT2 Overflow Interrupt Enable bit）：SMT2 溢出中断使能位。置 1 时，启用 SMT2 溢出中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - SMT1PWAIE（SMT1 Pulse - Width Acquisition Interrupt Enable bit）：SMT1 脉宽采集中断使能位。置 1 时，启用 SMT1 脉宽采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - SMT1PRAIE（SMT1 Period Acquisition Interrupt Enable bit）：SMT1 周期采集中断使能位。置 1 时，启用 SMT1 周期采集中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - SMT1IE（SMT1 Overflow Interrupt Enable bit）：SMT1 溢出中断使能位。置 1 时，启用 SMT1 溢出中断；置 0 时，禁用该中断 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>要启用 PIE1 - PIE8 寄存器控制的任何外设中断，必须将 INTCON 寄存器中的 PEIE 位设置为 1 。</p>
+      <h4 id="7-6-10-pir0寄存器功能概述">7.6.10 PIR0寄存器功能概述</h4>
+      <p>PIR0 寄存器用于记录特定外设中断的状态，通过查看寄存器中的标志位，可判断相应的中断是否发生。当中断条件满足时，对应的标志位会被置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在启用中断前，需确保清除相应的中断标志位，避免误触发。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - TMR0IF（TMR0 Overflow Interrupt Flag bit）：定时器 0 溢出中断标志位。置 1 时，表示定时器 0 寄存器发生溢出，需在软件中清除该标志位；置 0 时，表示定时器 0 未发生溢出 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - IOCIF（Interrupt - on - Change Interrupt Flag bit）：端口变化中断标志位，只读。置 1 时，表明 IOC（端口变化中断）模块检测到已使能边沿，IOC 模块中的 IOCAF - IOCEF 寄存器中的一个或多个位被置位；置 0 时，表明 IOCAF - IOCEF 寄存器中的位均未被置位 。要清除 IOCIF 标志位，需清除所有较低级别的 IOCAF - IOCEF 寄存器位 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - 1：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - INTF（INT External Interrupt Flag bit）：INT 外部中断标志位。置 1 时，表示发生了 INT 外部中断，需在软件中清除该标志位；置 0 时，表示未发生 INT 外部中断 。外部中断 GPIO 引脚由 INTPP（寄存器 13 - 1）选择 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-11-pir1寄存器功能概述">7.6.11 PIR1寄存器功能概述</h4>
+      <p>PIR1 寄存器用于记录特定外设中断的请求状态。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理中断或启用中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - OSFIF（Oscillator Fail - Safe Interrupt Flag bit）：振荡器故障安全中断标志位。置 1 时，表示发生了振荡器故障安全中断，需在软件中清除该标志位；置 0 时，表示未发生振荡器故障安全中断 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - CSWIF（Clock Switch Complete Interrupt Flag bit）：时钟切换完成中断标志位。置 1 时，表明时钟切换模块检测到中断条件，需在软件中清除该标志位；置 0 时，表示时钟切换模块未检测到中断条件 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 2：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - ADTIF（Analog - to - Digital Converter (ADC) Threshold Compare Interrupt Flag bit）：模数转换器（ADC）阈值比较中断标志位。置 1 时，表明 A/D 测量值超出配置阈值，需在软件中清除该标志位；置 0 时，表示 A/D 测量值在配置阈值范围内 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - ADIF（Analog - to - Digital Converter (ADC) Interrupt Flag bit）：模数转换器（ADC）中断标志位。置 1 时，表示 A/D 转换或复杂操作已完成，需在软件中清除该标志位；置 0 时，表示 A/D 转换或复杂操作尚未完成 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-12-pir2寄存器功能概述">7.6.12 PIR2寄存器功能概述</h4>
+      <p>PIR2 寄存器用于记录特定外设中断的请求状态。当中断条件满足时，相应标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 状态无关。在处理或启用中断前，软件需清除对应标志位，防止误触发。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - ZCDIF（Zero - Cross Detect (ZCD) Interrupt Flag bit）：过零检测（ZCD）中断标志位。置 1 时，表示检测到已使能的上升沿和 / 或下降沿过零事件，需软件清除；置 0 时，表示未发生过零事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 2：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - C2IF（Comparator C2 Interrupt Flag bit）：比较器 C2 中断标志位。置 1 时，表明比较器 2 中断被触发，需软件清除；置 0 时，表示比较器 2 中断未触发 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - C1IF（Comparator C1 Interrupt Flag bit）：比较器 C1 中断标志位。置 1 时，表明比较器 1 中断被触发，需软件清除；置 0 时，表示比较器 1 中断未触发 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-13-pir3寄存器功能概述">7.6.13 PIR3寄存器功能概述</h4>
+      <p>PIR3 寄存器用于记录与串口通信（USART）和同步串行端口（MSSP）相关的外设中断请求状态。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理或启用相关中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - RCIF（EUSART Receive Interrupt Flag (read - only) bit）：增强型通用同步异步收发器（EUSART）接收中断标志位，只读。置 1 时，表示 EUSART 接收缓冲区非空（至少包含一个字节）；置 0 时，表示 EUSART 接收缓冲区为空 。要清除 RCIF 标志位，固件需从 RCREG 读取足够次数以移除接收缓冲区中的所有字节 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - TXIF（EUSART Transmit Interrupt Flag (read - only) bit）：EUSART 发送中断标志位，只读。置 1 时，表示 EUSART 发送缓冲区包含至少一个可用空间；置 0 时，表示 EUSART 发送缓冲区已满，应用固件不应再向 TXREG 写入数据，直到发送缓冲区有更多空间 。要清除 TXIF 标志位，固件需向 TXREG 写入足够数据以完全填充缓冲区的可用字节 。TXIF 标志位不表示发送完成（为此需使用 TRMT ）。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - BCL2IF（MSSP2 Bus Collision Interrupt Flag bit）：MSSP2 总线冲突中断标志位。置 1 时，表示检测到总线冲突，需在软件中清除；置 0 时，表示未检测到总线冲突 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - SSP2IF（Synchronous Serial Port (MSSP2) Interrupt Flag bit）：MSSP2 同步串行端口中断标志位。置 1 时，表示传输 / 接收 / 总线条件已完成，需在软件中清除；置 0 时，表示传输 / 接收 / 总线条件正在进行中 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - BCL1IF（MSSP1 Bus Collision Interrupt Flag bit）：MSSP1 总线冲突中断标志位。置 1 时，表示检测到总线冲突，需在软件中清除；置 0 时，表示未检测到总线冲突 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - SSP1IF（Synchronous Serial Port (MSSP1) Interrupt Flag bit）：MSSP1 同步串行端口中断标志位。置 1 时，表示传输 / 接收 / 总线条件已完成，需在软件中清除；置 0 时，表示传输 / 接收 / 总线条件正在进行中 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-14-pir4寄存器功能概述">7.6.14 PIR4寄存器功能概述</h4>
+      <p>PIR4 寄存器用于记录与定时器相关的外设中断请求状态。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理或启用相关中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - TMR6IF（Timer6 Interrupt Flag bit）：定时器 6 中断标志位。置 1 时，表示 TMR6 后分频器溢出，或在 1:1 模式下，TMR6 与 PR6 匹配，需在软件中清除；置 0 时，表示未发生 TMR6 相关事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - TMR5IF（Timer5 Overflow Interrupt Flag bit）：定时器 5 溢出中断标志位。置 1 时，表示 TMR5 发生溢出，需在软件中清除；置 0 时，表示 TMR5 未发生溢出 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - TMR4IF（Timer4 Interrupt Flag bit）：定时器 4 中断标志位。置 1 时，表示 TMR4 后分频器溢出，或在 1:1 模式下，TMR4 与 PR4 匹配，需在软件中清除；置 0 时，表示未发生 TMR4 相关事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - TMR3IF（Timer3 Overflow Interrupt Flag bit）：定时器 3 溢出中断标志位。置 1 时，表示 TMR3 发生溢出，需在软件中清除；置 0 时，表示 TMR3 未发生溢出 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - TMR2IF（Timer2 Interrupt Flag bit）：定时器 2 中断标志位。置 1 时，表示 TMR2 后分频器溢出，或在 1:1 模式下，TMR2 与 PR2 匹配，需在软件中清除；置 0 时，表示未发生 TMR2 相关事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - TMR1IF（Timer1 Overflow Interrupt Flag bit）：定时器 1 溢出中断标志位。置 1 时，表示 TMR1 发生溢出，需在软件中清除；置 0 时，表示 TMR1 未发生溢出 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-15-pir5寄存器功能概述">7.6.15 PIR5寄存器功能概述</h4>
+      <p>PIR5 寄存器用于记录与可配置逻辑单元（CLC）和定时器门控相关的外设中断请求状态。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理或启用相关中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - CLC4IF（CLC4 Interrupt Flag bit）：可配置逻辑单元 4 中断标志位。置 1 时，表示发生了 CLC4 中断条件，需在软件中清除；置 0 时，表示未发生 CLC4 中断事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - CLC3IF（CLC3 Interrupt Flag bit）：可配置逻辑单元 3 中断标志位。置 1 时，表示发生了 CLC3 中断条件，需在软件中清除；置 0 时，表示未发生 CLC3 中断事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - CLC2IF（CLC2 Interrupt Flag bit）：可配置逻辑单元 2 中断标志位。置 1 时，表示发生了 CLC2 中断条件，需在软件中清除；置 0 时，表示未发生 CLC2 中断事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - CLC1IF（CLC1 Interrupt Flag bit）：可配置逻辑单元 1 中断标志位。置 1 时，表示发生了 CLC1 中断条件，需在软件中清除；置 0 时，表示未发生 CLC1 中断事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 3：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - TMR5GIF（Timer5 Gate Interrupt Flag bit）：定时器 5 门控中断标志位。置 1 时，表示定时器 5 门控变为非活动状态（门关闭）；置 0 时，表示定时器 5 门控未变为非活动状态 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - TMR3GIF（Timer3 Gate Interrupt Flag bit）：定时器 3 门控中断标志位。置 1 时，表示定时器 3 门控变为非活动状态（门关闭）；置 0 时，表示定时器 3 门控未变为非活动状态 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - TMR1GIF（Timer1 Gate Interrupt Flag bit）：定时器 1 门控中断标志位。置 1 时，表示定时器 1 门控变为非活动状态（门关闭）；置 0 时，表示定时器 1 门控未变为非活动状态 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-16-pir6寄存器功能概述">7.6.16 PIR6寄存器功能概述</h4>
+      <p>PIR6 寄存器用于记录与 CCP（捕捉 / 比较 / PWM）模块相关的外设中断请求状态。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理或启用相关中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 5：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - CCP5IF（CCP5 Interrupt Flag bit）：CCP 模块 5 中断标志位。在捕捉（Capture）模式下，置 1 表示发生捕捉事件（需软件清除），置 0 表示未发生；在比较（Compare）模式下，置 1 表示比较匹配事件发生（需软件清除），置 0 表示未发生；在 PWM 模式下，置 1 表示输出后沿事件发生（需软件清除），置 0 表示未发生 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - CCP4IF（CCP4 Interrupt Flag bit）：CCP 模块 4 中断标志位。功能与 CCP5IF 类似，在不同模式下，置 1 表示相应事件发生（需软件清除），置 0 表示未发生 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - CCP3IF（CCP3 Interrupt Flag bit）：CCP 模块 3 中断标志位。在各模式下，置 1、置 0 分别对应相应事件的发生与未发生，发生事件时需软件清除标志位 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - CCP2IF（CCP2 Interrupt Flag bit）：CCP 模块 2 中断标志位。不同模式下，根据标志位状态判断相应事件是否发生，发生时需软件清除 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - CCP1IF（CCP1 Interrupt Flag bit）：CCP 模块 1 中断标志位。在捕捉、比较、PWM 模式下，置 1 表示对应事件发生（需软件清除），置 0 表示未发生 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-17-pir6寄存器功能概述">7.6.17 PIR6寄存器功能概述</h4>
+      <p>PIR6 寄存器用于记录 CCP（捕捉 / 比较 / PWM）模块相关的中断请求状态。当中断触发条件满足时，对应标志位由硬件置 1，与中断使能位及全局中断使能位 GIE 状态无关。在处理或启用中断前，需软件清除相应标志位，防止误触发。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 5：未使用，读值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - CCP5IF（CCP5 Interrupt Flag bit）：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 1 情况：捕捉模式下表示捕捉事件发生，需软件清除；比较模式下表示比较匹配发生，需软件清除；PWM 模式下表示输出后沿事件发生，需软件清除。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 0 情况：对应上述模式中相应事件未发生。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>bit 3 - CCP4IF（CCP4 Interrupt Flag bit）：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 1 情况：捕捉模式捕捉事件发生、比较模式比较匹配发生、PWM 模式输出后沿事件发生，均需软件清除。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 0 情况：对应事件未发生。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>bit 2 - CCP3IF（CCP3 Interrupt Flag bit）：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 1 情况：捕捉模式捕捉事件发生、比较模式比较匹配发生、PWM 模式输出后沿事件发生，需软件清除。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 0 情况：对应事件未发生。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>bit 1 - CCP2IF（CCP2 Interrupt Flag bit）：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 1 情况：捕捉模式捕捉事件发生、比较模式比较匹配发生、PWM 模式输出后沿事件发生，需软件清除。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 0 情况：对应事件未发生。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>bit 0 - CCP1IF（CCP1 Interrupt Flag bit）：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 1 情况：捕捉模式捕捉事件发生、比较模式比较匹配发生、PWM 模式输出后沿事件发生，需软件清除。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>置 0 情况：对应事件未发生。</li>
+      </ul>
+      </ul>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在满足中断条件时置位，与对应使能位或 GIE 状态无关。启用中断前，软件要确保清除相关标志位，避免误触发。</p>
+      <h4 id="7-6-18-pir7寄存器功能概述">7.6.18 PIR7寄存器功能概述</h4>
+      <p>PIR7 寄存器用于记录特定外设中断的请求状态，涉及程序存储器扫描器、CRC 计算、非易失性存储器（NVM）、数控振荡器（NCO）以及互补波形发生器（CWG）等相关中断。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理或启用相关中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - SCANIF（Program Memory Scanner Interrupt Flag bit）：程序存储器扫描器中断标志位。置 1 时，表示操作已完成（SCANGO 从 1 变为 0 ）；置 0 时，表示无操作挂起或操作仍在进行中 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - CRCIF（CRC Interrupt Flag bit）：CRC 中断标志位。置 1 时，表示操作已完成（BUSY 从 1 变为 0 ）；置 0 时，表示无操作挂起或操作仍在进行中 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - NVMIF（Non - Volatile Memory (NVM) Interrupt Flag bit）：非易失性存储器（NVM）中断标志位。置 1 时，表示请求的 NVM 操作已完成；置 0 时，表示 NVM 中断未触发 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - NCO1IF（Numerically Controlled Oscillator (NCO) Interrupt Flag bit）：数控振荡器（NCO）中断标志位。置 1 时，表示 NCO 已溢出；置 0 时，表示未发生相关中断事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 3：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - CWG3IF（CWG3 Interrupt Flag bit）：互补波形发生器 3 中断标志位。置 1 时，表示 CWG3 已进入关闭状态；置 0 时，表示 CWG3 正常运行或中断已清除 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - CWG2IF（CWG2 Interrupt Flag bit）：互补波形发生器 2 中断标志位。置 1 时，表示 CWG2 已进入关闭状态；置 0 时，表示 CWG2 正常运行或中断已清除 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - CWG1IF（CWG1 Interrupt Flag bit）：互补波形发生器 1 中断标志位。置 1 时，表示 CWG1 已进入关闭状态；置 0 时，表示 CWG1 正常运行或中断已清除 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-19-pir8寄存器功能概述">7.6.19 PIR8寄存器功能概述</h4>
+      <p>PIR8 寄存器用于记录与 SMT（可能是特定的定时或测量模块 ）相关的外设中断请求状态。当中断条件满足时，对应的标志位会被硬件置 1，与中断使能位或全局中断使能位 GIE 的状态无关。在处理或启用相关中断前，软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - SMT2PWAIF（SMT2 Pulse Width Acquisition Interrupt Flag bit）：SMT2 脉宽采集中断标志位。置 1 时，表示中断挂起；置 0 时，表示无中断挂起 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - SMT2PRAIF（SMT2 Period Acquisition Interrupt Flag bit）：SMT2 周期采集中断标志位。置 1 时，表示中断挂起；置 0 时，表示无中断挂起 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - SMT2IF（SMT2 Overflow Interrupt Flag bit）：SMT2 溢出中断标志位。置 1 时，表示发生 SMT2 溢出事件，需在软件中清除；置 0 时，表示未检测到溢出事件 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - SMT1PWAIF（SMT1 Pulse Width Acquisition Interrupt Flag bit）：SMT1 脉宽采集中断标志位。置 1 时，表示中断挂起；置 0 时，表示无中断挂起 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - SMT1PRAIF（SMT1 Period Acquisition Interrupt Flag bit）：SMT1 周期采集中断标志位。置 1 时，表示中断挂起；置 0 时，表示无中断挂起 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - SMT1IF（SMT1 Overflow Interrupt Flag bit）：SMT1 溢出中断标志位。置 1 时，表示发生 SMT1 溢出事件，需在软件中清除；置 0 时，表示未检测到溢出事件 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>中断标志位在中断条件满足时会被置位，与对应使能位或全局使能位 GIE 的状态无关。在启用中断前，用户软件需确保清除相应的中断标志位，以避免误触发中断。</p>
+      <h4 id="7-6-20-寄存器功能概述">7.6.20 寄存器功能概述</h4>
+      <ul>
+        <li>中断控制寄存器（INTCON ）：用于全局和外设中断使能控制，以及 INT 引脚中断触发边沿选择。GIE 控制所有中断使能，PEIE 控制外设中断使能，INTEDG 选择 INT 引脚触发边沿。</li>
+      </ul>
+      <ul>
+        <li>外设中断使能寄存器（PIE0 - PIE8 ）：分别用于使能不同外设相关的中断。如 PIE1 控制振荡器故障、时钟切换、ADC 相关等中断使能；PIE4 控制多个定时器相关中断使能等。</li>
+      </ul>
+      <ul>
+        <li>外设中断请求寄存器（PIR0 - PIR8 ）：用于记录不同外设中断的请求状态，当中断条件满足时，对应标志位被硬件置 1，软件需在处理或启用中断前清除标志位，避免误触发。</li>
+      </ul>
+      <p><strong>各寄存器位说明</strong></p>
+      <ul>
+        <li>INTCON：bit7（GIE）、bit6（PEIE）、bit0（INTEDG）有对应功能，其余未使用位读值为 0 。</li>
+      </ul>
+      <ul>
+        <li>PIE0 - PIE8：不同位对应不同外设中断使能控制，如 PIE3 的 bit5（RCIE）控制 USART 接收中断使能，bit4（TXIE）控制发送中断使能等 。</li>
+      </ul>
+      <ul>
+        <li>PIR0 - PIR8：各标志位记录对应外设中断请求状态，如 PIR4 的 bit5（TMR6IF）记录定时器 6 中断标志等 。</li>
+      </ul>
+      <p><strong>应用要点</strong></p>
+      <p>在使用中断功能时，需先通过 INTCON 寄存器开启全局或外设中断使能，再利用 PIE 系列寄存器使能具体外设中断；同时，要关注 PIR 系列寄存器中标志位状态，及时清除标志位，以正确处理中断请求。</p>
+      <h2 id="13-0-pps-模块功能概述">13.0 PPS 模块功能概述</h2>
+      <ul>
+        <li>PPS 模块用于将外设输入输出连接到单片机的 I/O 引脚，只涉及数字信号连接 ，模拟输入输出仍固定在已分配引脚。输入和输出选择相互独立。</li>
+      </ul>
+      <p><strong>输入信号路由选项</strong></p>
+      <ul>
+        <li>表 13 - 1 列出了 PPS 输入信号路由选项，包括输入信号名称（如 INT、T0CKI 等 ）、对应的输入寄存器名称（如 INTPP、T0CKIPPS 等 ）、上电复位（POR）时的默认引脚位置 ，以及可重新映射到 PORTA、PORTB、PORTC 端口引脚的情况 。例如：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>INT 信号默认在 RB0 引脚，可重新映射到 PORTA、PORTB、PORTC 端口的相应引脚（表格中用 “・” 表示可映射 ）。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>T0CKI 信号默认在 RA4 引脚，也可重新映射到其他端口引脚。 这些设置方便根据实际需求灵活配置外设输入信号的引脚连接。</li>
+      </ul>
+      </ul>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/01-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 1：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p>该表明确了将外设输入信号连接到不同目标引脚时，需写入对应输入寄存器的值 ，用于指导 PPS 模块输入引脚的配置操作。</p>
+      <p><strong>具体对应关系</strong></p>
+      <ul>
+        <li>对于每个期望的输入引脚（Desired Input Pin），如 RA0 - RA7、RB0 - RB7、RC0 - RC7 、RE3 等，都有与之对应的要写入寄存器的值（Value to Write to Register ）。例如，若想将输入信号连接到 RA0 引脚，需向相关寄存器写入0<em>x</em>00 ；若连接到 RB5 引脚，需写入0<em>x</em>0<em>D</em> ；连接到 RC3 引脚，则写入0<em>x</em>13 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>并非表格中所有值对任意信号都有效 。以 INT 信号为例，因其只能映射到 PORTA 或 PORTB 端口引脚，所以只有对应 RA&lt;7:0&gt; 和 RB&lt;7:0 &gt; 的寄存器值（0<em>x</em>00−0<em>x</em>0<em>F</em> ）可写入 INTPP 寄存器用于配置 INT 信号引脚 。 实际使用时需依据具体信号可映射引脚范围来选择正确的寄存器写入值。</p>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/02-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 2：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h3 id="13-1-pps-输入">13.1 PPS 输入</h3>
+      <ul>
+        <li>寄存器功能：每个外设都有一个 PPS 寄存器，用于选择外设的输入引脚。输入信号来源于设备引脚。尽管每个外设都有自己的 PPS 输入选择寄存器，但选择方式是相同的。</li>
+      </ul>
+      <ul>
+        <li>寄存器命名：寄存器名称中的 “xxx” 是外设标识符的占位符，例如 CLC1PPS 。</li>
+      </ul>
+      <h3 id="13-2-pps-输出">13.2 PPS 输出</h3>
+      <ul>
+        <li>寄存器功能：每个 I/O 引脚都有一个 PPS 寄存器，用于选择引脚的输出源。大多数情况下，端口的 TRIS 控制位仍控制引脚输出驱动，但某些外设（如 EUSART 同步操作、MSSP（<em>I</em>2<em>C</em> ） ）在操作时会按需覆盖 TRIS 控制。</li>
+      </ul>
+      <ul>
+        <li>寄存器命名：寄存器名称中的 “Rxy” 是引脚端口和位标识符的占位符，例如 PORTA 的第 0 位对应的 PPS 输出选择寄存器为 RA0PPS 。</li>
+      </ul>
+      <p>简化框图（Figure 13 - 1）</p>
+      <ul>
+        <li>展示了 PPS 输入和输出的简化结构。PPS 输入部分显示了不同外设（如 Peripheral abc、Peripheral xyz ）从引脚（如 RA0、RE2 ）获取输入信号的连接方式；PPS 输出部分展示了引脚（如 RA0、Rxy、RE2 ）从不同外设获取输出源的连接方式 。</li>
+      </ul>
+      <ul>
+        <li>注释指出，RD&lt;7:0&gt; 和 RE&lt;2:0 &gt; 仅在 40/44 引脚设备中实现，且 RE3 仅在 MCLR 禁用时具备 PPS 输入功能 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/03-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 3：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h3 id="13-3-双向引脚">13.3 双向引脚</h3>
+      <ul>
+        <li>对于在单个引脚上有双向信号的外设，进行 PPS 选择时，PPS 输入和输出选择需包含同一引脚。涉及此类双向信号的外设如 EUSART（同步操作）、MSSP（<em>I</em>2<em>C</em> ） 。</li>
+      </ul>
+      <ul>
+        <li>以<em>I</em>2<em>C</em>为例，SCLx 和 SDAx 功能可通过 PPS 重新映射，但只有 RB1、RB2、RC3 和 RC4 引脚有<em>I</em>2<em>C</em>和 SMBus 特定输入缓冲器（与普通 ST/TTL 电平阈值不同 ），若 SCLx 或 SDAx 功能映射到其他引脚，通用 I/O 引脚缓冲器将按 INVL 寄存器设置工作，所以建议仅将 SCLx 和 SDAx 功能映射到 RB1、RB2、RC3 或 RC4 引脚 。</li>
+      </ul>
+      <h3 id="13-4-pps-锁定">13.4 PPS 锁定</h3>
+      <ul>
+        <li>PPS 有锁定模式，可防止输入和输出选择被意外更改。通过设置 PPSLOCKED 寄存器的 PPSLOCKED 位来锁定 PPS 选择 。清除该位需特殊序列，以防止意外更改，文档中示例 13 - 1 展示了 PPS 锁定 / 解锁序列代码，包括暂停中断、设置存储区、执行特定指令序列等步骤 。</li>
+      </ul>
+      <h3 id="13-5-pps-永久锁定">13.5 PPS 永久锁定</h3>
+      <ul>
+        <li>通过设置 PPS1WAY 配置位可永久锁定 PPS 。此位设置后，PPSLOCKED 位在设备复位后只能清零和设置一次，允许在初始化期间进行输入和输出选择设置。所有选择完成后设置 PPSLOCKED 位，该位将保持置位，直到下一次设备复位事件才会清零 。</li>
+      </ul>
+      <h3 id="13-6-睡眠模式下的操作">13.6 睡眠模式下的操作</h3>
+      <ul>
+        <li>PPS 的输入和输出选择不受睡眠模式影响 。</li>
+      </ul>
+      <h3 id="13-7-复位的影响">13.7 复位的影响</h3>
+      <ul>
+        <li>设备上电复位（POR）会将所有 PPS 输入和输出选择清零为默认值。其他复位不会改变选择设置，默认输入和输出选择情况见表 13 - 1 和表 13 - 2 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/04-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 4：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h3 id="13-8-寄存器概述">13.8 寄存器概述</h3>
+      <h4 id="13-8-1-xxxpps">13.8.1 xxxPPS</h4>
+      <ul>
+        <li>名称与功能：xxxPPS 是外设输入选择寄存器，用于选择特定外设的输入引脚。“xxx” 代表输入信号功能名，如 “INT”“T0CKI”“RX” 等 ，不同输入功能有各自专用的特殊功能寄存器（SFR ），如 INTPP、T0CKIPPS、RXPP 等 。</li>
+      </ul>
+      <ul>
+        <li>位定义规则：寄存器各位属性标注遵循特定规则，R = 可读位，W = 可写位 ，U = 未实现位（读为‘0’ ） ，u 表示复位后该位值不变 ，q 表示该位值取决于外设 。</li>
+      </ul>
+      <p><strong>具体位功能</strong></p>
+      <ul>
+        <li>bit 7 - 6：未实现位，读取值为‘0’。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 0（xxxPPS&lt;5:0&gt;）：这些位是外设 xxx 的输入选择位，用于设置输入信号连接的引脚 。具体可映射的引脚子集因输入信号而异，需参照表 13 - 2 。例如，“INT” 信号只能映射到 PORTA 或 PORTB 引脚，INTPP 寄存器可写入0<em>x</em>00−0<em>x</em>0<em>F</em>（对应 RA0 - RB7 ）的值，写入0<em>x</em>10及更高值不被支持，会导致未定义行为 。</li>
+      </ul>
+      <h4 id="13-8-2-rxypps-寄存器-引脚输出源选择寄存器">13.8.2 RxyPPS 寄存器（引脚输出源选择寄存器 ）</h4>
+      <ul>
+        <li>功能：用于选择 Rxy 引脚的输出源 ，通过配置 RxyPPS&lt;5:0&gt; 位来实现。</li>
+      </ul>
+      <ul>
+        <li>位定义：bit 7 - 6 未实现，读为‘0’；bit 5 - 0 为引脚 Rxy 输出源选择位，具体设置参照表 13 - 3 。此外，外设会根据需要覆盖引脚的 TRIS 控制 。</li>
+      </ul>
+      <h4 id="13-8-2-ppslock-寄存器-pps-锁定寄存器">13.8.2 PPSLOCK 寄存器（PPS 锁定寄存器 ）</h4>
+      <ul>
+        <li>功能：用于锁定 PPS 设置，防止输入和输出选择被意外更改。</li>
+      </ul>
+      <ul>
+        <li>位定义：bit 7 - 1 未实现，读为‘0’；bit 0 为 PPSLOCKED 位，置 1 时 PPS 被锁定，选择不可更改；置 0 时 PPS 未锁定，选择可更改 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/05-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 5：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/06-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 6：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h2 id="19-0-pwm-模块功能概述">19.0 PWM 模块功能概述</h2>
+      <p><strong>模块功能</strong></p>
+      <ul>
+        <li>PWM 模块：PWMx 模块可生成频率和占空比可变的脉宽调制信号。PIC16 (L) F18854 除 CCP 模块外，还额外有 PWM6 和 PWM7 两个 PWM 模块，功能与 CCP 模块的 PWM 功能类似，只是无捕获或比较功能。</li>
+      </ul>
+      <ul>
+        <li>注：PWM6 和 PWM7 模块本质相同，文档中通用的 PWMx ，编程时 x 需替换为 6 或 7 ，如 PWMxCON 对应实际的 PWM6CON 和 PWM7CON ，PWMxEN 对应 PWM6EN 和 PWM7EN 。</li>
+      </ul>
+      <p><strong>PWM 原理</strong></p>
+      <ul>
+        <li>定义：PWM 是通过在完全导通和完全关断状态间快速切换，为负载供电的方案。PWM 信号为方波，高电平部分为 “导通” 状态（脉冲宽度） ，低电平部分为 “关断” 状态。</li>
+      </ul>
+      <ul>
+        <li>占空比：占空比指 “导通” 时间与 “关断” 时间的比例，以百分比表示 ，0% 表示完全关断，100% 表示完全导通。占空比越低，负载供电越少；占空比越高，负载供电越多 。</li>
+      </ul>
+      <ul>
+        <li>周期：PWM 周期指一个完整循环的持续时间，即导通时间与关断时间总和。</li>
+      </ul>
+      <ul>
+        <li>分辨率：PWM 分辨率指一个 PWM 周期内可呈现的最大步数，分辨率越高，对脉冲宽度及负载供电控制越精确。 图 19 - 1 展示了 PWM 信号典型波形。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/07-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 7：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h3 id="19-1-pwm-模块功能概述">19.1 PWM 模块功能概述</h3>
+      <p><strong>功能概述</strong></p>
+      <p>标准 PWM 模式可在 PWMx 引脚生成脉宽调制信号，分辨率最高达 10 位。其周期、占空比和分辨率由 TMR2 寄存器、PR2 寄存器、PWMxCON 寄存器、PWMxDCH 寄存器、PWMxDCL 寄存器控制 。</p>
+      <p><strong>关键寄存器作用</strong></p>
+      <ul>
+        <li>TMR2 寄存器：定时器 2 寄存器，作为 PWM 时基计数，其计数与 PR2 寄存器配合确定 PWM 周期。</li>
+      </ul>
+      <ul>
+        <li>PR2 寄存器：设定 TMR2 的周期值，当 TMR2 计数达到 PR2 设定值时产生溢出，触发 PWM 周期相关操作。</li>
+      </ul>
+      <ul>
+        <li>PWMxCON 寄存器：PWM 控制寄存器，用于配置 PWM 相关功能，如使能 PWM 输出（PWMEN 位）、设置输出极性（PWMxPOL 位 ）等。</li>
+      </ul>
+      <ul>
+        <li>PWMxDCH 和 PWMxDCL 寄存器：共同设置 PWM 的占空比，组成 10 位占空比数值。</li>
+      </ul>
+      <p><strong>输出特性</strong></p>
+      <ul>
+        <li>当 PWMxPOL = 0 时，输出默认状态为‘0’；当 PWMxPOL = 1 时，输出默认状态为‘1’ 。若 PWMEN = 0，输出将保持默认状态。</li>
+      </ul>
+      <ul>
+        <li>要使能 PWMx 引脚输出，需将对应的 TRIS 位清零（设为输出模式） 。</li>
+      </ul>
+      <p><strong>简化框图说明</strong></p>
+      <ul>
+        <li>占空比寄存器（PWMxDCH 和 PWMxDCL）：设定占空比数值，经 10 位锁存器（用户不可见）传递给比较器。</li>
+      </ul>
+      <ul>
+        <li>TMR2 模块：包括 TMR2 寄存器、比较器及 PR2 寄存器。TMR2 计数与 PR2 比较，产生 T2\_match 信号，用于控制 PWM 周期；同时与占空比数值比较，决定输出状态切换。</li>
+      </ul>
+      <ul>
+        <li>PWMxPOL：控制输出极性。</li>
+      </ul>
+      <ul>
+        <li>PPS（外设引脚选择）和 TRIS Control：PPS 用于将 PWM 输出映射到具体引脚，TRIS 控制引脚的输入输出模式。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/08-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 8：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h4 id="19-1-1-pwm-时钟选择">19.1.1 PWM 时钟选择</h4>
+      <ul>
+        <li>PIC16 (L) F18854 的每个 CCP 和 PWM 模块可独立选择控制定时器源，有多达三个带自动重载功能的 8 位定时器（Timer2/4/6）可供选择，通过 CCPTMRS0 和 CCPTMRS1 寄存器选定。</li>
+      </ul>
+      <h4 id="19-1-2-使用-tmr2-4-6-作为-pwm-时基">19.1.2 使用 TMR2/4/6 作为 PWM 时基</h4>
+      <ul>
+        <li>此单片机的 TMR2 模块有新特性，支持更多模式，利于 PWM 定制与控制。使用不同定时器模式生成 PWM 信号时，要求作为 PWM 时基的定时器时钟源为 FOSC/4 。</li>
+      </ul>
+      <h4 id="19-1-3-pwm-周期">19.1.3 PWM 周期</h4>
+      <ul>
+        <li>公式：</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/09-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 9：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p>PWM 频率是周期的倒数，通过向 PR2 寄存器写入值设定 PWM 周期。</p>
+      <ul>
+        <li>事件：当 TMR2 等于 PR2 时，下一个计数周期发生三件事：TMR2 清零；PWMx 引脚置位（占空比 0% 时除外）；锁存 PWM 脉冲宽度（来自 PWMxDC ） 。若脉冲宽度值大于周期，指定 PWM 引脚状态不变。</li>
+      </ul>
+      <h4 id="19-1-4-pwm-占空比">19.1.4 PWM 占空比</h4>
+      <ul>
+        <li>PWM 占空比通过向 10 位 PWMxDC 寄存器写入值设定，PWMxDCH 存高 2 位 ，PWMxDCL 存低 8 位。PWMDC 寄存器双缓冲，可随时更新，新值在 TMR2 = PR2 时生效 。</li>
+      </ul>
+      <ul>
+        <li>占空比计算：</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/10-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 10：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h4 id="19-1-5-pwm-分辨率">19.1.5 PWM 分辨率</h4>
+      <ul>
+        <li>分辨率决定给定周期内可用占空比数量，如 10 位分辨率有 1024 种离散占空比，8 位分辨率有 256 种。PR2 为 255 时，最大 PWM 分辨率为 10 位。</li>
+      </ul>
+      <ul>
+        <li>分辨率计算</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/11-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 11：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h4 id="19-1-6-睡眠模式下的操作">19.1.6 睡眠模式下的操作</h4>
+      <ul>
+        <li>睡眠模式中，TMR2 寄存器不计数，模块状态不变。若 PWMx 引脚驱动值，会保持该值；设备唤醒后，TMR2 从上次状态继续计数。</li>
+      </ul>
+      <h4 id="19-1-7-系统时钟频率变化">19.1.7 系统时钟频率变化</h4>
+      <ul>
+        <li>PWM 频率源于系统时钟频率，系统时钟频率改变会导致 PWM 频率变化，更多细节可参考 “振荡器模块（带故障保护时钟监视器）” 章节。</li>
+      </ul>
+      <h4 id="19-1-8-复位影响">19.1.8 复位影响</h4>
+      <ul>
+        <li>任何复位都会使所有端口变为输入模式，PWMx 寄存器恢复到复位状态。</li>
+      </ul>
+      <h4 id="19-1-9-pwm-频率和分辨率示例">19.1.9 PWM 频率和分辨率示例</h4>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/12-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 12：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <ul>
+        <li>表 19 - 1：给出系统时钟频率<em>Fosc</em>=20 <em>MHz</em> 时，不同 PWM 频率对应的定时器预分频值（Timer Prescale）、PR2 值、最大分辨率（Maximum Resolution）。如 PWM 频率为1.22 <em>kHz</em> 时，预分频值为 16 ，PR2 值为0<em>xFF</em> ，最大分辨率为 10 位。</li>
+      </ul>
+      <ul>
+        <li>表 19 - 2：给出系统时钟频率<em>Fosc</em>=8 <em>MHz</em> 时，类似的 PWM 频率、定时器预分频值、PR2 值及最大分辨率对应关系。</li>
+      </ul>
+      <p><strong>PWM 操作设置步骤</strong></p>
+      <ul>
+        <li>禁用输出驱动：设置相关 TRIS 位，禁用 PWMx 引脚输出驱动。</li>
+      </ul>
+      <ul>
+        <li>配置输出极性：通过配置 PWMxCON 寄存器的 PWMxPOL 位，设置 PWM 输出极性。</li>
+      </ul>
+      <ul>
+        <li>设置周期值：向 PR2 寄存器写入由公式 19 - 1 确定的 PWM 周期值。</li>
+      </ul>
+      <ul>
+        <li>设置占空比值：向 PWMxDCH 寄存器及 PWMxDCL 寄存器的&lt;7:6&gt;位写入由公式 19 - 2 确定的 PWM 占空比值。</li>
+      </ul>
+      <ul>
+        <li>配置并启动 Timer2 ：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>清零 PIR4 寄存器的 TMR2IF 中断标志位。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>通过配置 T2CON 寄存器的 T2CKPS&lt;1:0&gt;位，选择 Timer2 预分频值。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>通过设置 T2CON 寄存器的 TMR2ON 位，启用 Timer2。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>等待中断标志置位：等待 TMR2IF 置位。</li>
+      </ul>
+      <ul>
+        <li>使能输出：TMR2IF 标志位设置时，清零相关 TRIS 位以启用输出。</li>
+      </ul>
+      <ul>
+        <li>信号路由与模块使能：通过配置 RxyPPS 寄存器，将信号路由到目标引脚；通过设置 PWMxCON 寄存器的 PWMxEN 位，启用 PWMx 模块 。</li>
+      </ul>
+      <h3 id="19-2-寄存器功能概述">19.2 寄存器功能概述</h3>
+      <h4 id="19-2-1-pwmxcon-寄存器概述"><strong>19.2.1 PWMxCON</strong>  寄存器概述</h4>
+      <ul>
+        <li>名称与功能：PWMxCON 为 PWM 控制寄存器，用于控制 PWM 模块的使能、输出电平读取、输出极性选择等功能。</li>
+      </ul>
+      <ul>
+        <li>位定义规则：文档中对寄存器各位的读写属性等进行了标注，如 R = 可读位，W = 可写位，U = 未实现位（读为‘0’ ）等 。</li>
+      </ul>
+      <p><strong>具体位功能</strong></p>
+      <ul>
+        <li>bit 7（PWMxEN）：PWM 模块使能位 。置 1 时启用 PWM 模块；置 0 时禁用 PWM 模块。</li>
+      </ul>
+      <ul>
+        <li>bit 6：未实现位，读取值为‘0’。</li>
+      </ul>
+      <ul>
+        <li>bit 5（PWMxOUT）：读取该位时，可获取 PWM 模块输出电平状态。</li>
+      </ul>
+      <ul>
+        <li>bit 4（PWMxPOL）：PWM 输出极性选择位 。置 1 时 PWM 输出为低电平有效（active - low）；置 0 时 PWM 输出为高电平有效（active - high） 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - 0：均为未实现位，读取值为‘0’ 。</li>
+      </ul>
+      <h4 id="19-2-2-pwmxdch-寄存器概述"><strong>19.2.2 PWMxDCH </strong>寄存器概述</h4>
+      <ul>
+        <li>名称与功能：PWMxDCH 是 PWM 占空比高 8 位寄存器 ，用于存储 PWM 占空比的高 8 位数值（PWMxDC&lt;9:2&gt; ） ，与 PWMxDCL 寄存器共同构成 10 位的 PWM 占空比设置值，决定 PWM 信号的占空比。</li>
+      </ul>
+      <ul>
+        <li>位定义规则：寄存器各位属性标注遵循特定规则，R = 可读位，W = 可写位 ，x 表示复位后该位值未知，u 表示复位后该位值不变 。</li>
+      </ul>
+      <p><strong>具体位功能</strong></p>
+      <ul>
+        <li>bit 7 - 0（PWMxDC&lt;9:2&gt;）：这些位是 PWM 占空比的高 8 位（最高有效位，MSBs） ，与 PWMxDCL 寄存器中的低 2 位（最低有效位，LSBs）一起组成完整的 10 位 PWM 占空比数值，通过对这些位进行读写操作，可设置 PWM 信号的占空比。</li>
+      </ul>
+      <h4 id="19-2-3-pwmxdch-寄存器概述"><strong>19.2.3 PWMxDCH </strong>寄存器概述</h4>
+      <ul>
+        <li>名称与功能：PWMxDCL 是 PWM 占空比低 2 位寄存器 ，用于存储 PWM 占空比的低 2 位数值（PWMxDC&lt;1:0&gt; ） ，与 PWMxDCH 寄存器共同构成 10 位的 PWM 占空比设置值，决定 PWM 信号的占空比。</li>
+      </ul>
+      <ul>
+        <li>位定义规则：寄存器各位属性标注遵循特定规则，R = 可读位，W = 可写位 ，U 表示未实现位（读为‘0’ ） ，x 表示复位后该位值未知，u 表示复位后该位值不变 。</li>
+      </ul>
+      <p><strong>具体位功能</strong></p>
+      <ul>
+        <li>bit 7 - 6（PWMxDC&lt;1:0&gt;）：这些位是 PWM 占空比的低 2 位（最低有效位，LSBs） ，与 PWMxDCH 寄存器中的高 8 位（最高有效位，MSBs）一起组成完整的 10 位 PWM 占空比数值，通过对这些位进行读写操作，可设置 PWM 信号的占空比。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 0：均为未实现位，读取值为‘0’ 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/13-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 13：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h2 id="29-0-timer2-timer4-timer6模块功能概述">29.0 Timer2、Timer4、Timer6模块功能概述</h2>
+      <p><strong>模块基本信息</strong></p>
+      <ul>
+        <li>功能概述：Timer2/4/6 模块为 8 位定时器，可作为自由运行周期计数器，也可在单触发（One-Shot）和单稳态（Monostable）操作模式下，配合外部信号控制启动、运行、冻结和复位 。通过与比较器、CCP 模块等其他内部外设协同，可实现脉冲密度调制等复杂波形控制。</li>
+      </ul>
+      <ul>
+        <li>模块一致性：芯片上有三个相同的 Timer2 模块，分别命名为 Timer2、Timer4、Timer6 ，对 Timer2 及 T2PR 的相关描述同样适用于 Timer4、Timer6 和 T4PR、T6PR 。</li>
+      </ul>
+      <p><strong>模块特性</strong></p>
+      <ul>
+        <li>寄存器：包含 8 位定时器寄存器和 8 位周期寄存器。</li>
+      </ul>
+      <ul>
+        <li>外部控制：支持可选的外部硬件定时器复位。</li>
+      </ul>
+      <ul>
+        <li>预分频与后分频：可编程预分频器（比例 1:1 至 1:128 ），可编程后分频器（比例 1:1 至 1:16 ）。</li>
+      </ul>
+      <ul>
+        <li>运行模式：可选同步 / 异步操作，有备用时钟源。</li>
+      </ul>
+      <ul>
+        <li>中断功能：周期匹配时可产生中断。</li>
+      </ul>
+      <p><strong>操作模式</strong></p>
+      <ul>
+        <li>自由运行周期（Free Running Period） ：定时器持续计数，达到周期寄存器设定值后自动重置并继续计数。</li>
+      </ul>
+      <ul>
+        <li>单触发（One-shot） ：在外部信号触发下开始计数，计满后停止，需再次触发才能重新计数。</li>
+      </ul>
+      <ul>
+        <li>单稳态（Monostable） ：受外部信号触发，按设定时间输出稳定电平脉冲 。可参考 Figure 29 - 1（Timer2 框图）和 Figure 29 - 2（时钟源框图）了解更多细节。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/14-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 14：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h4 id="29-1-可配置逻辑单元-clc-模块功能概述定时器2工作模式">29.1 可配置逻辑单元（CLC）模块功能概述定时器2工作模式</h4>
+      <ul>
+        <li>自由运行周期模式（Free Running Period Mode） ：TMR2 与周期寄存器 T2PR 每个时钟周期比较，相等时 TMR2 在下一周期清零，后分频器计数递增。后分频器计数值等于 TMRxCON1 寄存器的 OUTPS&lt;4:0&gt; 值时，TMR2 后分频输出产生一个时钟周期宽脉冲，后分频计数清零 。</li>
+      </ul>
+      <ul>
+        <li>单触发模式（One - Shot Mode） ：类似于自由运行周期模式，但 ON 位清零，TMR2 匹配 T2PR 后停止计数，直到 T2ON 位再次翻转才重启，此模式下非零的后分频器 OUTPS&lt;4:0&gt; 值无意义，定时器重启时后分频器复位 。</li>
+      </ul>
+      <ul>
+        <li>单稳态模式（Monostable Mode） ：与单触发模式类似，区别在于 ON 位不清零，定时器可由外部复位事件重启 。各模式下有多种启动、停止和复位选项，外部硬件信号可控制定时器运行或强制 TMR2 计数复位 。</li>
+      </ul>
+      <p><strong>时钟源</strong></p>
+      <ul>
+        <li>图 29 - 2 展示 Timer2 时钟源框图，通过 TxCLKCON 和 TxINPPS 等配置，可选择不同时钟源（Timer Clock Sources ），具体见寄存器 29 - 1 。</li>
+      </ul>
+      <p><strong>寄存器特性</strong></p>
+      <ul>
+        <li>TMR2 寄存器可读可写，设备复位时双缓冲且初始化为0<em>xFF</em> 。T2PR 寄存器直接读写，实际周期缓冲器在特定事件（写 TMR2、T2CON、T2HLT 寄存器，TMR2 = T2PR 且预分频器满，外部复位事件 ）发生时更新 。预分频器和后分频器在写 TMR2、T2CON 寄存器，设备复位，外部复位事件时清零 。T2CON 写入时 TMR2 不清零 。</li>
+      </ul>
+      <h4 id="29-2-timer2-输出"><strong>29.2 Timer2 输出</strong></h4>
+      <ul>
+        <li>主要输出 TMR2\_postscaled，后分频器计数匹配 TMR2 时钟周期时产生脉冲，可作为 ADC 模块自动转换触发、CWG 自动关闭源、Memory Scanner 触发、Timer 1/3 门控输入、Timer 2/4/6 外部复位信号、SMT 窗口和信号输入 。此外，CCP 模块在 PWM 模式生成脉冲时也会用到 Timer2 相关信号 。</li>
+      </ul>
+      <h4 id="29-3-timer2-输出"><strong>29.3 Timer2 输出</strong></h4>
+      <p><strong>外部复位源功能</strong></p>
+      <ul>
+        <li>Timer2 除时钟源外，还可接入外部复位源。Timer2、Timer4、Timer6 分别通过 T2RST、T4RST、T6RST 寄存器选择外部复位源 。该外部复位源可根据定时器工作模式，控制定时器的启动、停止和复位 。</li>
+      </ul>
+      <p><strong>触发模式要求</strong></p>
+      <ul>
+        <li>边沿触发模式：外部触发信号之间需间隔六个定时器时钟周期。</li>
+      </ul>
+      <ul>
+        <li>电平触发模式：触发电平持续时间至少为三个定时器时钟周期 。</li>
+      </ul>
+      <p><strong>特殊模式下情况</strong></p>
+      <ul>
+        <li>在调试冻结（Debug Freeze）模式下，外部触发信号将被忽略 。定时器工作模式由 TMRxHLT 寄存器的 MODE&lt;4:0&gt; 位控制 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/15-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 15：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h2 id="30-0-捕获模式-比较模式-pwm-模式">30.0 捕获模式、比较模式、PWM 模式</h2>
+      <p><strong>模块功能</strong></p>
+      <ul>
+        <li>捕获模式（Capture mode）：用于测量事件持续时间，记录特定事件发生时刻。</li>
+      </ul>
+      <ul>
+        <li>比较模式（Compare mode）：当预设时间结束时，触发外部事件。</li>
+      </ul>
+      <ul>
+        <li>PWM 模式（PWM mode）：可生成频率和占空比可变的脉宽调制信号 。</li>
+      </ul>
+      <p><strong>模块配置</strong></p>
+      <ul>
+        <li>PIC16 (L) F18854 单片机具备 CCP1 - CCP5 共 5 个 CCP 模块 ，表格 30 - 1 展示了模块配置情况。</li>
+      </ul>
+      <ul>
+        <li>所有 CCP 模块的捕获和比较功能相同 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <ul>
+        <li>对于有多个 CCP 模块的设备，使用时需注意寄存器名称，模块缩写后的数字用于区分不同模块，如 CCP1CON 和 CCP2CON 分别控制不同 CCP 模块的相同操作方面 。</li>
+      </ul>
+      <ul>
+        <li>文档中对 CCP 模块通用描述，在各工作模式下同等适用于 CCPx 模块，寄存器名、模块信号、I/O 引脚和位名等可能用通用标识符 “x” ，必要时用数字区分特定模块 。</li>
+      </ul>
+      <h3 id="30-1-捕获模式功能">30.1 捕获模式功能</h3>
+      <ul>
+        <li>所有 CCP 模块的捕获模式功能相同，利用 16 位 Timer1 资源。当捕获源发生指定事件时，16 位 CCPRxH:CCPRxL 寄存器对捕获并存储 TMR1H:TMR1L 寄存器对的 16 位值 。</li>
+      </ul>
+      <ul>
+        <li>事件类型由 CCPxCON 寄存器的 CCPxMODE&lt;3:0&gt; 位配置，包括每个下降沿、每个上升沿、每第 4 个上升沿、每第 16 个上升沿 。</li>
+      </ul>
+      <ul>
+        <li>捕获发生时，PIR6 寄存器的中断请求标志位 CCPxIF 置位，需软件清零。若在读取 CCPRxH、CCPRxL 寄存器对的值前再次发生捕获，旧捕获值将被新值覆盖 。</li>
+      </ul>
+      <p><strong>捕获源设置</strong></p>
+      <ul>
+        <li>CCPx 引脚需通过设置相关 TRIS 控制位配置为输入。若配置为输出，对端口的写操作可能导致捕获条件触发 。</li>
+      </ul>
+      <ul>
+        <li>捕获源通过配置 CCPxCAP 寄存器的 CCPxCTS&lt;2:0&gt; 位选择，可选项包括 CCPxPPS 输入、C1OUT\_sync、C2OUT\_sync、IOC\_interrupt、LC1\_out、LC2\_out、LC3\_out、LC4\_out 。图 30 - 1 展示了捕获操作简化示意图。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/16-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 16：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p><strong>捕获模式补充</strong></p>
+      <ul>
+        <li>Timer1 模式资源（30.1.2） ：CCP 模块使用捕获功能时，Timer1 需工作在定时器模式或同步计数器模式。异步计数器模式下，捕获操作可能无法正常工作，配置 Timer1 详见 28.0 节 。</li>
+      </ul>
+      <ul>
+        <li>软件中断模式（30.1.3） ：改变捕获模式时会产生虚假中断，用户应保持 PIE6 寄存器的 CCPxIE 中断使能位清零，避免虚假中断，同时清除 PIR6 寄存器的 CCPxIF 中断标志位 。且捕获模式下，不应使用系统时钟（Fosc）为 Timer1 计时，Timer1 需由指令时钟（Fosc/4）或外部时钟源驱动，以便 CCP 引脚识别触发事件 。</li>
+      </ul>
+      <ul>
+        <li>CCP 预分频器（30.1.4） ：CCPxCON 寄存器的 CCPxMODE&lt;3:0&gt; 位指定四个预分频器设置。CCP 模块关闭或复位时，预分频器计数器清零。切换预分频器设置不会清零计数器，可能产生虚假中断，为避免意外操作，更改预分频器前需清零 CCPxCON 寄存器 。</li>
+      </ul>
+      <ul>
+        <li>睡眠期间捕获（30.1.5） ：捕获模式依赖 Timer1 模块正常运行。Timer1 有两种驱动方式，由指令时钟（Fosc/4）或外部时钟源驱动。Fosc/4 时钟驱动时，睡眠期间 Timer1 不计数，设备唤醒后继续；外部时钟源驱动时，睡眠期间捕获模式可正常工作 。</li>
+      </ul>
+      <h3 id="30-2-比较模式">30.2 比较模式</h3>
+      <ul>
+        <li>所有 CCP 模块的比较模式功能相同，利用 16 位 Timer1 资源。CCPRxH:CCPRxL 寄存器对的值与 TMR1H:TMR1L 寄存器对的值进行比较 。</li>
+      </ul>
+      <ul>
+        <li>匹配时可发生以下事件：翻转 CCPx 输出、置位 CCPx 输出、清零 CCPx 输出、生成自动转换触发、生成软件中断 。具体事件由 CCPxCON 寄存器的 CCPxMODE&lt;3:0&gt; 控制位决定。同时，PIR6 寄存器的 CCPxIF 中断标志位置位，若选择相关选项，还可触发 ADC 转换 。所有比较模式均可产生中断并触发 ADC 转换，图 30 - 2 展示了比较操作简化示意图。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/17-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 17：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p><strong>引脚配置（30.2.1）</strong></p>
+      <ul>
+        <li>软件需清零 CCPx 引脚对应的 TRIS 位，将其配置为输出，并通过 RxyPPS 寄存器定义合适的输出引脚，具体可参考 13.0 节 “外设引脚选择（PPS）模块” 。CCP 输出还可作为其他外设的输入。</li>
+      </ul>
+      <ul>
+        <li>清零 CCPxCON 寄存器会使 CCPx 比较输出锁存至默认低电平，这不是端口 I/O 数据锁存 。</li>
+      </ul>
+      <p><strong>Timer1 模式资源（30.2.2）</strong></p>
+      <ul>
+        <li>比较模式下，Timer1 需工作在定时器模式或同步计数器模式，异步计数器模式下比较操作可能无法正常工作，配置 Timer1 详见 28.0 节 。</li>
+      </ul>
+      <ul>
+        <li>比较模式不应使用系统时钟（Fosc）为 Timer1 计时，Timer1 需由指令时钟（Fosc/4）或外部时钟源驱动，以便 CCP 引脚识别触发事件 。</li>
+      </ul>
+      <p><strong>自动转换触发（30.2.3）</strong></p>
+      <ul>
+        <li>所有 CCPx 模式都会置位 CCP 中断标志（CCPxIF）。该标志置位且发生匹配时，若 CCP 模块被选为转换触发源，可触发自动转换 。更多信息参考 23.2.6 节 “自动转换触发” 。</li>
+      </ul>
+      <ul>
+        <li>在产生自动转换触发的时钟沿与产生 Timer1 复位的时钟沿之间，改变 CCPRxH 和 CCPRxL 寄存器对内容以移除匹配条件，会阻止 Timer1 复位发生 。</li>
+      </ul>
+      <p><strong>睡眠期间比较（30.2.4）</strong></p>
+      <ul>
+        <li>睡眠模式下 Fosc 关闭，除非定时器运行，否则比较模式无法正常工作。若中断使能，设备会在中断时唤醒 。</li>
+      </ul>
+      <h3 id="30-3-pwm-原理">30.3 PWM 原理</h3>
+      <ul>
+        <li>定义与波形：PWM 通过在完全导通和完全关断状态间快速切换为负载供电，信号类似方波，高电平为导通状态，低电平为关断状态。脉冲宽度（高电平部分）可变，其步长数量影响输出功率，步长越多，脉冲宽度越长，负载供电越多；反之越少。PWM 周期指一个完整循环持续时间，即导通与关断时间总和 。PWM 分辨率指单个 PWM 周期内最大步长数量，分辨率越高，对脉冲宽度及负载供电控制越精确 。占空比以百分比表示导通时间与关断时间比例，0% 为完全关断，100% 为完全导通，占空比高低对应负载供电少多 。图 30 - 3 展示 PWM 信号典型波形 。</li>
+      </ul>
+      <p><strong>标准 PWM 操作（30.3.1）</strong></p>
+      <ul>
+        <li>所有 CCP 模块标准 PWM 功能相同，可在 CCPx 引脚生成最高 10 位分辨率的 PWM 信号 。其周期、占空比和分辨率由 PR2 寄存器、T2CON 寄存器、CCPRxL 寄存器、CCPxCON 寄存器控制 。图 30 - 4 展示 PWM 操作简化框图 。使用时需清零 CCPx 引脚对应的 TRIS 位，以启用 PWM 输出 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/18-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 18：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/19-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 19：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p><strong>标准 PWM 操作设置步骤（30.3.2）</strong></p>
+      <ol>
+        <li>引脚配置：通过 RxyPPS 控制选择期望输出引脚，将 CCPx 设为源，并通过设置相关 TRIS 位禁用 CCPx 引脚输出驱动。</li>
+      </ol>
+      <ol>
+        <li>设置周期值：向 PR2 寄存器写入 PWM 周期值。</li>
+      </ol>
+      <ol>
+        <li>配置 PWM 模式：向 CCPxCON 寄存器写入合适值，将 CCP 模块配置为 PWM 模式。</li>
+      </ol>
+      <ol>
+        <li>设置占空比值：向 CCPRxL 和 CCPRxH 寄存器写入 PWM 占空比值，并配置 CCPxCON 寄存器的 CCPxFMT 位，设定正确的寄存器对齐方式。</li>
+      </ol>
+      <ol>
+        <li>配置并启动 Timer2 ：</li>
+      </ol>
+      <ul>
+      <ul>
+      <ul>
+        <li>清零 PIR4 寄存器的 TMR2IF 中断标志位。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>通过配置 T2CON 寄存器的 T2CKPS 位，选择 Timer2 预分频值。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>通过设置 T2CON 寄存器的 TMR2ON 位，启用 Timer2。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ol>
+        <li>启用 PWM 输出引脚 ：</li>
+      </ol>
+      <ul>
+      <ul>
+      <ul>
+        <li>等待 Timer2 溢出，PIR4 寄存器的 TMR2IF 位置位。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>清零相关 TRIS 位，启用 CCPx 引脚输出驱动。若首次输出不必是完整 PWM 信号，此步骤可忽略 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <p><strong>CCP/PWM 时钟选择（30.3.3）</strong></p>
+      <ul>
+        <li>PIC16F18854 允许每个 CCP 和 PWM 模块独立选择控制定时器源。有多达三个带自动重载功能的 8 位定时器（Timer2/4/6）可供选择，通过 CCPTMRS0 和 CCPTMRS1 寄存器选定使用哪个定时器 。</li>
+      </ul>
+      <p><strong>Timer2 定时器资源（30.3.4）</strong></p>
+      <ul>
+        <li>该设备的 TMR2 模块有新版本，具备多种新模式，相比旧版本能更好地定制和控制 PWM 信号 。使用不同 Timer2 模式生成 PWM 信号示例可参考 29.5 节 “操作示例” 。CCP 操作要求用作 PWM 时基的定时器选择 FOSC/4 时钟源 。</li>
+      </ul>
+      <p><strong>PWM 周期（30.3.5）</strong></p>
+      <ul>
+        <li>周期设定与计算：PWM 周期由 Timer2/4/6 的 PR2/4/6 寄存器指定，可通过公式</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/20-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 20：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <ul>
+        <li>匹配事件：当 TMR2/4/6 等于 PR2 时，下一个计数周期会发生三件事：TMR2/4/6 清零；CCPx 引脚置位（PWM 占空比为 0% 时除外）；PWM 占空比从 CCPRxL/H 寄存器对传输到 10 位缓冲器 。此外，Timer 后分频器不用于确定 PWM 频率 。</li>
+      </ul>
+      <p><strong>PWM 占空比（30.3.6）</strong></p>
+      <ul>
+        <li>占空比设定：PWM 占空比通过向 CCPRxH:CCPRxL 寄存器对写入 10 位值指定，10 位值的对齐方式由 CCPxCON 寄存器的 CCPRxFMT 位决定 。可随时向 CCPRxH:CCPRxL 寄存器对写入值，但占空比值在 PR2 和 TMR2 匹配后才锁存到 10 位缓冲器 。</li>
+      </ul>
+      <ul>
+        <li>计算依据：通过公式 30 - 2 计算 PWM 脉冲宽度，通过公式 30 - 3 计算 PWM 占空比 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/21-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 21：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p><strong>PWM 占空比双缓冲</strong></p>
+      <ul>
+        <li>CCPRxH:CCPRxL 寄存器对用于对 PWM 占空比进行双缓冲，这种双缓冲对于无毛刺的 PWM 操作至关重要 。</li>
+      </ul>
+      <p><strong>时基生成</strong></p>
+      <ul>
+        <li>8 位定时器 TMR2 寄存器与 2 位内部系统时钟（Fosc）或预分频器的 2 位进行拼接，以创建 10 位时基 。当 Timer2 预分频器设置为 1:1 时，使用系统时钟。当 10 位时基与 CCPRxH:CCPRxL 寄存器对匹配时，CCPx 引脚清零 。</li>
+      </ul>
+      <p><strong>PWM 分辨率（30.3.7）</strong></p>
+      <ul>
+        <li>分辨率概念：分辨率决定了给定周期内可用占空比的数量。例如，10 位分辨率可产生 1024 个离散占空比，8 位分辨率则产生 256 个离散占空比 。</li>
+      </ul>
+      <ul>
+        <li>最大分辨率：当 PR2 为 255 时，最大 PWM 分辨率为 10 位，分辨率是 PR2 寄存器值的函数，计算公式</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/22-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 22：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <ul>
+        <li>特殊情况：如果脉冲宽度值大于周期，分配的 PWM 引脚状态将保持不变 。</li>
+      </ul>
+      <p><strong>PWM 频率与分辨率示例</strong></p>
+      <ul>
+        <li>表 30 - 2 展示了系统时钟<em>Fosc</em>=20 <em>MHz</em> 时，不同 PWM 频率对应的定时器预分频值（Timer Prescale）、PR2 值（PR2 Value）和最大分辨率（Maximum Resolution） 。例如，PWM 频率为1.22 <em>kHz</em> 时，预分频值为 16，PR2 值为0<em>xFF</em> ，最大分辨率为 10 位 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/23-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 23：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <ul>
+        <li>表 30 - 3 展示了系统时钟<em>Fosc</em>=8 <em>MHz</em> 时，相应的 PWM 频率、定时器预分频值、PR2 值和最大分辨率 。如 PWM 频率为1.22 <em>kHz</em> 时，预分频值为 16，PR2 值为0<em>x</em>65 ，最大分辨率为 8 位 。</li>
+      </ul>
+      <p><strong>睡眠模式下操作（30.3.8）</strong></p>
+      <ul>
+        <li>睡眠模式下，TMR2 寄存器不会递增，模块状态不变。若 CCPx 引脚驱动某值，将持续驱动。设备唤醒后，TMR2 从之前状态继续 。</li>
+      </ul>
+      <p><strong>系统时钟频率变化（30.3.9）</strong></p>
+      <ul>
+        <li>PWM 频率源自系统时钟频率，系统时钟频率变化会导致 PWM 频率改变，更多细节见 6.0 节 “振荡器模块（带故障安全时钟监视器 ）” 。</li>
+      </ul>
+      <p><strong>复位影响（30.3.10）</strong></p>
+      <ul>
+        <li>任何复位都会使所有端口强制进入输入模式，CCP 寄存器恢复到复位状态 。</li>
+      </ul>
+      <h3 id="30-4-寄存器说明">30.4 寄存器说明</h3>
+      <ul>
+        <li>表 30 - 4 列出了 CCP 外设长位名前缀，CCP1 - CCP5 外设对应的位名前缀分别为 CCP1 - CCP5 。</li>
+      </ul>
+      <h4 id="30-4-1-ccpxcon-寄存器-30-1">30.4.1 CCPxCON 寄存器（30 - 1）</h4>
+      <ul>
+        <li>功能概述：用于配置和控制 CCP 模块的工作模式及相关功能。</li>
+      </ul>
+      <ul>
+        <li>位定义：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 7（EN） ：CCPx 模块使能位，1 启用模块，0 禁用。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 6 ：未实现位，读‘0’。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 5（OUT） ：CCPx 输出数据位，只读。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 4（FMT） ：PWM 脉冲宽度对齐位，1 左对齐，0 右对齐，捕获和比较模式未用。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 3 - 0（MODE&lt;3:0&gt;） ：</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>PWM 模式：1111 。</li>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>比较模式：多种编码对应不同输出动作，如 1011 输出脉冲 0 - 1 - 0 并清零 TMR1；1010 输出脉冲 0 - 1 - 0；1001 匹配时清零输出；1000 匹配时置位输出 。</li>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>捕获模式：多种编码对应不同捕获事件，如 0111 捕获 CCPx 输入每个边沿；0110 捕获每 16 个上升沿；0101 捕获每个上升沿；0100 捕获每个下降沿 。</li>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>0000 ：关闭 Capture/Compare/PWM 功能，复位 CCPx 模块 。</li>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+        <li>中断与 ADC 触发：所有模式都会置位 CCPxIF 中断标志位，若 CCPx 选为 ADC 触发源，还会触发 ADC 转换 。</li>
+      </ul>
+      <h4 id="30-4-2-ccpxcap-寄存器-30-2">30.4.2 CCPxCAP 寄存器（30 - 2）</h4>
+      <ul>
+        <li>功能：捕获输入选择寄存器，用于选择 CCP 模块捕获触发输入源。</li>
+      </ul>
+      <ul>
+        <li>位定义：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 7 - 3 ：未实现位，读‘0’。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 2 - 0（CTS&lt;2:0&gt;） ：捕获触发输入选择位，不同编码对应不同触发源，如 000 对应 CCP1PPS - CCP5PPS；001 对应 C1OUT；010 对应 C2OUT 等 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <h4 id="30-4-3-ccprxl-寄存器-30-3">30.4.3 CCPRxL 寄存器（30 - 3）</h4>
+      <ul>
+        <li>功能：CCP 模块寄存器低字节，在不同模式下功能不同。</li>
+      </ul>
+      <ul>
+        <li>位定义：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CCPxMODE = 捕获模式 ：CCPRxL&lt;7:0&gt; 存储 TMR1L 的捕获值。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CCPxMODE = 比较模式 ：CCPRxL&lt;7:0&gt; 是与 TMR1L 比较的低字节。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CCPxMODE = PWM 模式 ：当 CCPxFMT = 0 时，CCPRxL&lt;7:0&gt; 是脉冲宽度低 8 位；当 CCPxFMT = 1 时，CCPRxL&lt;7:6 &gt; 是脉冲宽度低 2 位 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <h4 id="30-4-4-ccprxh-寄存器-30-4">30.4.4 CCPRxH 寄存器（30 - 4）</h4>
+      <ul>
+        <li>功能：CCP 模块寄存器高字节，在不同模式下功能不同。</li>
+      </ul>
+      <ul>
+        <li>位定义：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CCPxMODE = 捕获模式 ：CCPRxH&lt;7:0&gt; 存储 TMR1H 的捕获值。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CCPxMODE = 比较模式 ：CCPRxH&lt;7:0&gt; 是与 TMR1H 比较的高字节。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>CCPxMODE = PWM 模式 ：当 CCPxFMT = 0 时，CCPRxH&lt;7:2&gt; 未使用，CCPRxH&lt;1:0 &gt; 是脉冲宽度高 2 位；当 CCPxFMT = 1 时，CCPRxH&lt;7:0 &gt; 是脉冲宽度高 8 位 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <h4 id="30-4-5-ccptmrs0-寄存器-30-5">30.4.5 CCPTMRS0 寄存器（30 - 5）</h4>
+      <ul>
+        <li>功能：CCP 定时器控制 0 寄存器，用于选择 CCP 模块所使用的定时器 。</li>
+      </ul>
+      <ul>
+        <li>位定义：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 7 - 6（C4TSEL&lt;1:0&gt;） ：CCP4 定时器选择位，不同编码对应不同定时器，如 11 表示 CCP4 基于 TMR5（捕获 / 比较）或 TMR6（PWM） 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 5 - 4（C3TSEL&lt;1:0&gt;） ：CCP3 定时器选择位，编码规则同 C4TSEL 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 3 - 2（C2TSEL&lt;1:0&gt;） ：CCP2 定时器选择位，编码规则同 C4TSEL 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>bit 1 - 0（C1TSEL&lt;1:0&gt;） ：CCP1 定时器选择位，编码规则同 C4TSEL 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <h4 id="30-4-5-ccptmrs1-寄存器功能">30.4.5 CCPTMRS1 寄存器功能</h4>
+      <ul>
+        <li>CCPTMRS1 寄存器用于选择与 CCP 模块相关的定时器，以确定 CCP 模块工作时所使用的时基 。</li>
+      </ul>
+      <p><strong>位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6 ：未实现位，读值为‘0’。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 4（P7TSEL&lt;1:0&gt;） ：PWM7 定时器选择位，不同编码对应不同定时器 ，如 11 表示 PWM7 基于 TMR6，10 表示基于 TMR4，01 表示基于 TMR2，00 为保留 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - 2（P6TSEL&lt;1:0&gt;） ：PWM6 定时器选择位，编码规则同 P7TSEL 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - 0（C5TSEL&lt;1:0&gt;） ：CCP5 定时器选择位，不同编码决定 CCP5 在捕获 / 比较或 PWM 模式下使用的定时器 ，如 11 表示基于 TMR5（捕获 / 比较）或 TMR6（PWM），10 表示基于 TMR3（捕获 / 比较）或 TMR4（PWM），01 表示基于 TMR1（捕获 / 比较）或 TMR2（PWM），00 为保留 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/24-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 24：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h2 id="22-0-可配置逻辑单元-clc-模块功能概述">22.0 可配置逻辑单元（CLC）模块功能概述</h2>
+      <p>CLC 模块可提供可编程逻辑功能，其运行速度不受软件执行速度限制。该逻辑单元可接收多达 32 个输入信号，通过可配置门电路，将 32 路输入精简为 4 路逻辑线路，进而驱动 8 种可选的单输出逻辑功能之一。</p>
+      <p><strong>输入源</strong></p>
+      <ul>
+        <li>I/O 引脚：可作为 CLC 模块的输入信号来源。</li>
+      </ul>
+      <ul>
+        <li>内部时钟：为 CLC 模块提供时钟相关的输入信号。</li>
+      </ul>
+      <ul>
+        <li>外设：其他外设模块的信号也能作为 CLC 模块的输入。</li>
+      </ul>
+      <ul>
+        <li>寄存器位：寄存器中的位信息可作为输入参与逻辑运算。</li>
+      </ul>
+      <p><strong>输出方向</strong></p>
+      <p>CLC 模块的输出可在内部导向其他外设，也可导向输出引脚。</p>
+      <p><strong>可能配置</strong></p>
+      <ul>
+        <li>组合逻辑：包括与（AND）、与非（NAND）、或（OR）、与或（AND - OR）、与或非（AND - OR - INVERT）、或异或（OR - XOR）、或同或（OR - XNOR）等逻辑功能。</li>
+      </ul>
+      <ul>
+        <li>锁存器：有置位复位 S - R 锁存器、带置位复位的时钟控制 D 锁存器、带置位复位的透明 D 锁存器、带复位的时钟控制 J - K 锁存器等多种类型。</li>
+      </ul>
+      <p><strong>模块实例</strong></p>
+      <p>PIC16 (L) F18854 单片机具备 CLC1、CLC2、CLC3、CLC4 四个可配置逻辑单元模块实例。文档中寄存器和位名称里的 “x” 为通用标识，实际编程时需根据具体模块（1、2、3 或 4 ）进行替换，如控制寄存器一般描述为 CLCxCON，实际设备寄存器则为 CLC1CON、CLC2CON、CLC3CON 和 CLC4CON 。</p>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/25-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 25：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <p>这是 PIC16 (L) F18854 单片机中可配置逻辑单元（CLCx）的简化框图 ：</p>
+      <p><strong>输入部分</strong></p>
+      <ul>
+        <li>输入数据选择：有 48 个输入信号 LCx\_in \[0\] - LCx\_in \[47\]，通过 “Input Data Selection Gates”（输入数据选择门）筛选出 4 个信号 lcxg1 - lcxg4，作为后续逻辑功能模块的输入。</li>
+      </ul>
+      <p><strong>逻辑功能模块</strong></p>
+      <ul>
+        <li>Logic Function：根据 MODE&lt;2:0&gt; 设置，对输入的 4 个信号进行处理，输出 lcxq 信号。可实现 8 种可选的单输出逻辑功能，具体功能需参考图 22 - 3 。</li>
+      </ul>
+      <p><strong>使能与极性控制</strong></p>
+      <ul>
+        <li>EN（Enable）：与逻辑功能输出 lcxq 进行与运算，控制信号是否输出。</li>
+      </ul>
+      <ul>
+        <li>POL（Polarity）：对信号进行极性转换，通过异或门实现。</li>
+      </ul>
+      <p><strong>输出部分</strong></p>
+      <ul>
+        <li>内部与外部输出：处理后的信号一路通过 LCx\_out 导向内部其他外设；另一路经 CLCxPPS（可能是引脚分配相关模块 ）、TRIS（可能用于设置引脚方向 ）等，最终从 CLCx 引脚输出为 CLCxOUT 。D 触发器用于对输出信号进行寄存。</li>
+      </ul>
+      <p><strong>中断检测部分</strong></p>
+      <ul>
+        <li>中断检测：通过两个中断检测模块（Interrupt det），分别检测上升沿（INTP ）和下降沿（INTN ），当检测到相应边沿变化时，通过逻辑门设置 CLCxIF 标志位，用于触发中断。</li>
+      </ul>
+      <h3 id="22-1-clcx-模块编程步骤">22.1 CLCx 模块编程步骤</h3>
+      <p>对 CLCx 模块编程需配置逻辑信号流中的四个阶段：</p>
+      <ol>
+        <li>数据选择：从 32 个可用输入信号中挑选进入下一阶段的输入。</li>
+      </ol>
+      <ol>
+        <li>数据选通：对选择后的数据进行选通操作。</li>
+      </ol>
+      <ol>
+        <li>逻辑功能选择：选择具体的逻辑功能对数据进行处理。</li>
+      </ol>
+      <ol>
+        <li>输出极性设置：设置最终输出信号的极性。</li>
+      <p>各阶段可通过写入相应的 CLCx 特殊功能寄存器在运行时进行设置，便于在程序执行期间重新配置逻辑。</p>
+      </ol>
+      <h4 id="22-1-1-数据选择具体实现"><strong>22.1.1 数据选择具体实现</strong></h4>
+      <ul>
+        <li>多路复用器：使用 4 个 32 输入多路复用器来选择输入。数据选择通过 CLCxSEL0 - CLCxSEL3 寄存器（寄存器 22 - 3 至寄存器 22 - 6 ）进行。</li>
+      </ul>
+      <ul>
+        <li>输入对应关系：表格 22 - 2 展示了通用输入名称与实际信号的对应关系。“LCxDyS&lt;4:0&gt; Value” 列是所选数据输入的多路复用器（MUX）选择代码，LCxDyS 是 MUX 选择输入代码 LCxD1S&lt;4:0&gt; - LCxD4S&lt;4:0&gt; 的缩写。输入源涵盖 CWG（互补波形发生器）、MSSP（同步串行端口）、EUSART（增强型通用同步异步收发器）、CLC 自身输出、定时器相关输出、比较器输出等多种信号 。</li>
+      </ul>
+      <p><strong>注意事项</strong></p>
+      <p>上电时数据选择处于未定义状态 。</p>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/26-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 26：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h4 id="22-1-2-数据选通-data-gating">22.1.2 数据选通（Data Gating）</h4>
+      <ul>
+        <li>功能原理：输入多路复用器的输出信号通过数据选通阶段，导向期望的逻辑功能输入。每个数据选通门可引导四个选定输入的任意组合。选通门不仅是信号导向，还能配置为将每个输入信号反向或不反向，输出也能反向或不反向。本质上是 1 - 4 输入的与 / 与非 / 或 / 或非门。若所有输入反向且输出反向，门为或门；若输入和输出不反向，门为与门 。</li>
+      </ul>
+      <ul>
+        <li>配置方法：通过逻辑门选择寄存器配置，如 Gate 1 对应 CLCxGLS0（寄存器 22 - 7 ）、Gate 2 对应 CLCxGLS1（寄存器 22 - 8 ）等 。表格 22 - 3 展示了数据选通逻辑，如 CLCxGLSx 值为 0x55 且 LCxGyPOL 为 1 时，门逻辑为与（AND）；CLCxGLSx 值为 0x55 且 LCxGyPOL 为 0 时，门逻辑为与非（NAND）等 。</li>
+      </ul>
+      <ul>
+        <li>注意事项：上电时数据选通未定义。不建议同时选择正负极性输入，否则门输出恒为 0，可能产生逻辑毛刺。推荐方法是将所有位设为 0，用门极性位设置期望电平 。</li>
+      </ul>
+      <p><strong>逻辑功能选择（Logic Function）</strong></p>
+      <ul>
+        <li>可选功能：有 8 种可用逻辑功能，包括与或（AND - OR）、或异或（OR - XOR）、与（AND）、S - R 锁存器、带置位复位的 D 触发器、带复位的 D 触发器、带复位的 J - K 触发器、带置位复位的透明锁存器 。</li>
+      </ul>
+      <ul>
+        <li>输入输出：每个逻辑功能有四个输入和一个输出，四个输入是前一阶段四个数据选通门的输出，输出送到反向阶段，再导向其他外设、输出引脚或返回 CLCx 本身 。</li>
+      </ul>
+      <p><strong>输出极性设置（Output Polarity）</strong></p>
+      <p>可配置逻辑单元的最后阶段是输出极性设置。设置 CLCxPOL 寄存器的 LCxPOL 位可反转逻辑阶段的输出信号。在中断启用时改变极性，会因输出转换产生中断 。</p>
+      <h4 id="22-1-2-clcx-中断-clcx-interrupts">22.1.2 CLCx 中断（CLCx Interrupts）</h4>
+      <ul>
+        <li>中断触发条件：当 CLCx 输出值变化且相应中断使能位已设置时，会产生中断。通过上升沿和下降沿检测器检测边沿变化，关联的 PIR5 寄存器中的 CLCxIF 位会在检测到使能边沿时置 1。</li>
+      </ul>
+      <ul>
+        <li>中断使能设置：要完全使能中断，需设置 PIE5 寄存器的 CLCxIE 位、CLCxCON 寄存器的 LCxINTP（上升沿）和 LCxINTN（下降沿）位，以及 INTCON 寄存器的 PEIE 和 GIE 位。CLCxIF 标志位需在软件中清除，若清除时检测到其他边沿，标志位仍会置 1 。</li>
+      </ul>
+      <h3 id="22-3-输出镜像副本-output-mirror-copies"><strong>22.3 输出镜像副本（Output Mirror Copies）</strong></h3>
+      <p>所有 CLCxCON 寄存器的输出位都包含在 CLCxDATA 寄存器中，读取该寄存器可同时读取所有 CLC 的输出，避免测试或读取单个 CLCxCON 寄存器时引入的读取偏差 。</p>
+      <h3 id="22-4-复位影响-effects-of-a-reset"><strong>22.4 复位影响（Effects of a Reset）</strong></h3>
+      <p>复位会使 CLCxCON 寄存器清零，其他选择和选通值保持不变 。</p>
+      <h3 id="22-5-睡眠期间操作-operation-during-sleep"><strong>22.5 睡眠期间操作（Operation During Sleep）</strong></h3>
+      <p>CLC 模块独立于系统时钟运行，睡眠期间若所选输入源保持活动，模块继续运行。选择 HFINTOSC 作为输入源时，睡眠期间其保持活动。若 HFINTOSC 同时作为系统时钟和 CLC 输入源，睡眠时 CPU 空闲，CLC 继续运行且 HFINTOSC 保持活动，这会影响睡眠模式电流 。</p>
+      <h3 id="22-6-clcx-设置步骤-clcx-setup-steps"><strong>22.6 CLCx 设置步骤（CLCx Setup Steps）</strong></h3>
+      <ol>
+        <li>禁用 CLCx：清零 LCxEN 位。</li>
+      </ol>
+      <ol>
+        <li>选择输入：通过 CLCxSEL0 - CLCxSEL3 寄存器选择所需输入。</li>
+      </ol>
+      <ol>
+        <li>清除相关位：清除相关 ANSEL 位，设置输入相关 TRIS 位，清零输出相关 TRIS 位。</li>
+      </ol>
+      <ol>
+        <li>使能输入：通过 CLCxGLS0 - CLCxGLS3 寄存器使能选定输入。</li>
+      </ol>
+      <ol>
+        <li>设置门输出极性：用 LCxGyPOL 位选择门输出极性。</li>
+      </ol>
+      <ol>
+        <li>选择逻辑功能：用 LCxMODE&lt;2:0&gt; 位选择逻辑功能。</li>
+      </ol>
+      <ol>
+        <li>设置逻辑输出极性：用 LCxPOL 位选择逻辑输出极性。</li>
+      </ol>
+      <ol>
+        <li>设置引脚相关：若驱动设备引脚，设置 PPS 控制寄存器并清零对应 TRIS 位。</li>
+      </ol>
+      <ol>
+        <li>配置中断（若需要）：设置 LCxINTP（上升沿）、LCxINTN（下降沿）、CLCxIE、GIE 和 PEIE 位。</li>
+      </ol>
+      <ol>
+        <li>启用 CLCx：设置 LCxEN 位 。</li>
+      </ol>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/27-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 27：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/28-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 28：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <h3 id="22-7寄存器功能概述">22.7寄存器功能概述</h3>
+      <h4 id="22-7-1-clcxcon-寄存器">22.7.1 CLCxCON 寄存器</h4>
+      <p>用于控制 CLCx 模块的使能、输出数据读取、中断使能以及功能模式设置等。通过对该寄存器各个位的操作，可以实现对 CLCx 模块工作状态的精准配置。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - LCxEN（Configurable Logic Cell Enable bit）：可配置逻辑单元使能位。置 1 时，启用可配置逻辑单元并混合输入信号；置 0 时，禁用可配置逻辑单元，输出为逻辑 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - LCxOUT（Configurable Logic Cell Data Output bit）：可配置逻辑单元数据输出位，只读。用于读取逻辑单元在经过 LCxPOL 极性设置后的输出数据，数据从 CLCxOUT 采样 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - LCxINTP（Configurable Logic Cell Positive Edge Going Interrupt Enable bit）：可配置逻辑单元上升沿中断使能位。置 1 时，当 CLCxOUT 出现上升沿，会设置 CLCxIF 中断标志位；置 0 时，不会设置该标志位 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - LCxINTN（Configurable Logic Cell Negative Edge Going Interrupt Enable bit）：可配置逻辑单元下降沿中断使能位。置 1 时，当 CLCxOUT 出现下降沿，会设置 CLCxIF 中断标志位；置 0 时，不会设置该标志位 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - 0 - LCxMODE&lt;2:0&gt;（Configurable Logic Cell Functional Mode bits）：可配置逻辑单元功能模式位，不同编码对应不同功能：</li>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>111：1 输入带置位复位的透明锁存器。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>110：带复位的 J - K 触发器。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>101：2 输入带复位的 D 触发器。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>100：1 输入带置位复位的 D 触发器。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>011：S - R 锁存器。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>010：4 输入与门。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>001：或 - 异或功能。</li>
+      </ul>
+      </ul>
+      </ul>
+      <ul>
+      <ul>
+      <ul>
+        <li>000：与 - 或功能 。</li>
+      </ul>
+      </ul>
+      </ul>
+      <h4 id="22-7-2-clcxpol-寄存器功能概述">22.7.2 CLCxPOL 寄存器功能概述</h4>
+      <p>CLCxPOL 寄存器主要用于控制 CLCx 模块的输出信号极性以及数据选通门输出信号的极性。通过对该寄存器各个位的设置，可以灵活调整信号的极性，满足不同的逻辑需求。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - LCxPOL（CLCxOUT Output Polarity Control bit）：CLCxOUT 输出极性控制位。置 1 时，逻辑单元的输出信号被反转；置 0 时，逻辑单元的输出信号不反转 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - 4：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - LCxG4POL（Gate 3 Output Polarity Control bit）：选通门 3 输出极性控制位。置 1 时，选通门 3 应用于逻辑单元的输出信号被反转；置 0 时，选通门 3 的输出信号不反转 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - LCxG3POL（Gate 2 Output Polarity Control bit）：选通门 2 输出极性控制位。置 1 时，选通门 2 应用于逻辑单元的输出信号被反转；置 0 时，选通门 2 的输出信号不反转 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - LCxG2POL（Gate 1 Output Polarity Control bit）：选通门 1 输出极性控制位。置 1 时，选通门 1 应用于逻辑单元的输出信号被反转；置 0 时，选通门 1 的输出信号不反转 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - LCxG1POL（Gate 0 Output Polarity Control bit）：选通门 0 输出极性控制位。置 1 时，选通门 0 应用于逻辑单元的输出信号被反转；置 0 时，选通门 0 的输出信号不反转 。</li>
+      </ul>
+      <h4 id="22-7-3-clcxsel0-寄存器功能概述">22.7.3 CLCxSEL0 寄存器功能概述</h4>
+      <p>CLCxSEL0 用于从众多输入信号中选择一路，作为 CLCx 模块数据选通阶段的输入源之一。通过设置该寄存器，可灵活配置 CLCx 模块的输入信号，满足不同逻辑功能需求。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 0：LCxD1S&lt;5:0&gt; 位，是 CLCx 数据输入 1 选择位。具体编码对应不同的输入信号，可参考表格 22 - 2 确定其选择的实际输入源 。</li>
+      </ul>
+      <h4 id="22-7-4-clcxsel1-寄存器功能概述">22.7.4 CLCxSEL1 寄存器功能概述</h4>
+      <p>CLCxSEL1 用于从众多输入信号中挑选一路，作为 CLCx 模块数据选通阶段的输入源之一。通过对该寄存器的配置，可灵活指定参与 CLCx 逻辑运算的输入信号，以实现不同的逻辑功能。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 0：LCxD2S&lt;5:0&gt; 位，是 CLCx 数据输入 2 选择位。具体编码对应不同的输入信号，需参考表格 22 - 2 来确定其选择的实际输入源 。</li>
+      </ul>
+      <h4 id="22-7-5-clcxsel2-寄存器功能概述">22.7.5 CLCxSEL2 寄存器功能概述</h4>
+      <p>CLCxSEL2 用于从多个输入信号中选择一路，作为 CLCx 模块数据选通阶段的输入源之一。通过对该寄存器进行配置，能够灵活指定参与 CLCx 逻辑运算的输入信号，满足不同逻辑功能需求。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 0：LCxD3S&lt;5:0&gt; 位，是 CLCx 数据输入 3 选择位。具体编码对应不同的输入信号，需参考表格 22 - 2 来确定其选择的实际输入源 。</li>
+      </ul>
+      <h4 id="22-7-6-clcxsel3-寄存器功能概述">22.7.6 CLCxSEL3 寄存器功能概述</h4>
+      <p>CLCxSEL3 用于从众多输入信号中选定一路，作为 CLCx 模块数据选通阶段的输入源之一。通过对该寄存器的设置，可灵活配置参与 CLCx 逻辑运算的输入信号，以实现不同的逻辑功能需求。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 6：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - 0：LCxD4S&lt;5:0&gt; 位，是 CLCx 数据输入 4 选择位。具体编码对应不同的输入信号，需参照表格 22 - 2 来明确其选择的实际输入源 。</li>
+      </ul>
+      <h4 id="22-7-7-clcxgls0-寄存器功能概述">22.7.7 CLCxGLS0 寄存器功能概述</h4>
+      <p>CLCxGLS0 用于配置 CLCx 模块中选通门 0 的输入信号，决定哪些输入信号以正逻辑或反逻辑形式进入选通门 0 参与逻辑运算，进而影响 CLCx 模块后续的逻辑处理。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - LCxG1D4T（Gate 0 Data 4 True (non - inverted) bit）：置 1 时，将 CLCIN3（正逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - LCxG1D4N（Gate 0 Data 4 Negated (inverted) bit）：置 1 时，将 CLCIN3（反逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - LCxG1D3T（Gate 0 Data 3 True (non - inverted) bit）：置 1 时，将 CLCIN2（正逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - LCxG1D3N（Gate 0 Data 3 Negated (inverted) bit）：置 1 时，将 CLCIN2（反逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - LCxG1D2T（Gate 0 Data 2 True (non - inverted) bit）：置 1 时，将 CLCIN1（正逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - LCxG1D2N（Gate 0 Data 2 Negated (inverted) bit）：置 1 时，将 CLCIN1（反逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - LCxG1D1T（Gate 0 Data 1 True (non - inverted) bit）：置 1 时，将 CLCIN0（正逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - LCxG1D1N（Gate 0 Data 1 Negated (inverted) bit）：置 1 时，将 CLCIN0（反逻辑）信号选通进入 CLCx 选通门 0；置 0 时，该信号不进入 。</li>
+      </ul>
+      <h4 id="22-7-8-clcxgls1-寄存器功能概述">22.7.8 CLCxGLS1 寄存器功能概述</h4>
+      <p>CLCxGLS1 用于配置 CLCx 模块中选通门 1 的输入信号，决定哪些输入信号以正逻辑或反逻辑形式进入选通门 1 参与逻辑运算，进而影响 CLCx 模块后续的逻辑处理。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - LCxG2D4T（Gate 1 Data 4 True (non - inverted) bit）：置 1 时，将 CLCIN3（正逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - LCxG2D4N（Gate 1 Data 4 Negated (inverted) bit）：置 1 时，将 CLCIN3（反逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - LCxG2D3T（Gate 1 Data 3 True (non - inverted) bit）：置 1 时，将 CLCIN2（正逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - LCxG2D3N（Gate 1 Data 3 Negated (inverted) bit）：置 1 时，将 CLCIN2（反逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - LCxG2D2T（Gate 1 Data 2 True (non - inverted) bit）：置 1 时，将 CLCIN1（正逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - LCxG2D2N（Gate 1 Data 2 Negated (inverted) bit）：置 1 时，将 CLCIN1（反逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - LCxG2D1T（Gate 1 Data 1 True (non - inverted) bit）：置 1 时，将 CLCIN0（正逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - LCxG2D1N（Gate 1 Data 1 Negated (inverted) bit）：置 1 时，将 CLCIN0（反逻辑）信号选通进入 CLCx 选通门 1；置 0 时，该信号不进入 。</li>
+      </ul>
+      <h4 id="22-7-9-clcxgls2-寄存器功能概述">22.7.9 CLCxGLS2 寄存器功能概述</h4>
+      <p>CLCxGLS2 用于配置 CLCx 模块中选通门 2 的输入信号，决定哪些输入信号以正逻辑或反逻辑形式进入选通门 2 参与逻辑运算，进而影响 CLCx 模块后续的逻辑处理。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - LCxG3D4T（Gate 2 Data 4 True (non - inverted) bit）：置 1 时，将 CLCIN3（正逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - LCxG3D4N（Gate 2 Data 4 Negated (inverted) bit）：置 1 时，将 CLCIN3（反逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - LCxG3D3T（Gate 2 Data 3 True (non - inverted) bit）：置 1 时，将 CLCIN2（正逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - LCxG3D3N（Gate 2 Data 3 Negated (inverted) bit）：置 1 时，将 CLCIN2（反逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - LCxG3D2T（Gate 2 Data 2 True (non - inverted) bit）：置 1 时，将 CLCIN1（正逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - LCxG3D2N（Gate 2 Data 2 Negated (inverted) bit）：置 1 时，将 CLCIN1（反逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - LCxG3D1T（Gate 2 Data 1 True (non - inverted) bit）：置 1 时，将 CLCIN0（正逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - LCxG3D1N（Gate 2 Data 1 Negated (inverted) bit）：置 1 时，将 CLCIN0（反逻辑）信号选通进入 CLCx 选通门 2；置 0 时，该信号不进入 。</li>
+      </ul>
+      <h4 id="22-7-10-clcxgls3-寄存器功能概述">22.7.10 CLCxGLS3 寄存器功能概述</h4>
+      <p>CLCxGLS3 用于配置 CLCx 模块中选通门 3 的输入信号，决定哪些输入信号以正逻辑或反逻辑形式进入选通门 3 参与逻辑运算，进而影响 CLCx 模块后续的逻辑处理。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - LCxG4D4T（Gate 3 Data 4 True (non - inverted) bit）：置 1 时，将 CLCIN3（正逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 6 - LCxG4D4N（Gate 3 Data 4 Negated (inverted) bit）：置 1 时，将 CLCIN3（反逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 5 - LCxG4D3T（Gate 3 Data 3 True (non - inverted) bit）：置 1 时，将 CLCIN2（正逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 4 - LCxG4D3N（Gate 3 Data 3 Negated (inverted) bit）：置 1 时，将 CLCIN2（反逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - LCxG4D2T（Gate 3 Data 2 True (non - inverted) bit）：置 1 时，将 CLCIN1（正逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - LCxG4D2N（Gate 3 Data 2 Negated (inverted) bit）：置 1 时，将 CLCIN1（反逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - LCxG4D1T（Gate 3 Data 1 True (non - inverted) bit）：置 1 时，将 CLCIN0（正逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - LCxG4D1N（Gate 3 Data 1 Negated (inverted) bit）：置 1 时，将 CLCIN0（反逻辑）信号选通进入 CLCx 选通门 3；置 0 时，该信号不进入 。</li>
+      </ul>
+      <h4 id="22-7-11-clcdata-寄存器功能概述">22.7.11 CLCDATA 寄存器功能概述</h4>
+      <p>CLCDATA 寄存器用于存储所有 CLC 模块输出信号的镜像副本。通过读取该寄存器，可以同时获取所有 CLC 模块的输出状态，避免在分别读取单个 CLC 模块输出寄存器时可能引入的偏差。</p>
+      <p><strong>寄存器位定义</strong></p>
+      <ul>
+        <li>bit 7 - 4：未使用位，读取值为 0 。</li>
+      </ul>
+      <ul>
+        <li>bit 3 - MLC4OUT（Mirror copy of LC4OUT bit）：LC4OUT 位的镜像副本，用于反映 CLC4 模块的输出状态 。</li>
+      </ul>
+      <ul>
+        <li>bit 2 - MLC3OUT（Mirror copy of LC3OUT bit）：LC3OUT 位的镜像副本，用于反映 CLC3 模块的输出状态 。</li>
+      </ul>
+      <ul>
+        <li>bit 1 - MLC2OUT（Mirror copy of LC2OUT bit）：LC2OUT 位的镜像副本，用于反映 CLC2 模块的输出状态 。</li>
+      </ul>
+      <ul>
+        <li>bit 0 - MLC1OUT（Mirror copy of LC1OUT bit）：LC1OUT 位的镜像副本，用于反映 CLC1 模块的输出状态 。</li>
+      </ul>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/29-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 29：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/30-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 30：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/31-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 31：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/32-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 32：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <figure>
+        <img src="../../assets/img/articles/pic16f18854-datasheet-notes/33-pic16f18854.png?v=5b0f6decf605" alt="Image">
+        <figcaption>图 33：PIC16F18854 数据手册资料图。</figcaption>
+      </figure>
+      <section class="article-footer">
+        <h2>资料说明</h2>
+        <p>本文由仓库内 Markdown 源文件自动生成。图片保存在本站本地资源目录，可通过构建脚本重新下载和更新。</p>
+      </section>
+    </article>
+  </main>
+  <script src="../../assets/js/main.js?v=5b0f6decf605"></script>
+</body>
+</html>
