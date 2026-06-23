@@ -66,7 +66,7 @@ if (sections.length > 0) {
  * 自动为文章页生成左侧目录导航。
  * 适用页面结构：
  * <main class="article-page-shell">
- *   <div class="article-topbar">...</div>
+ *   <div class="article-topbar">...</div> (链接会移入左侧导航)
  *   <article class="article card">...</article>
  * </main>
  */
@@ -102,6 +102,9 @@ function buildArticleNav() {
         href: link.getAttribute('href')
       }))
     : [];
+
+  // 顶部快捷链接只作为左侧导航的数据源，避免在文章内容上方重复显示。
+  articleTopbar?.remove();
 
   const articleSidebar = document.createElement('aside');
   articleSidebar.className = 'article-sidebar';

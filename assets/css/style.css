@@ -535,18 +535,6 @@ a:focus-visible {
   padding: 28px;
 }
 
-.article-topbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.article-topbar a {
-  color: var(--link);
-  font-size: 14px;
-}
-
 .article {
   padding: 38px;
   border-radius: 28px;
@@ -719,9 +707,6 @@ a:focus-visible {
     padding: 24px;
   }
 
-  .article-topbar {
-    display: grid;
-  }
 }
 
 .article-page-shell {
@@ -839,10 +824,6 @@ a:focus-visible {
     top: 28px;
     grid-column: 1;
     grid-row: 1 / span 2;
-  }
-
-  .article-topbar {
-    grid-column: 2;
   }
 
   .article {
