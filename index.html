@@ -26,6 +26,7 @@
           <a class="nav-sub" href="#soc-stack">SoC 平台</a>
           <a class="nav-sub" href="#fpga-stack">FPGA 平台</a>
           <a class="nav-sub" href="#gui-stack">GUI / HMI</a>
+          <a class="nav-sub" href="#host-stack">上位机 / 客户端</a>
           <a href="#notes">工程笔记</a>
           <a href="#tools">工具实验室</a>
           <a href="#about">关于本站</a>
@@ -49,7 +50,7 @@
           <a class="button" href="mailto:xyj.work@qq.com">联系我</a>
         </div>
         <div class="tags" aria-label="技术标签">
-          <span>C/C++</span><span>MicroBlaze</span><span>STM32</span><span>CW32</span><span>PIC16</span><span>ESP32-S3</span><span>ESP32-P4</span><span>RK3568</span><span>SmartFusion2</span><span>MachXO2</span><span>EF2L45</span><span>GuiGuider</span><span>LVGL</span><span>FPGA</span><span>Embedded Web</span><span>Local AI</span>
+          <span>C/C++</span><span>MicroBlaze</span><span>STM32</span><span>CW32</span><span>PIC16</span><span>EFM8BB10F8I</span><span>ESP32-S3</span><span>ESP32-P4</span><span>RK3568</span><span>SmartFusion2</span><span>MachXO2</span><span>EF2L45</span><span>GuiGuider</span><span>LVGL</span><span>蓝牙</span><span>微信小程序</span><span>上位机</span><span>FPGA</span><span>Embedded Web</span><span>Local AI</span>
         </div>
       </section>
 
@@ -59,8 +60,8 @@
           <article class="stack-card" id="mcu-stack">
             <div class="post-meta">MCU / SOFT CORE</div>
             <h3>MCU / 软核</h3>
-            <p>覆盖 ARM Cortex-M、国产 MCU、Microchip PIC、Espressif ESP32，以及 FPGA 内 MicroBlaze 软核处理器的工程开发与调试。</p>
-            <div class="chip-list"><span class="chip">Xilinx MicroBlaze</span><span class="chip">STM32F013</span><span class="chip">STM32F407</span><span class="chip">CW32L011K8U6</span><span class="chip">PIC16(L)F18854</span><span class="chip">ESP32-S3</span><span class="chip">ESP32-P4</span></div>
+            <p>覆盖 ARM Cortex-M、8051 内核 MCU、国产 MCU、Microchip PIC、Espressif ESP32，以及 FPGA 内 MicroBlaze 软核处理器的工程开发与调试。</p>
+            <div class="chip-list"><span class="chip">Xilinx MicroBlaze</span><span class="chip">STM32F013</span><span class="chip">STM32F407</span><span class="chip">CW32L011K8U6</span><span class="chip">PIC16(L)F18854</span><span class="chip">Silicon Labs EFM8BB10F8I</span><span class="chip">ESP32-S3</span><span class="chip">ESP32-P4</span></div>
           </article>
           <article class="stack-card" id="soc-stack">
             <div class="post-meta">SOC PLATFORM</div>
@@ -80,6 +81,12 @@
             <p>关注嵌入式图形界面、触摸交互、仪表盘 UI、文件管理页面、截图预览和设备端 Web UI。</p>
             <div class="chip-list"><span class="chip">GuiGuider</span><span class="chip">LVGL</span><span class="chip">Embedded UI</span><span class="chip">HMI</span><span class="chip">Web UI</span></div>
           </article>
+          <article class="stack-card" id="host-stack">
+            <div class="post-meta">HOST TOOLS / CLIENT APPS</div>
+            <h3>上位机 / 客户端 <span class="english-subtitle">Host Tools / Client Apps</span></h3>
+            <p>面向嵌入式设备调试、配置、数据查看和无线控制，涉及蓝牙通信、微信小程序、网页端工具和设备端配套客户端开发。</p>
+            <div class="chip-list"><span class="chip">蓝牙通信</span><span class="chip">微信小程序</span><span class="chip">设备配置工具</span><span class="chip">数据查看界面</span><span class="chip">Web 控制台</span><span class="chip">调试上位机</span></div>
+          </article>
         </div>
       </section>
 
@@ -89,6 +96,7 @@
           <article class="post-card"><div class="post-meta">EF2L45LG144B · ADC · SPI · ESP32 · WEB</div><h3>FPGA ADC 实时波形显示 <span class="english-subtitle">FPGA ADC Waveform Display</span></h3><p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p></article>
           <article class="post-card"><div class="post-meta">ESP32-S3 / ESP32-P4 · HTTP · FLASH · WEB UI</div><h3>ESP32 无线文件服务器 <span class="english-subtitle">ESP32 Wireless File Server</span></h3><p>基于 ESP32 的网页文件服务器与无线 U 盘功能，支持文件管理、网页访问、内部 Flash 存储和嵌入式 Web UI。</p></article>
           <article class="post-card"><div class="post-meta">ESP32-P4 · LVGL · GUIGUIDER · PNG/JPEG</div><h3>LVGL 截图系统 <span class="english-subtitle">LVGL Screenshot System</span></h3><p>基于 ESP32-P4 / LVGL 的屏幕截图、图片保存和网页预览系统，关注 PNG/JPEG 格式选择、文件系统存储和界面实时查看。</p></article>
+          <article class="post-card"><div class="post-meta">BLE · WECHAT MINI PROGRAM · HOST TOOL · DEVICE CONTROL</div><h3>蓝牙微信小程序上位机 <span class="english-subtitle">Bluetooth WeChat Mini Program</span></h3><p>用于嵌入式设备的蓝牙连接、参数配置、状态查看和调试控制，作为设备端功能的轻量级上位机 / 客户端入口。</p></article>
           <article class="post-card"><div class="post-meta">ENGINEERING TOOLS · LLAMA.CPP · LAN API</div><h3>本地大模型部署 <span class="english-subtitle">Local AI Assisted Development</span></h3><p>作为工程工具与本地 AI 辅助开发方向，探索 llama.cpp 的多人部署、上下文长度、KV Cache、局域网 API 服务和资源占用优化。</p></article>
         </div>
       </section>
@@ -111,16 +119,16 @@
 
       <section class="section-block" id="about">
         <div class="section-title"><span>05</span><h2>关于本站</h2></div>
-        <div class="about-card card"><p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU / 软核、SoC、FPGA、GUI / HMI、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p><p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。</p><p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p></div>
+        <div class="about-card card"><p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU / 软核、SoC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p><p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。</p><p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p></div>
       </section>
     </main>
 
     <aside class="rightbar" aria-label="站点信息">
       <section class="widget"><h3>最近更新</h3><p>已补充 MCU、SoC、FPGA 与 GUI/HMI 技术栈矩阵。</p></section>
       <section class="widget status-widget"><h3>当前状态</h3><p>持续整理嵌入式平台适配、驱动调试、GUI 界面和工程工具。</p></section>
-      <section class="widget"><h3>热门标签</h3><div class="tag-cloud"><a href="#mcu-stack">ESP32-S3</a><a href="#mcu-stack">ESP32-P4</a><a href="#mcu-stack">STM32</a><a href="#fpga-stack">FPGA</a><a href="#gui-stack">LVGL</a><a href="#soc-stack">RK3568</a><a href="#mcu-stack">MicroBlaze</a><a href="#gui-stack">GuiGuider</a></div></section>
+      <section class="widget"><h3>热门标签</h3><div class="tag-cloud"><a href="#mcu-stack">ESP32-S3</a><a href="#mcu-stack">ESP32-P4</a><a href="#fpga-stack">FPGA</a><a href="#gui-stack">LVGL</a><a href="#soc-stack">RK3568</a><a href="#mcu-stack">EFM8BB10F8I</a><a href="#host-stack">微信小程序</a><a href="#host-stack">上位机</a></div></section>
       <section class="widget"><h3>联系方式</h3><a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></section>
-      <section class="widget"><h3>快捷导航</h3><a href="#projects">精选项目</a><a href="#hardware-stack">技术栈矩阵</a><a href="#mcu-stack">MCU / 软核</a><a href="#fpga-stack">FPGA 平台</a><a href="#notes">工程笔记</a><a href="#tools">工具实验室</a></section>
+      <section class="widget"><h3>快捷导航</h3><a href="#projects">精选项目</a><a href="#hardware-stack">技术栈矩阵</a><a href="#mcu-stack">MCU / 软核</a><a href="#fpga-stack">FPGA 平台</a><a href="#host-stack">上位机 / 客户端</a><a href="#notes">工程笔记</a><a href="#tools">工具实验室</a></section>
     </aside>
   </div>
   <script src="assets/js/main.js"></script>
