@@ -64,8 +64,15 @@ if (sections.length > 0) {
 /*
  * Article navigation
  * 自动为文章页生成目录。
- * 电脑端：左侧 sticky 目录
- * 手机端：顶部目录块
+ *
+ * 文章页原本的 article-topbar 只作为数据源：
+ * - 读取里面的“返回首页 / 返回分类”等链接
+ * - 复制到文章导航卡片中
+ * - 然后删除 article-topbar
+ *
+ * 最终效果：
+ * 电脑端：左侧文章导航 + 右侧正文
+ * 手机端：顶部文章导航 + 下方正文
  */
 function normalizeHeadingId(index) {
   return `article-section-${index + 1}`;
@@ -97,6 +104,13 @@ function buildArticleNav() {
         href: link.getAttribute('href')
       }))
     : [];
+
+  /*
+   * 关键点：
+   * 必须删除文章正文顶部按钮。
+   * 返回入口只保留在文章导航卡片里。
+   */
+  articleTopbar?.remove();
 
   const articleSidebar = document.createElement('aside');
   articleSidebar.className = 'article-sidebar';
@@ -147,11 +161,7 @@ function buildArticleNav() {
   articleNavCard.appendChild(articleNav);
   articleSidebar.appendChild(articleNavCard);
 
-  if (articleTopbar) {
-    articleTopbar.insertAdjacentElement('afterend', articleSidebar);
-  } else {
-    articleShell.insertBefore(articleSidebar, articleShell.firstElementChild);
-  }
+  articleShell.insertBefore(articleSidebar, articleShell.firstElementChild);
 
   const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
   const articleSections = headings
