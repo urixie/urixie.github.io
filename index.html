@@ -65,7 +65,10 @@
           <span>ESP32-P4</span>
           <span>MicroBlaze</span>
           <span>RK3568</span>
+          <span>Linux 5.10</span>
           <span>Linux 4.19</span>
+          <span>SPI</span>
+          <span>spidev</span>
           <span>USB Gadget</span>
           <span>RNDIS</span>
           <span>SmartFusion2</span>
@@ -178,8 +181,12 @@
               <h4>Rockchip</h4>
               <div class="platform-items">
                 <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html">
-                  <strong>RK3568</strong>
-                  <span>Linux / USB Gadget / RNDIS / Ubuntu Base 22 · 已整理 USB Ethernet Gadget 配置记录</span>
+                  <strong>RK3568 · USB Ethernet Gadget</strong>
+                  <span>Linux 4.19 / USB Gadget / RNDIS / Ubuntu Base 22 · 已整理虚拟网卡配置记录</span>
+                </a>
+                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html">
+                  <strong>RK3568 · SPI / spidev</strong>
+                  <span>Linux 5.10 / SPI / spidev / Ubuntu Base 22 · 已整理 SPI 功能调试记录</span>
                 </a>
               </div>
             </div>
@@ -301,6 +308,17 @@
 
         <div class="post-list">
           <article class="post-card">
+            <div class="post-meta">RK3568 · LINUX 5.10 · SPI · SPIDEV · UBUNTU BASE 22</div>
+            <h3>
+              <a href="articles/soc/rk3568-spi-spidev.html">
+                RK3568 SPI / spidev 功能调试记录
+                <span class="english-subtitle">RK3568 SPI spidev Debugging</span>
+              </a>
+            </h3>
+            <p>基于讯为 RK3568 开发板、Linux 5.10 内核和 Ubuntu Base 22 文件系统，完成 SPI 控制器、spidev 用户态接口、设备节点和逻辑分析仪波形验证，整理 SPI 引脚连接、内核配置、/dev/spidev0.0 含义和用户态测试程序。</p>
+          </article>
+
+          <article class="post-card">
             <div class="post-meta">RK3568 · LINUX 4.19 · USB GADGET · RNDIS · UBUNTU BASE 22</div>
             <h3>
               <a href="articles/soc/rk3568-usb-ethernet-gadget.html">
@@ -360,7 +378,7 @@
     <aside class="rightbar" aria-label="站点信息">
       <section class="widget">
         <h3>最近更新</h3>
-        <p>已新增 RK3568 USB Ethernet Gadget 配置记录，补充 Linux SOC 外设适配经验。</p>
+        <p>已新增 RK3568 SPI / spidev 功能调试记录，补充 Linux 5.10 下 SPI 外设适配经验。</p>
       </section>
 
       <section class="widget status-widget">
@@ -372,15 +390,15 @@
         <h3>热门标签</h3>
         <div class="tag-cloud">
           <a href="#soc-stack">RK3568</a>
+          <a href="articles/soc/rk3568-spi-spidev.html">SPI</a>
+          <a href="articles/soc/rk3568-spi-spidev.html">spidev</a>
           <a href="articles/soc/rk3568-usb-ethernet-gadget.html">USB Gadget</a>
           <a href="articles/soc/rk3568-usb-ethernet-gadget.html">RNDIS</a>
           <a href="#mcu-stack">STM32F103</a>
           <a href="#mcu-stack">ESP32-S3</a>
           <a href="#mcu-stack">ESP32-P4</a>
-          <a href="#mcu-stack">EFM8BB10F8I</a>
           <a href="#fpga-stack">FPGA</a>
           <a href="#gui-stack">LVGL</a>
-          <a href="#host-stack">微信小程序</a>
         </div>
       </section>
 
