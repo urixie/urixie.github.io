@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "更新网站缓存版本号",
+      "type": "shell",
+      "command": "python scripts/bump_cache_version_from_git.py",
+      "problemMatcher": []
+    }
+  ]
+}
