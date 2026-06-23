@@ -498,7 +498,7 @@ a:focus-visible {
 }
 
 .post-card h3 {
-  margin: 8px 0 8px;
+  margin: 0 0 8px;
   font-size: 22px;
   letter-spacing: -0.02em;
 }
@@ -628,6 +628,20 @@ a:focus-visible {
 
 .article p {
   margin: 0 0 12px;
+}
+
+/* 中文内容段落排版：正文类内容首行缩进两个中文字符 */
+.hero p,
+.stack-card > p,
+.post-card p,
+.about-card p,
+.widget p,
+.article p,
+.article-note,
+.article-warning {
+  text-indent: 2em;
+  text-align: justify;
+  overflow-wrap: break-word;
 }
 
 .article ul,

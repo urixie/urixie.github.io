@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="XYJ 的嵌入式工程项目、技术栈、项目经验与实用工具。">
   <title>XYJ</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=08b65f64912f">
+  <link rel="stylesheet" href="assets/css/style.css?v=63ee9639aec3">
 </head>
 <body>
   <div class="page-shell">
@@ -13,7 +13,7 @@
       <div>
         <div class="profile">
           <div class="avatar">
-            <img src="assets/img/avatar-surf.jpg?v=08b65f64912f" alt="XYJ 网站头像">
+            <img src="assets/img/avatar-surf.jpg?v=63ee9639aec3" alt="XYJ 网站头像">
           </div>
           <h1>XYJ</h1>
           <p class="brand-subtitle">
@@ -54,12 +54,6 @@
     <main class="content">
       <section class="hero card" id="home">
         <p>从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience"></span> 工程经验，长期关注 MCU、SOC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集与本地 AI 工程实践。</p>
-        <p>用于记录我的工程项目、调试笔记、技术文章和实用工具。</p>
-
-        <div class="hero-actions">
-          <a class="button primary" href="#projects">查看项目</a>
-          <a class="button" href="mailto:xyj.work@qq.com">联系我</a>
-        </div>
 
         <div class="tags" aria-label="技术标签">
           <span>C/C++</span>
@@ -195,11 +189,11 @@
             <div class="platform-category">
               <h4>Rockchip</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html?v=08b65f64912f">
+                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html?v=63ee9639aec3">
                   <strong>RK3568 · USB Ethernet Gadget</strong>
                   <span>Linux 4.19 / USB Gadget / RNDIS / Ubuntu Base 22 · 已整理虚拟网卡配置记录</span>
                 </a>
-                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html?v=08b65f64912f">
+                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html?v=63ee9639aec3">
                   <strong>RK3568 · SPI / spidev</strong>
                   <span>Linux 5.10 / SPI / spidev / Ubuntu Base 22 · 已整理 SPI 功能调试记录</span>
                 </a>
@@ -215,7 +209,7 @@
             <div class="platform-category">
               <h4>传感器与低速总线</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html?v=08b65f64912f">
+                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html?v=63ee9639aec3">
                   <strong>AHT20 · IIC / CRC8 / Verilog</strong>
                   <span>基于 Verilog 实现 IIC 主机、AHT20 温湿度读取、CRC8 校验和数据滤波</span>
                 </a>
@@ -225,7 +219,7 @@
             <div class="platform-category">
               <h4>存储器 IP 与片上 RAM</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/fpga/ef2-single-port-ram.html?v=08b65f64912f">
+                <a class="platform-item" href="articles/fpga/ef2-single-port-ram.html?v=63ee9639aec3">
                   <strong>EF2L45 · Single Port RAM</strong>
                   <span>基于 IP Generator 配置单口 BRAM，完成 8bit x 200 深度 RAM 的写入、读出和 Verilog 自检</span>
                 </a>
@@ -343,76 +337,63 @@
 
         <div class="post-list">
           <article class="post-card">
-            <div class="post-meta">FPGA · VERILOG · IIC · AHT20 · CRC8</div>
             <h3>
-              <a href="articles/fpga/aht20-iic-verilog.html?v=08b65f64912f">
+              <a href="articles/fpga/aht20-iic-verilog.html?v=63ee9639aec3">
                 Verilog 实现 AHT20 温湿度传感器读取
-                <span class="english-subtitle">AHT20 IIC Sensor Reader in Verilog</span>
               </a>
             </h3>
             <p>基于 Verilog 实现 IIC 主机控制器、AHT20 温湿度传感器读取流程、CRC8/ITU 校验、20bit 温湿度原始数据解析和 8 次滑动平均滤波，适合 FPGA 侧低速传感器采集与时序控制场景。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">FPGA · EF2L45LG144B · BRAM · SINGLE PORT RAM</div>
             <h3>
-              <a href="articles/fpga/ef2-single-port-ram.html?v=08b65f64912f">
+              <a href="articles/fpga/ef2-single-port-ram.html?v=63ee9639aec3">
                 EF2L45 单口 BRAM IP 配置与读写验证
-                <span class="english-subtitle">EF2L45 Single Port BRAM Verification</span>
               </a>
             </h3>
             <p>基于 IP Generator 生成 EF2L45 单口 RAM，配置 8bit 数据宽度、200 深度、Write First 工作模式和带 Ocea 的输出寄存器，并使用 Verilog 状态机完成写入、读出、比较和 LED 错误指示。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">RK3568 · LINUX 5.10 · SPI · SPIDEV · UBUNTU BASE 22</div>
             <h3>
-              <a href="articles/soc/rk3568-spi-spidev.html?v=08b65f64912f">
+              <a href="articles/soc/rk3568-spi-spidev.html?v=63ee9639aec3">
                 RK3568 SPI / spidev 功能调试记录
-                <span class="english-subtitle">RK3568 SPI spidev Debugging</span>
               </a>
             </h3>
             <p>基于讯为 RK3568 开发板、Linux 5.10 内核和 Ubuntu Base 22 文件系统，完成 SPI 控制器、spidev 用户态接口、设备节点和逻辑分析仪波形验证，整理 SPI 引脚连接、内核配置、/dev/spidev0.0 含义和用户态测试程序。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">RK3568 · LINUX 4.19 · USB GADGET · RNDIS · UBUNTU BASE 22</div>
             <h3>
-              <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=08b65f64912f">
+              <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=63ee9639aec3">
                 RK3568 USB Ethernet Gadget 配置记录
-                <span class="english-subtitle">RK3568 USB Ethernet Gadget</span>
               </a>
             </h3>
             <p>基于讯为 RK3568 开发板、Linux 4.19 内核和 Ubuntu Base 22 文件系统，完成 USB Ethernet Gadget 虚拟网卡功能配置，整理内核配置、ConfigFS 初始化、systemd 服务、usb0 静态网络配置以及网口冲突处理方法。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">EF2L45LG144B · ADC · SPI · ESP32 · WEB</div>
-            <h3>FPGA ADC 实时波形显示 <span class="english-subtitle">FPGA ADC Waveform Display</span></h3>
+            <h3>FPGA ADC 实时波形显示</h3>
             <p>基于 FPGA + ESP32 的 ADC 实时采集与网页波形显示系统，关注采样帧同步、SPI 通信、Dual Port RAM 缓冲和前端 Canvas 波形绘制。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">ESP32-S3 / ESP32-P4 · HTTP · FLASH · WEB UI</div>
-            <h3>ESP32 无线文件服务器 <span class="english-subtitle">ESP32 Wireless File Server</span></h3>
+            <h3>ESP32 无线文件服务器</h3>
             <p>基于 ESP32 的网页文件服务器与无线 U 盘功能，支持文件管理、网页访问、内部 Flash 存储和嵌入式 Web UI。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">ESP32-P4 · LVGL · GUIGUIDER · PNG/JPEG</div>
-            <h3>LVGL 截图系统 <span class="english-subtitle">LVGL Screenshot System</span></h3>
+            <h3>LVGL 截图系统</h3>
             <p>基于 ESP32-P4 / LVGL 的屏幕截图、图片保存和网页预览系统，关注 PNG/JPEG 格式选择、文件系统存储和界面实时查看。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">BLE · WECHAT MINI PROGRAM · HOST TOOL · DEVICE CONTROL</div>
-            <h3>蓝牙微信小程序上位机 <span class="english-subtitle">Bluetooth WeChat Mini Program</span></h3>
+            <h3>蓝牙微信小程序上位机</h3>
             <p>用于嵌入式设备的蓝牙连接、参数配置、状态查看和调试控制，作为设备端功能的轻量级上位机 / 客户端入口。</p>
           </article>
 
           <article class="post-card">
-            <div class="post-meta">ENGINEERING TOOLS · LLAMA.CPP · LAN API</div>
-            <h3>本地大模型部署 <span class="english-subtitle">Local AI Assisted Development</span></h3>
+            <h3>本地大模型部署</h3>
             <p>作为工程工具与本地 AI 辅助开发方向，探索 llama.cpp 的多人部署、上下文长度、KV Cache、局域网 API 服务和资源占用优化。</p>
           </article>
         </div>
@@ -425,9 +406,7 @@
         </div>
 
         <div class="about-card card">
-          <p>XYJ 从 2022 年 2 月开始从事嵌入式软件开发，目前已有 <span id="work-experience-about"></span> 工程经验，主要关注 MCU、SOC、FPGA、GUI / HMI、上位机 / 客户端、嵌入式 Web 服务、数据采集和本地 AI 工程实践。</p>
           <p>本网站用于沉淀项目经验、调试记录、技术文章和工程工具。后续会按具体芯片型号、开发平台和工程方向持续补充文章。</p>
-          <p>联系方式：<a href="mailto:xyj.work@qq.com">xyj.work@qq.com</a></p>
         </div>
       </section>
     </main>
@@ -446,22 +425,22 @@
       <section class="widget">
         <h3>热门标签</h3>
         <div class="tag-cloud">
-          <a href="articles/fpga/ef2-single-port-ram.html?v=08b65f64912f">BRAM</a>
-          <a href="articles/fpga/ef2-single-port-ram.html?v=08b65f64912f">Single Port RAM</a>
-          <a href="articles/fpga/ef2-single-port-ram.html?v=08b65f64912f">IP Generator</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=08b65f64912f">AHT20</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=08b65f64912f">IIC</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=08b65f64912f">CRC8</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=63ee9639aec3">BRAM</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=63ee9639aec3">Single Port RAM</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=63ee9639aec3">IP Generator</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=63ee9639aec3">AHT20</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=63ee9639aec3">IIC</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=63ee9639aec3">CRC8</a>
           <a href="#fpga-stack">FPGA</a>
           <a href="#soc-stack">RK3568</a>
-          <a href="articles/soc/rk3568-spi-spidev.html?v=08b65f64912f">SPI</a>
-          <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=08b65f64912f">USB Gadget</a>
+          <a href="articles/soc/rk3568-spi-spidev.html?v=63ee9639aec3">SPI</a>
+          <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=63ee9639aec3">USB Gadget</a>
           <a href="#gui-stack">LVGL</a>
         </div>
       </section>
     </aside>
   </div>
 
-  <script src="assets/js/main.js?v=08b65f64912f"></script>
+  <script src="assets/js/main.js?v=63ee9639aec3"></script>
 </body>
 </html>
