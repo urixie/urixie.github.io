@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="XYJ 的嵌入式工程项目、技术栈、项目经验与实用工具。">
   <title>XYJ</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=9cf91c6334b5">
+  <link rel="stylesheet" href="assets/css/style.css?v=6d6f4704b101">
 </head>
 <body>
   <div class="page-shell">
@@ -61,6 +61,9 @@
           <span>I2C</span>
           <span>AHT20</span>
           <span>CRC8</span>
+          <span>BRAM</span>
+          <span>Single Port RAM</span>
+          <span>IP Generator</span>
           <span>STM32F103</span>
           <span>STM32F407</span>
           <span>CW32</span>
@@ -185,11 +188,11 @@
             <div class="platform-category">
               <h4>Rockchip</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html?v=9cf91c6334b5">
+                <a class="platform-item" href="articles/soc/rk3568-usb-ethernet-gadget.html?v=6d6f4704b101">
                   <strong>RK3568 · USB Ethernet Gadget</strong>
                   <span>Linux 4.19 / USB Gadget / RNDIS / Ubuntu Base 22 · 已整理虚拟网卡配置记录</span>
                 </a>
-                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html?v=9cf91c6334b5">
+                <a class="platform-item" href="articles/soc/rk3568-spi-spidev.html?v=6d6f4704b101">
                   <strong>RK3568 · SPI / spidev</strong>
                   <span>Linux 5.10 / SPI / spidev / Ubuntu Base 22 · 已整理 SPI 功能调试记录</span>
                 </a>
@@ -200,14 +203,24 @@
           <article class="stack-card" id="fpga-stack">
             <div class="post-meta">FPGA PLATFORM</div>
             <h3>FPGA</h3>
-            <p>涉及 FPGA 逻辑设计、数据采集、IIC / SPI 通信、CRC 校验、RAM 缓冲、软硬件协同调试和实时波形显示。</p>
+            <p>涉及 FPGA 逻辑设计、数据采集、IIC / SPI 通信、CRC 校验、BRAM 缓冲、软硬件协同调试和实时波形显示。</p>
 
             <div class="platform-category">
               <h4>传感器与低速总线</h4>
               <div class="platform-items">
-                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html?v=9cf91c6334b5">
+                <a class="platform-item" href="articles/fpga/aht20-iic-verilog.html?v=6d6f4704b101">
                   <strong>AHT20 · IIC / CRC8 / Verilog</strong>
                   <span>基于 Verilog 实现 IIC 主机、AHT20 温湿度读取、CRC8 校验和数据滤波</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="platform-category">
+              <h4>存储器 IP 与片上 RAM</h4>
+              <div class="platform-items">
+                <a class="platform-item" href="articles/fpga/ef2-single-port-ram.html?v=6d6f4704b101">
+                  <strong>EF2L45 · Single Port RAM</strong>
+                  <span>基于 IP Generator 配置单口 BRAM，完成 8bit x 200 深度 RAM 的写入、读出和 Verilog 自检</span>
                 </a>
               </div>
             </div>
@@ -325,7 +338,7 @@
           <article class="post-card">
             <div class="post-meta">FPGA · VERILOG · IIC · AHT20 · CRC8</div>
             <h3>
-              <a href="articles/fpga/aht20-iic-verilog.html?v=9cf91c6334b5">
+              <a href="articles/fpga/aht20-iic-verilog.html?v=6d6f4704b101">
                 Verilog 实现 AHT20 温湿度传感器读取
                 <span class="english-subtitle">AHT20 IIC Sensor Reader in Verilog</span>
               </a>
@@ -334,9 +347,20 @@
           </article>
 
           <article class="post-card">
+            <div class="post-meta">FPGA · EF2L45LG144B · BRAM · SINGLE PORT RAM</div>
+            <h3>
+              <a href="articles/fpga/ef2-single-port-ram.html?v=6d6f4704b101">
+                EF2L45 单口 BRAM IP 配置与读写验证
+                <span class="english-subtitle">EF2L45 Single Port BRAM Verification</span>
+              </a>
+            </h3>
+            <p>基于 IP Generator 生成 EF2L45 单口 RAM，配置 8bit 数据宽度、200 深度、Write First 工作模式和带 Ocea 的输出寄存器，并使用 Verilog 状态机完成写入、读出、比较和 LED 错误指示。</p>
+          </article>
+
+          <article class="post-card">
             <div class="post-meta">RK3568 · LINUX 5.10 · SPI · SPIDEV · UBUNTU BASE 22</div>
             <h3>
-              <a href="articles/soc/rk3568-spi-spidev.html?v=9cf91c6334b5">
+              <a href="articles/soc/rk3568-spi-spidev.html?v=6d6f4704b101">
                 RK3568 SPI / spidev 功能调试记录
                 <span class="english-subtitle">RK3568 SPI spidev Debugging</span>
               </a>
@@ -347,7 +371,7 @@
           <article class="post-card">
             <div class="post-meta">RK3568 · LINUX 4.19 · USB GADGET · RNDIS · UBUNTU BASE 22</div>
             <h3>
-              <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=9cf91c6334b5">
+              <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=6d6f4704b101">
                 RK3568 USB Ethernet Gadget 配置记录
                 <span class="english-subtitle">RK3568 USB Ethernet Gadget</span>
               </a>
@@ -404,7 +428,7 @@
     <aside class="rightbar" aria-label="站点信息">
       <section class="widget">
         <h3>最近更新</h3>
-        <p>已新增 Verilog 实现 AHT20 温湿度传感器读取文章，补充 FPGA IIC、CRC8 和传感器采集经验。</p>
+        <p>已新增 EF2L45 单口 BRAM IP 配置与读写验证文章，补充 FPGA 片上 RAM、IP Generator 和 Verilog 自检经验。</p>
       </section>
 
       <section class="widget status-widget">
@@ -415,15 +439,16 @@
       <section class="widget">
         <h3>热门标签</h3>
         <div class="tag-cloud">
-          <a href="articles/fpga/aht20-iic-verilog.html?v=9cf91c6334b5">AHT20</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=9cf91c6334b5">IIC</a>
-          <a href="articles/fpga/aht20-iic-verilog.html?v=9cf91c6334b5">CRC8</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=6d6f4704b101">BRAM</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=6d6f4704b101">Single Port RAM</a>
+          <a href="articles/fpga/ef2-single-port-ram.html?v=6d6f4704b101">IP Generator</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=6d6f4704b101">AHT20</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=6d6f4704b101">IIC</a>
+          <a href="articles/fpga/aht20-iic-verilog.html?v=6d6f4704b101">CRC8</a>
           <a href="#fpga-stack">FPGA</a>
           <a href="#soc-stack">RK3568</a>
-          <a href="articles/soc/rk3568-spi-spidev.html?v=9cf91c6334b5">SPI</a>
-          <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=9cf91c6334b5">USB Gadget</a>
-          <a href="#mcu-stack">STM32F103</a>
-          <a href="#mcu-stack">ESP32-S3</a>
+          <a href="articles/soc/rk3568-spi-spidev.html?v=6d6f4704b101">SPI</a>
+          <a href="articles/soc/rk3568-usb-ethernet-gadget.html?v=6d6f4704b101">USB Gadget</a>
           <a href="#gui-stack">LVGL</a>
         </div>
       </section>
@@ -447,6 +472,6 @@
     </aside>
   </div>
 
-  <script src="assets/js/main.js?v=9cf91c6334b5"></script>
+  <script src="assets/js/main.js?v=6d6f4704b101"></script>
 </body>
 </html>

@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EF2L45 单口 BRAM IP 配置与读写验证 - XYJ</title>
+  <meta name="description" content="基于 EF2L45LG144B FPGA，通过 IP Generator 配置 Single Port RAM，并使用 Verilog 状态机完成 BRAM 写入、读出和结果校验。">
+  <link rel="stylesheet" href="../../assets/css/style.css?v=6d6f4704b101">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../index.html?v=6d6f4704b101">← 返回首页</a>
+      <a href="../../index.html?v=6d6f4704b101#fpga-stack">返回 FPGA 平台</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">FPGA · EF2L45LG144B · BRAM · SINGLE PORT RAM · VERILOG</div>
+
+      <h1>EF2L45 单口 BRAM IP 配置与读写验证</h1>
+
+      <p>
+        本文记录在 EF2L45LG144B FPGA 工程中，通过 IP Generator 生成单口 RAM，并使用 Verilog 状态机完成写入、
+        读出和数据校验的过程。该实验主要用于验证片上 BRAM IP 的基本读写时序、写优先模式以及输出寄存器延迟。
+      </p>
+
+      <div class="article-note">
+        本文重点关注 IP Generator 中 Single Port RAM 的关键配置，以及 Verilog 侧如何按照 BRAM 的时序要求完成写入、等待、读取和比较。
+      </div>
+
+      <section>
+        <h2>一、实验目标</h2>
+        <ul>
+          <li>使用 IP Generator 生成 EF2 系列 FPGA 的单口 BRAM。</li>
+          <li>BRAM 数据宽度设置为 8bit。</li>
+          <li>BRAM 深度设置为 200。</li>
+          <li>使用 Single Port RAM 模式。</li>
+          <li>工作模式选择 Write First。</li>
+          <li>输出使用 Register with Ocea。</li>
+          <li>初始化 RAM 内容为 0。</li>
+          <li>通过 Verilog 状态机写入地址 0 到 7，再读出并校验数据。</li>
+          <li>通过 LED 指示 BRAM 自检结果。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>二、IP Generator 基本配置</h2>
+
+        <p>
+          首先在 IP Generator 中选择 EF2_LOGIC_BRAM，组件名称设置为 <code>SinglePortRam</code>。
+          在 Basic 页面中，Memory Type 选择 <code>Single Port RAM</code>，Byte Write Enable 选择 <code>None</code>。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/ef2-single-port-ram-01-basic.png?v=6d6f4704b101" alt="EF2 Single Port RAM Basic 配置页面">
+          <figcaption>Basic 页面：选择 Single Port RAM，使用 EM9K 资源，Byte Write Enable 设置为 None。</figcaption>
+        </figure>
+
+        <p>
+          从左侧端口图可以看到，生成的单口 RAM 主要端口包括：
+        </p>
+
+        <ul>
+          <li><code>addra[7:0]</code>：地址输入。</li>
+          <li><code>dia[7:0]</code>：写入数据输入。</li>
+          <li><code>doa[7:0]</code>：读出数据输出。</li>
+          <li><code>clka</code>：RAM 工作时钟。</li>
+          <li><code>wea</code>：写使能。</li>
+          <li><code>ocea</code>：输出寄存器使能。</li>
+          <li><code>rsta</code>：输出寄存器复位。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>三、Port A 参数配置</h2>
+
+        <p>
+          在 Port A Options 页面中，设置 RAM 的数据宽度和深度。本文配置为：
+        </p>
+
+        <pre><code>Width：8
+Depth：200
+Operating Mode：Write First
+Operating Enable：Always Enable
+Output Register：Register with Ocea
+Port Enable：Use Wea</code></pre>
+
+        <figure>
+          <img src="../../assets/img/articles/ef2-single-port-ram-02-port-a-options.png?v=6d6f4704b101" alt="EF2 Single Port RAM Port A Options 配置页面">
+          <figcaption>Port A Options 页面：设置 Width=8、Depth=200、Write First，并启用带 Ocea 的输出寄存器。</figcaption>
+        </figure>
+
+        <p>
+          这里需要特别注意 <code>Output Register</code> 的设置。选择 <code>Register with Ocea</code> 后，
+          RAM 输出端 <code>doa</code> 会经过输出寄存器，因此读操作不能在切换地址后立即比较，需要等待一个时钟周期。
+        </p>
+
+        <div class="article-warning">
+          如果输出寄存器已启用，Verilog 状态机中必须加入读等待状态。否则读出的数据可能还是上一个周期的数据，导致误判。
+        </div>
+      </section>
+
+      <section>
+        <h2>四、初始化配置</h2>
+
+        <p>
+          在 Other Options 页面中，Memory Initialization 选择 <code>Fill Memory Initialization values</code>，
+          并选择 <code>Fill all with 0</code>。这样综合生成的 RAM 初始内容为 0。
+        </p>
+
+        <figure>
+          <img src="../../assets/img/articles/ef2-single-port-ram-03-other-options.png?v=6d6f4704b101" alt="EF2 Single Port RAM Other Options 初始化配置页面">
+          <figcaption>Other Options 页面：选择填充初始化值，并将 RAM 全部初始化为 0。</figcaption>
+        </figure>
+
+        <p>
+          当前配置预计使用 1 个 BRAM 资源。对于只做少量缓存、查表或数据暂存的场景，单口 RAM 可以减少逻辑资源占用，
+          也便于后续扩展为采集缓存或状态表。
+        </p>
+      </section>
+
+      <section>
+        <h2>五、Verilog 顶层测试逻辑</h2>
+
+        <p>
+          下面的测试逻辑实例化 <code>SinglePortRam</code>，然后通过状态机依次向地址 0 到 7 写入对应数据，
+          再读回并与期望值比较。若所有地址读写正确，则 LED 保持常亮；如果出现错误，则 LED 慢速闪烁。
+        </p>
+
+        <pre><code>module Top(
+    input  wire I_clk,     // 系统时钟
+    output reg  O_led2 = 1'b0
+);
+
+    // ------------------------------------------------------------------
+    // RAM 接口信号（根据BRAM配置调整）
+    // ------------------------------------------------------------------
+    wire [7:0]  ram_dout;
+    reg  [7:0]  ram_din;
+    reg  [7:0]  ram_addr;  // 地址位宽扩展到8位
+    wire        ram_oe  = 1'b1;  // 输出使能始终有效
+    wire        ram_clk = I_clk;
+    wire        ram_rst = 1'b0;
+    reg         ram_we;
+
+    // ------------------------------------------------------------------
+    // 实例化单口 RAM（写优先模式，带输出寄存器）
+    // ------------------------------------------------------------------
+    SinglePortRam single_port_ram (
+        .doa   (ram_dout),    // 数据输出
+        .dia   (ram_din),     // 数据输入
+        .addra (ram_addr),    // 地址
+        .ocea  (ram_oe),      // 输出使能，控制输出寄存器
+        .clka  (ram_clk),     // 时钟
+        .wea   (ram_we),      // 写使能
+        .rsta  (ram_rst)      // 复位
+    );
+
+    // ------------------------------------------------------------------
+    // 状态机定义
+    // ------------------------------------------------------------------
+    localparam S_IDLE         = 3'd0;
+    localparam S_WRITE        = 3'd1; // 写操作
+    localparam S_READ_SETUP   = 3'd2; // 准备读地址
+    localparam S_READ_WAIT    = 3'd3; // 等待输出寄存器
+    localparam S_CHECK        = 3'd4; // 比较结果
+    localparam S_WRITE_HOLD   = 3'd5; // 保持写使能多一个周期
+
+    reg [2:0] state = S_IDLE;
+    reg [3:0] cnt   = 4'd0;        // 测试地址 0~7
+
+    // 数据与期望值的管线，适应输出寄存器延迟
+    reg [7:0] exp_data;            // 期望数据
+    reg [7:0] dout_reg;            // 寄存后的读出数据
+
+    // 统计/调试
+    reg [3:0] error_count;
+    reg [7:0] last_error_addr;
+    reg [7:0] last_error_data;
+    reg [7:0] last_expected;
+
+    // ------------------------------------------------------------------
+    // 主状态机：写 -> 读 -> 等待输出 -> 比较
+    // 针对写优先模式优化：写操作时输出会立即更新
+    // ------------------------------------------------------------------
+    always @(posedge I_clk) begin
+        case (state)
+            S_IDLE: begin
+                ram_we      &lt;= 1'b0;
+                ram_addr    &lt;= 8'd0;
+                ram_din     &lt;= 8'd0;
+                cnt         &lt;= 4'd0;
+                error_count &lt;= 4'd0;
+                state       &lt;= S_WRITE;
+            end
+
+            // 先给地址/数据
+            S_WRITE: begin
+                ram_addr &lt;= {4'd0, cnt};
+                ram_din  &lt;= {4'd0, cnt};
+                exp_data &lt;= {4'd0, cnt};
+                state    &lt;= S_WRITE_HOLD;
+            end
+
+            // 再拉高写使能并保持一个周期
+            S_WRITE_HOLD: begin
+                ram_we   &lt;= 1'b1;
+                state    &lt;= S_READ_SETUP;
+            end
+
+            S_READ_SETUP: begin
+                ram_we   &lt;= 1'b0;
+                ram_addr &lt;= {4'd0, cnt};  // 保持同一地址
+                state    &lt;= S_READ_WAIT;
+            end
+
+            S_READ_WAIT: begin
+                dout_reg &lt;= ram_dout;
+                state    &lt;= S_CHECK;
+            end
+
+            S_CHECK: begin
+                if (dout_reg != exp_data) begin
+                    error_count     &lt;= error_count + 1'b1;
+                    last_error_addr &lt;= {4'd0, cnt};
+                    last_error_data &lt;= dout_reg;
+                    last_expected   &lt;= exp_data;
+                end
+
+                if (cnt == 4'd7) begin
+                    cnt   &lt;= 4'd0;
+                    state &lt;= S_IDLE;
+                end else begin
+                    cnt   &lt;= cnt + 1'b1;
+                    state &lt;= S_WRITE;
+                end
+            end
+
+            default: state &lt;= S_IDLE;
+        endcase
+    end
+
+    // ------------------------------------------------------------------
+    // LED 指示：无错误常亮，有错误慢闪
+    // ------------------------------------------------------------------
+    reg [24:0] led_counter = 25'd0;
+    reg        slow_toggle = 1'b0;
+
+    always @(posedge I_clk) begin
+        if (error_count == 4'd0) begin
+            O_led2 &lt;= 1'b0;  // 无错误：常亮
+        end else begin
+            if (led_counter &gt;= 25'd10_000_000 - 1) begin
+                led_counter &lt;= 25'd0;
+                slow_toggle &lt;= ~slow_toggle;
+                O_led2      &lt;= slow_toggle; // 有错误：慢速闪烁
+            end else begin
+                led_counter &lt;= led_counter + 1'b1;
+            end
+        end
+    end
+
+    // ------------------------------------------------------------------
+    // 调试信号（便于 ILA/在线抓取）
+    // ------------------------------------------------------------------
+    wire [7:0] error_count_out = {4'b0, error_count};
+    wire [7:0] current_addr    = {4'd0, cnt};
+    wire [7:0] current_data    = dout_reg;
+    wire [7:0] expected_out    = exp_data;
+
+endmodule</code></pre>
+      </section>
+
+      <section>
+        <h2>六、状态机时序说明</h2>
+
+        <p>
+          当前测试流程按照“写入一个地址，再读回同一个地址并比较”的方式执行：
+        </p>
+
+        <ol>
+          <li><code>S_IDLE</code>：清零地址、数据和错误计数。</li>
+          <li><code>S_WRITE</code>：准备写地址和写数据。</li>
+          <li><code>S_WRITE_HOLD</code>：拉高写使能，将数据写入 RAM。</li>
+          <li><code>S_READ_SETUP</code>：关闭写使能，保持读地址。</li>
+          <li><code>S_READ_WAIT</code>：等待输出寄存器更新，并锁存 <code>ram_dout</code>。</li>
+          <li><code>S_CHECK</code>：比较读出数据和期望数据。</li>
+        </ol>
+
+        <p>
+          因为 RAM 配置为 <code>Register with Ocea</code>，读出数据经过输出寄存器，所以 <code>S_READ_WAIT</code>
+          是必要状态。如果去掉这个等待周期，比较逻辑可能拿到错误的旧数据。
+        </p>
+      </section>
+
+      <section>
+        <h2>七、LED 指示逻辑</h2>
+
+        <p>
+          代码中使用 <code>error_count</code> 记录错误次数。如果没有读写错误，<code>O_led2</code> 保持固定状态；
+          如果出现错误，则通过计数器控制 LED 慢速闪烁。
+        </p>
+
+        <pre><code>无错误：
+O_led2 常亮
+
+有错误：
+O_led2 慢速闪烁</code></pre>
+
+        <p>
+          这种方式适合没有串口打印、没有在线调试工具时，快速判断 BRAM 读写验证是否通过。
+        </p>
+      </section>
+
+      <section>
+        <h2>八、调试信号说明</h2>
+
+        <p>
+          为了便于后续通过 ILA、SignalTap 或在线逻辑分析工具观察状态，代码保留了几个调试信号：
+        </p>
+
+        <ul>
+          <li><code>error_count_out</code>：错误计数扩展为 8bit。</li>
+          <li><code>current_addr</code>：当前测试地址。</li>
+          <li><code>current_data</code>：当前读出的数据。</li>
+          <li><code>expected_out</code>：当前期望数据。</li>
+          <li><code>last_error_addr</code>：最后一次出错地址。</li>
+          <li><code>last_error_data</code>：最后一次出错时读出的数据。</li>
+          <li><code>last_expected</code>：最后一次出错时期望数据。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>九、常见问题</h2>
+
+        <h3>1. 为什么写使能要单独保持一个周期？</h3>
+        <p>
+          BRAM 写入通常在时钟边沿根据地址、数据和写使能采样。将 <code>S_WRITE</code> 和
+          <code>S_WRITE_HOLD</code> 分开，可以保证写地址、写数据先稳定，再拉高写使能，避免时序不清晰。
+        </p>
+
+        <h3>2. 为什么读数据需要等待？</h3>
+        <p>
+          因为当前 IP 配置启用了输出寄存器，读地址给出后，<code>doa</code> 需要经过寄存器输出。
+          所以在比较前增加 <code>S_READ_WAIT</code>，更符合实际硬件时序。
+        </p>
+
+        <h3>3. Write First 有什么影响？</h3>
+        <p>
+          Write First 表示写操作发生时，输出端优先反映新写入的数据。这个模式适合写后立即验证的场景，
+          但状态机仍然要考虑输出寄存器造成的延迟。
+        </p>
+      </section>
+
+      <section>
+        <h2>十、经验总结</h2>
+
+        <p>
+          使用 FPGA 片上 BRAM 时，不能只看端口连接是否正确，还要结合 IP Generator 中的工作模式、
+          输出寄存器、端口使能和初始化配置来设计 Verilog 状态机。尤其是输出寄存器开启后，读数据会存在额外周期延迟。
+        </p>
+
+        <p>
+          对于 EF2L45 这类 FPGA 工程，建议先用小范围地址做读写自检，例如本文中的 0 到 7 地址。
+          自检通过后，再将 BRAM 扩展到 ADC 数据缓存、协议收发缓冲、查表或跨模块数据交换场景。
+        </p>
+      </section>
+
+      <section class="article-footer">
+        <h2>原文说明</h2>
+        <p>
+          本文整理自我的 CSDN 原创文章：EF2L45 单口 BRAM IP 配置与读写验证。
+        </p>
+        <p>
+          <a href="https://blog.csdn.net/qq_46595907/article/details/150545125" target="_blank" rel="noopener">
+            查看 CSDN 原文
+          </a>
+        </p>
+      </section>
+    </article>
+  </main>
+  <script src="../../assets/js/main.js?v=6d6f4704b101"></script>
+</body>
+</html>
