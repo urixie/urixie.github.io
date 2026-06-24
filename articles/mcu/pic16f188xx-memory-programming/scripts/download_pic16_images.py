@@ -1,4 +1,4 @@
-# scripts/download_pic16_images.py
+# articles/mcu/pic16f188xx-memory-programming/scripts/download_pic16_images.py
 # 用途：
 # 1. 自动查找仓库中的 PIC16(L)F188XX 存储器编程规范 Markdown 文件
 # 2. 提取 Markdown 中的图片链接
@@ -65,8 +65,7 @@ IMAGE_NAMES = [
 
 def get_repo_root() -> Path:
     """
-    当前脚本位于 scripts/ 下时，仓库根目录就是 scripts 的上一级。
-    如果脚本不在 scripts 下，也尽量向上查找 index.html。
+    文章专用脚本位于 articles/<分类>/<slug>/scripts/ 下，向上查找仓库根目录。
     """
     script_path = Path(__file__).resolve()
     current = script_path.parent

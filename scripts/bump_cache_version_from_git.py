@@ -85,12 +85,26 @@ def replace_attribute(match: re.Match[str], version: str) -> str:
     return f"{match.group('attr')}{match.group('space')}{match.group('quote')}{updated}{match.group('quote')}"
 
 
+def is_within(path: Path, directory: Path) -> bool:
+    """Return whether *path* is inside *directory* on supported Python versions."""
+    try:
+        path.relative_to(directory)
+    except ValueError:
+        return False
+    return True
+
+
 def collect_html_files(repo_root: Path) -> list[Path]:
     """Return every page whose content participates in the cache version."""
     html_files = [repo_root / "index.html"]
     articles = repo_root / "articles"
+    templates = articles / "templates"
     if articles.exists():
-        html_files.extend(sorted(articles.glob("**/*.html")))
+        html_files.extend(
+            html_file
+            for html_file in sorted(articles.glob("**/*.html"))
+            if not is_within(html_file, templates)
+        )
     return [html_file for html_file in html_files if html_file.is_file()]
 
 
@@ -102,7 +116,11 @@ def collect_version_sources(repo_root: Path, html_files: list[Path]) -> list[Pat
             resource_files.extend(
                 file
                 for file in directory.glob("**/*")
-                if file.is_file() and file.suffix.lower() in RESOURCE_SUFFIXES
+                if (
+                    file.is_file()
+                    and file.suffix.lower() in RESOURCE_SUFFIXES
+                    and not is_within(file, repo_root / "articles" / "templates")
+                )
             )
     return sorted({*html_files, *resource_files})
 

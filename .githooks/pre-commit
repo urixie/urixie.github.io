@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 
-if ! python tools/website_privacy_guard.py --check; then
+if ! python scripts/website_privacy_guard.py --check; then
   echo "提交已阻止：发现 HTML 页面缺少或使用了错误的 noindex 配置。"
-  echo "请运行：python tools/website_privacy_guard.py --fix"
+  echo "请运行：python scripts/website_privacy_guard.py --fix"
   echo "修复后再提交。"
   exit 1
 fi

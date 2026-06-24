@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# scripts/download_efm8bb10_images.py
+# articles/mcu/efm8bb10f8i-qfn20-development-notes/scripts/download_efm8bb10_images.py
 # 用途：
 # 1. 自动查找仓库中的 EFM8BB10F8I-A-QFN20 开发笔记 Markdown 文件
 # 2. 提取 Markdown 中的图片链接

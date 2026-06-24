@@ -7,8 +7,8 @@
 在新增或修改 `index.html`、`articles/**/*.html` 或其他 HTML 页面后执行：
 
 ```powershell
-python tools/website_privacy_guard.py --fix
-python tools/website_privacy_guard.py --check
+python scripts/website_privacy_guard.py --fix
+python scripts/website_privacy_guard.py --check
 ```
 
 `--check` 只检查，不改动文件；发现缺失、重复或内容错误的 `robots`、`googlebot`、`bingbot` meta 时会列出路径并以非 0 状态退出。`--fix` 会在 charset / viewport 后、title 前插入或统一修复这三条 meta，并尽量保留原有 UTF-8 编码与换行风格。
@@ -24,7 +24,7 @@ git config core.hooksPath .githooks
 之后每次 `git commit` 都会自动执行 noindex 检查；如果失败，按提示运行：
 
 ```powershell
-python tools/website_privacy_guard.py --fix
+python scripts/website_privacy_guard.py --fix
 ```
 
 修复后再提交。GitHub Actions 也会在每次 push 和 pull request 中运行同一项检查。

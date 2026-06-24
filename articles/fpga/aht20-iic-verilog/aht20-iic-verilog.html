@@ -8,13 +8,13 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 实现 AHT20 温湿度传感器读取 - XYJ</title>
   <meta name="description" content="基于 Verilog 实现 IIC 主机、AHT20 温湿度传感器读取、CRC8/ITU 校验和数据解析的 FPGA 调试记录。">
-  <link rel="stylesheet" href="../../assets/css/style.css?v=225ffb00394e">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=8174441f634f">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../index.html?v=225ffb00394e">← 返回首页</a>
-      <a href="../../index.html?v=225ffb00394e#fpga-stack">返回 FPGA 平台</a>
+      <a href="../../../index.html?v=8174441f634f">← 返回首页</a>
+      <a href="../../../index.html?v=8174441f634f#fpga-stack">返回 FPGA 平台</a>
     </div>
 
     <article class="article card">
@@ -75,7 +75,7 @@
 Status + SRH[19:0] + ST[19:0] + CRC</code></pre>
 
         <figure>
-          <img src="aht20-iic-verilog/images/aht20-iic-01-measure-command.png?v=225ffb00394e" alt="AHT20 IIC 发送测量命令 AC 33 00 的逻辑分析仪波形">
+          <img src="images/aht20-iic-01-measure-command.png?v=8174441f634f" alt="AHT20 IIC 发送测量命令 AC 33 00 的逻辑分析仪波形">
           <figcaption>发送测量命令波形：主机向 AHT20 写入 0xAC、0x33、0x00，用于触发一次温湿度测量。</figcaption>
         </figure>
 
@@ -89,7 +89,7 @@ Data write：0x33
 Data write：0x00</code></pre>
 
         <figure>
-          <img src="aht20-iic-verilog/images/aht20-iic-02-read-calibration-data.png?v=225ffb00394e" alt="AHT20 IIC 读取温湿度校准数据的逻辑分析仪波形">
+          <img src="images/aht20-iic-02-read-calibration-data.png?v=8174441f634f" alt="AHT20 IIC 读取温湿度校准数据的逻辑分析仪波形">
           <figcaption>读取温湿度校准数据波形：主机读取状态字、湿度数据、温度数据和 CRC 校验字节。</figcaption>
         </figure>
 
@@ -637,13 +637,13 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
           </a>
         </p>
         <p>
-          <a href="aht20-iic-verilog/downloads/aht20-datasheet.pdf?v=225ffb00394e" target="_blank" rel="noopener">
+          <a href="docs/aht20-datasheet.pdf?v=8174441f634f" target="_blank" rel="noopener">
             查看 AHT20 说明书
           </a>
         </p>
       </section>
     </article>
   </main>
-  <script src="../../assets/js/main.js?v=225ffb00394e"></script>
+  <script src="../../../assets/js/main.js?v=8174441f634f"></script>
 </body>
 </html>

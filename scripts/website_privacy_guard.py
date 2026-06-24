@@ -213,7 +213,7 @@ def main() -> int:
         for path, problems in invalid_files:
             print(f"FAIL {relative_path(path)}: {'；'.join(problems)}")
         if arguments.check:
-            print("HTML noindex 检查失败：请运行 python tools/website_privacy_guard.py --fix")
+            print("HTML noindex 检查失败：请运行 python scripts/website_privacy_guard.py --fix")
         else:
             print("HTML noindex 修复未完成：请先处理以上页面结构问题")
         return 1

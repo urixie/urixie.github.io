@@ -2,7 +2,7 @@
 """Build the PIC16F18854 datasheet article and download its referenced images.
 
 Run from the repository root:
-    python scripts/build_pic16f18854_article.py
+    python articles/mcu/pic16f18854-datasheet-notes/scripts/build_pic16f18854_article.py
 
 The source Markdown stays authoritative.  Remote Feishu images are saved locally
 so the published GitHub Pages article does not rely on those temporary URLs.
@@ -21,10 +21,14 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-SOURCE_PATH = next((Path(__file__).parent.glob("pic16*.md")), None)
-ARTICLE_PATH = REPO_ROOT / "articles" / "mcu" / "pic16f18854-datasheet-notes.html"
-IMAGE_DIRECTORY = ARTICLE_PATH.with_suffix("") / "images"
+ARTICLE_DIRECTORY = Path(__file__).resolve().parents[1]
+REPO_ROOT = next(
+    candidate for candidate in (ARTICLE_DIRECTORY, *ARTICLE_DIRECTORY.parents)
+    if (candidate / ".git").exists()
+)
+SOURCE_PATH = next(ARTICLE_DIRECTORY.glob("*.md"), None)
+ARTICLE_PATH = ARTICLE_DIRECTORY / f"{ARTICLE_DIRECTORY.name}.html"
+IMAGE_DIRECTORY = ARTICLE_DIRECTORY / "images"
 IMAGE_RE = re.compile(r"^!\[(?P<alt>[^]]*)\]\((?P<url>https?://[^)]+)\)\s*$", re.MULTILINE)
 HEADING_RE = re.compile(r"^(?P<marks>#{1,3})\s+(?P<text>.+?)\s*$", re.MULTILINE)
 UNORDERED_RE = re.compile(r"^(?P<indent>\s*)[-*]\s+(?P<text>.+)$")
