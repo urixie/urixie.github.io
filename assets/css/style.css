@@ -502,8 +502,9 @@ a:focus-visible {
 .post-meta {
   color: var(--accent);
   font-family: Consolas, "JetBrains Mono", monospace;
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .post-card h3 {
