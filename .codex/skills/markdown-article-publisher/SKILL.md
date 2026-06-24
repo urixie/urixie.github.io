@@ -12,8 +12,8 @@ description: 将本仓库中的中文 Markdown 技术资料整理为可部署的
 1. 先读取 Markdown，统计一级至三级标题、图片链接、列表和代码块；确认文章归属平台及输出 slug。
 2. 在 `scripts/` 新建或更新 `build_<slug>_article.py`：
    - UTF-8 读取 Markdown；不要用 PowerShell 文本管道重写中文内容。
-   - 将远程图片下载到 `assets/img/articles/<slug>/`，按稳定序号命名；已存在且非空的文件默认复用，提供 `--refresh-images` 强制重下与 `--skip-download` 仅重建页面。
-   - 生成 `articles/<platform>/<slug>.html`，图片只能引用 `../../assets/img/articles/<slug>/...`，不保留远程临时 URL。
+   - 将远程图片下载到 `articles/<platform>/<slug>/images/`，按稳定序号命名；已存在且非空的文件默认复用，提供 `--refresh-images` 强制重下与 `--skip-download` 仅重建页面。
+   - 生成 `articles/<platform>/<slug>.html`，图片只能引用同名资源目录中的 `<slug>/images/...`；附件放在 `<slug>/downloads/`，不保留远程临时 URL。
    - 把 Markdown 标题转为稳定 `id`，并以同一组 `id` 生成 `article-sidebar`、返回首页/平台链接和 `article-nav` 目录。
 3. 在 `index.html` 对应的平台分类加入文章入口，使用现有 `platform-item` 结构；不要恢复已经删除的首页卡片或章节。
 4. 运行构建脚本，再运行 `python scripts/bump_cache_version_from_git.py`，让新文章、图片和首页入口使用同一缓存版本。

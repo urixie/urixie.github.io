@@ -3,7 +3,7 @@
 # 用途：
 # 1. 自动查找仓库中的 EFM8BB10F8I-A-QFN20 开发笔记 Markdown 文件
 # 2. 提取 Markdown 中的图片链接
-# 3. 下载到 assets/img/articles/efm8bb10f8i-qfn20-development-notes/
+# 3. 下载到 articles/mcu/efm8bb10f8i-qfn20-development-notes/images/
 # 4. 自动按网站文章需要的名称重命名
 
 import re
@@ -194,7 +194,7 @@ def download_file(url: str, output_path: Path, index: int, total: int):
 def main():
     repo_root = get_repo_root()
 
-    output_dir = repo_root / "assets" / "img" / "articles" / "efm8bb10f8i-qfn20-development-notes"
+    output_dir = repo_root / "articles" / "mcu" / "efm8bb10f8i-qfn20-development-notes" / "images"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if len(sys.argv) >= 2:

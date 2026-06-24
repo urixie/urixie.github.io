@@ -24,7 +24,7 @@ from urllib.request import Request, urlopen
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_PATH = next((Path(__file__).parent.glob("pic16*.md")), None)
 ARTICLE_PATH = REPO_ROOT / "articles" / "mcu" / "pic16f18854-datasheet-notes.html"
-IMAGE_DIRECTORY = REPO_ROOT / "assets" / "img" / "articles" / "pic16f18854-datasheet-notes"
+IMAGE_DIRECTORY = ARTICLE_PATH.with_suffix("") / "images"
 IMAGE_RE = re.compile(r"^!\[(?P<alt>[^]]*)\]\((?P<url>https?://[^)]+)\)\s*$", re.MULTILINE)
 HEADING_RE = re.compile(r"^(?P<marks>#{1,3})\s+(?P<text>.+?)\s*$", re.MULTILINE)
 UNORDERED_RE = re.compile(r"^(?P<indent>\s*)[-*]\s+(?P<text>.+)$")
@@ -114,8 +114,7 @@ def render_markdown(source: str, local_images: dict[str, Path]) -> str:
             image_number += 1
             local_path = local_images.get(image_match.group("url"))
             if local_path:
-                relative = local_path.relative_to(REPO_ROOT).as_posix()
-                src = f"../../{relative}"
+                src = local_path.relative_to(ARTICLE_PATH.parent).as_posix()
                 caption = f"图 {image_number}：PIC16F18854 数据手册资料图。"
                 output.extend((
                     "      <figure>",
@@ -180,6 +179,9 @@ def build_article(body: str, navigation: str) -> str:
 <head>
   <meta charset=\"UTF-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta name=\"robots\" content=\"noindex, nofollow, noarchive, nosnippet, noimageindex\">
+  <meta name=\"googlebot\" content=\"noindex, nofollow, noarchive, nosnippet, noimageindex\">
+  <meta name=\"bingbot\" content=\"noindex, nofollow, noarchive, nosnippet, noimageindex\">
   <meta name=\"description\" content=\"PIC16F18854 数据手册中断、PPS、PWM、定时器、CCP 与 CLC 模块资料整理。\">
   <title>PIC16F18854 单片机数据手册资料整理 - XYJ</title>
   <link rel=\"stylesheet\" href=\"../../assets/css/style.css\">

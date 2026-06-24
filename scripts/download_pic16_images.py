@@ -2,7 +2,7 @@
 # 用途：
 # 1. 自动查找仓库中的 PIC16(L)F188XX 存储器编程规范 Markdown 文件
 # 2. 提取 Markdown 中的图片链接
-# 3. 下载到 assets/img/articles/pic16f188xx-memory-programming/
+# 3. 下载到 articles/mcu/pic16f188xx-memory-programming/images/
 # 4. 自动按网站文章需要的名称重命名
 #
 # 直接运行即可：
@@ -191,7 +191,7 @@ def download_file(url: str, output_path: Path, index: int, total: int):
 def main():
     repo_root = get_repo_root()
 
-    output_dir = repo_root / "assets" / "img" / "articles" / "pic16f188xx-memory-programming"
+    output_dir = repo_root / "articles" / "mcu" / "pic16f188xx-memory-programming" / "images"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # 支持手动传参；如果没传参，就自动查找

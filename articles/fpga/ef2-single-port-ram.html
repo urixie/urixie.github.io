@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>EF2L45 单口 BRAM IP 配置与读写验证 - XYJ</title>
   <meta name="description" content="基于 EF2L45LG144B FPGA，通过 IP Generator 配置 Single Port RAM，并使用 Verilog 状态机完成 BRAM 写入、读出和结果校验。">
-  <link rel="stylesheet" href="../../assets/css/style.css?v=adf9d9609ebb">
+  <link rel="stylesheet" href="../../assets/css/style.css?v=225ffb00394e">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../index.html?v=adf9d9609ebb">← 返回首页</a>
-      <a href="../../index.html?v=adf9d9609ebb#fpga-stack">返回 FPGA 平台</a>
+      <a href="../../index.html?v=225ffb00394e">← 返回首页</a>
+      <a href="../../index.html?v=225ffb00394e#fpga-stack">返回 FPGA 平台</a>
     </div>
 
     <article class="article card">
@@ -52,7 +55,7 @@
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/ef2-single-port-ram-01-basic.png?v=adf9d9609ebb" alt="EF2 Single Port RAM Basic 配置页面">
+          <img src="ef2-single-port-ram/images/ef2-single-port-ram-01-basic.png?v=225ffb00394e" alt="EF2 Single Port RAM Basic 配置页面">
           <figcaption>Basic 页面：选择 Single Port RAM，使用 EM9K 资源，Byte Write Enable 设置为 None。</figcaption>
         </figure>
 
@@ -86,7 +89,7 @@ Output Register：Register with Ocea
 Port Enable：Use Wea</code></pre>
 
         <figure>
-          <img src="../../assets/img/articles/ef2-single-port-ram-02-port-a-options.png?v=adf9d9609ebb" alt="EF2 Single Port RAM Port A Options 配置页面">
+          <img src="ef2-single-port-ram/images/ef2-single-port-ram-02-port-a-options.png?v=225ffb00394e" alt="EF2 Single Port RAM Port A Options 配置页面">
           <figcaption>Port A Options 页面：设置 Width=8、Depth=200、Write First，并启用带 Ocea 的输出寄存器。</figcaption>
         </figure>
 
@@ -109,7 +112,7 @@ Port Enable：Use Wea</code></pre>
         </p>
 
         <figure>
-          <img src="../../assets/img/articles/ef2-single-port-ram-03-other-options.png?v=adf9d9609ebb" alt="EF2 Single Port RAM Other Options 初始化配置页面">
+          <img src="ef2-single-port-ram/images/ef2-single-port-ram-03-other-options.png?v=225ffb00394e" alt="EF2 Single Port RAM Other Options 初始化配置页面">
           <figcaption>Other Options 页面：选择填充初始化值，并将 RAM 全部初始化为 0。</figcaption>
         </figure>
 
@@ -379,6 +382,6 @@ O_led2 慢速闪烁</code></pre>
       </section>
     </article>
   </main>
-  <script src="../../assets/js/main.js?v=adf9d9609ebb"></script>
+  <script src="../../assets/js/main.js?v=225ffb00394e"></script>
 </body>
 </html>

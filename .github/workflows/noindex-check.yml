@@ -1,0 +1,14 @@
+name: HTML noindex check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  noindex-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+      - name: 检查 HTML noindex 配置
+        run: python tools/website_privacy_guard.py --check

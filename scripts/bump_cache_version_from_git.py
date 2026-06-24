@@ -95,15 +95,16 @@ def collect_html_files(repo_root: Path) -> list[Path]:
 
 
 def collect_version_sources(repo_root: Path, html_files: list[Path]) -> list[Path]:
-    """Include local cacheable assets so their edits also rotate ``v`` values."""
-    assets = repo_root / "assets"
-    asset_files = []
-    if assets.exists():
-        asset_files = [
-            file for file in assets.glob("**/*")
-            if file.is_file() and file.suffix.lower() in RESOURCE_SUFFIXES
-        ]
-    return sorted({*html_files, *asset_files})
+    """Include global and article-local cacheable assets in the site version."""
+    resource_files: list[Path] = []
+    for directory in (repo_root / "assets", repo_root / "articles"):
+        if directory.exists():
+            resource_files.extend(
+                file
+                for file in directory.glob("**/*")
+                if file.is_file() and file.suffix.lower() in RESOURCE_SUFFIXES
+            )
+    return sorted({*html_files, *resource_files})
 
 
 def read_html(html_file: Path) -> str:
