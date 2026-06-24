@@ -33,12 +33,64 @@
         <nav class="nav" id="site-nav">
           <a href="#hardware-stack">技术栈矩阵</a>
 
-          <div class="nav-group-title">平台分类</div>
-          <a class="nav-sub" href="#mcu-stack">MCU</a>
-          <a class="nav-sub" href="#soc-stack">SOC</a>
-          <a class="nav-sub" href="#fpga-stack">FPGA</a>
-          <a class="nav-sub" href="#gui-stack">GUI</a>
-          <a class="nav-sub" href="#host-stack">上位机</a>
+          <div class="nav-group" id="mcu-group">
+            <button class="nav-group-toggle" type="button" aria-expanded="false">
+              <span>MCU</span>
+              <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="nav-group-items">
+              <a class="nav-sub" href="#mcu-st">ST</a>
+              <a class="nav-sub" href="#mcu-wh">武汉芯源半导体</a>
+              <a class="nav-sub" href="#mcu-microchip">Microchip</a>
+              <a class="nav-sub" href="#mcu-sl">Silicon Labs</a>
+              <a class="nav-sub" href="#mcu-espressif">Espressif</a>
+              <a class="nav-sub" href="#mcu-xilinx">Xilinx</a>
+            </div>
+          </div>
+          <div class="nav-group" id="soc-group">
+            <button class="nav-group-toggle" type="button" aria-expanded="false">
+              <span>SOC</span>
+              <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="nav-group-items">
+              <a class="nav-sub" href="#soc-orbit">欧比特宇航科技</a>
+              <a class="nav-sub" href="#soc-rockchip">瑞芯微电子</a>
+            </div>
+          </div>
+
+          <div class="nav-group" id="fpga-group">
+            <button class="nav-group-toggle" type="button" aria-expanded="false">
+              <span>FPGA</span>
+              <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="nav-group-items">
+              <a class="nav-sub" href="#fpga-microchip">Microchip</a>
+              <a class="nav-sub" href="#fpga-lattice">Lattice</a>
+              <a class="nav-sub" href="#fpga-anlogic">安路科技</a>
+            </div>
+          </div>
+
+          <div class="nav-group" id="gui-group">
+            <button class="nav-group-toggle" type="button" aria-expanded="false">
+              <span>GUI</span>
+              <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="nav-group-items">
+              <a class="nav-sub" href="#gui-nxp">NXP</a>
+              <a class="nav-sub" href="#gui-dfc">广州大彩</a>
+            </div>
+          </div>
+
+          <div class="nav-group" id="host-group">
+            <button class="nav-group-toggle" type="button" aria-expanded="false">
+              <span>上位机</span>
+              <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="nav-group-items">
+              <a class="nav-sub" href="#host-wireless">无线通信客户端</a>
+              <a class="nav-sub" href="#host-debug">调试与配置工具</a>
+            </div>
+          </div>
 
           <a href="#about">关于本站</a>
         </nav>
@@ -59,25 +111,24 @@
         </div>
 
         <div class="stack-list">
-          <article class="stack-card" id="mcu-stack">
-            <div class="post-meta">MCU</div>
+          <article class="stack-card" id="mcu-st">
+            <div class="post-meta">ST</div>
 
             <div class="platform-category">
               <h4>STM32 系列</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>STM32F103</strong>
-                  <span>ARM Cortex-M3 · 后续整理技术文章</span>
-                </div>
-                <div class="platform-item">
-                  <strong>STM32F407</strong>
-                  <span>ARM Cortex-M4 · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="mcu-wh">
+            <div class="post-meta">武汉芯源半导体</div>
 
             <div class="platform-category">
-              <h4>国产 MCU</h4>
+              <h4>武汉芯源半导体</h4>
               <div class="platform-items">
                 <a class="platform-item" href="articles/mcu/cw32l011-ntc-adc-pwm/cw32l011-ntc-adc-pwm.html?v=1ab1810d2f66">
                   <strong>CW32L011K8U6 · NTC 热敏电阻采集与 PWM 频率输出</strong>
@@ -85,9 +136,13 @@
                 </a>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="mcu-microchip">
+            <div class="post-meta">Microchip</div>
 
             <div class="platform-category">
-              <h4>8 位 MCU</h4>
+              <h4>Microchip</h4>
               <div class="platform-items">
                 <a class="platform-item" href="articles/mcu/pic16f18854-datasheet-notes/pic16f18854-datasheet-notes.html?v=1ab1810d2f66">
                   <strong>PIC16F18854 · 数据手册资料整理</strong>
@@ -97,50 +152,65 @@
                   <strong>PIC16(L)F188XX · ICSP 存储器编程</strong>
                   <span>Microchip PIC16 · ICSP / SPI / NVM / EEPROM · 已整理存储器编程规范</span>
                 </a>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="mcu-sl">
+            <div class="post-meta">Silicon Labs</div>
+
+            <div class="platform-category">
+              <h4>Silicon Labs</h4>
+              <div class="platform-items">
                 <a class="platform-item" href="articles/mcu/efm8bb10f8i-qfn20-development-notes/efm8bb10f8i-qfn20-development-notes.html?v=1ab1810d2f66">
                   <strong>EFM8BB10F8I-A-QFN20 · 开发笔记</strong>
                   <span>Silicon Labs 8051 / CIP-51 · C2 调试 / I/O / PCA / Timer / ADC · 已整理开发笔记</span>
                 </a>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="mcu-espressif">
+            <div class="post-meta">Espressif</div>
 
             <div class="platform-category">
               <h4>Espressif ESP32</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>ESP32-S3</strong>
-                  <span>ESP-IDF · Wi-Fi / BLE · 后续整理技术文章</span>
-                </div>
-                <div class="platform-item">
-                  <strong>ESP32-P4</strong>
-                  <span>GUI / HMI / LVGL · 后续整理技术文章</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="platform-category">
-              <h4>软核处理器</h4>
-              <div class="platform-items">
-                <div class="platform-item">
-                  <strong>Xilinx MicroBlaze</strong>
-                  <span>FPGA 软核处理器 · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
           </article>
 
-          <article class="stack-card" id="soc-stack">
-            <div class="post-meta">SOC</div>
+          <article class="stack-card" id="mcu-xilinx">
+            <div class="post-meta">Xilinx</div>
 
             <div class="platform-category">
-              <h4>国产 SOC</h4>
+              <h4>软核处理器</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>欧比特玉龙 810A</strong>
-                  <span>国产 SOC · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="soc-orbit">
+            <div class="post-meta">欧比特宇航科技</div>
+
+            <div class="platform-category">
+              <h4>欧比特宇航科技</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>暂无</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="soc-rockchip">
+            <div class="post-meta">瑞芯微电子</div>
 
             <div class="platform-category">
               <h4>Rockchip</h4>
@@ -157,31 +227,37 @@
             </div>
           </article>
 
-          <article class="stack-card" id="fpga-stack">
-            <div class="post-meta">FPGA</div>
+          <article class="stack-card" id="fpga-microchip">
+            <div class="post-meta">Microchip</div>
 
             <div class="platform-category">
-              <h4>SOC FPGA</h4>
+              <h4>Microchip</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>Microchip SmartFusion2</strong>
-                  <span>FPGA + 处理器系统 · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="fpga-lattice">
+            <div class="post-meta">Lattice</div>
 
             <div class="platform-category">
-              <h4>CPLD / 小型 FPGA</h4>
+              <h4>Lattice</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>Lattice MachXO2 / MXO2</strong>
-                  <span>低功耗可编程逻辑 · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="fpga-anlogic">
+            <div class="post-meta">安路科技</div>
 
             <div class="platform-category">
-              <h4>国产 FPGA · Anlogic EF2L45LG144B</h4>
+              <h4>安路科技</h4>
               <div class="platform-items">
                 <a class="platform-item" href="articles/fpga/aht20-iic-verilog/aht20-iic-verilog.html?v=1ab1810d2f66">
                   <strong>AHT20 · IIC / CRC8 / Verilog</strong>
@@ -195,67 +271,57 @@
             </div>
           </article>
 
-          <article class="stack-card" id="gui-stack">
-            <div class="post-meta">GUI</div>
+          <article class="stack-card" id="gui-nxp">
+            <div class="post-meta">NXP</div>
 
             <div class="platform-category">
-              <h4>界面设计工具</h4>
+              <h4>NXP</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>GuiGuider</strong>
-                  <span>LVGL 界面设计与导出 · 后续整理技术文章</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="platform-category">
-              <h4>嵌入式 GUI 框架</h4>
-              <div class="platform-items">
-                <div class="platform-item">
-                  <strong>LVGL</strong>
-                  <span>控件、主题、截图、触摸交互 · 后续整理技术文章</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="platform-category">
-              <h4>设备端界面</h4>
-              <div class="platform-items">
-                <div class="platform-item">
-                  <strong>Embedded UI / HMI</strong>
-                  <span>设备仪表盘、文件管理、Web UI · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
           </article>
 
-          <article class="stack-card" id="host-stack">
-            <div class="post-meta">上位机</div>
+          <article class="stack-card" id="gui-dfc">
+            <div class="post-meta">广州大彩</div>
+
+            <div class="platform-category">
+              <h4>广州大彩</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>暂无</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="host-wireless">
+            <div class="post-meta">无线通信客户端</div>
 
             <div class="platform-category">
               <h4>无线通信客户端</h4>
               <div class="platform-items">
                 <div class="platform-item">
-                  <strong>蓝牙通信</strong>
-                  <span>BLE 连接、参数配置、状态查看 · 后续整理技术文章</span>
-                </div>
-                <div class="platform-item">
-                  <strong>微信小程序</strong>
-                  <span>设备控制、无线调试、轻量客户端 · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>
+          </article>
+
+          <article class="stack-card" id="host-debug">
+            <div class="post-meta">调试与配置工具</div>
 
             <div class="platform-category">
               <h4>调试与配置工具</h4>
               <div class="platform-items">
-                <div class="platform-item">
+                <a class="platform-item" href="articles/host/windows-vscode-remote-linux-cpp-debug/windows-vscode-remote-linux-cpp-debug.html?v=1ab1810d2f66">
                   <strong>调试上位机</strong>
-                  <span>参数配置、数据查看、设备控制 · <a href="articles/host/windows-vscode-remote-linux-cpp-debug/windows-vscode-remote-linux-cpp-debug.html?v=1ab1810d2f66">VS Code 远程调试 Linux C/C++ 程序</a></span>
-                </div>
+                  <span>参数配置、数据查看、设备控制 · VS Code 远程调试 Linux C/C++ 程序</span>
+                </a>
                 <div class="platform-item">
-                  <strong>Web 控制台</strong>
-                  <span>嵌入式 Web 服务与网页工具 · 后续整理技术文章</span>
+                  <span>暂无</span>
                 </div>
               </div>
             </div>

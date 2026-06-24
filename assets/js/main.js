@@ -2,6 +2,7 @@ const navLinks = document.querySelectorAll('.nav a');
 const menuToggle = document.querySelector('.menu-toggle');
 const nav = document.querySelector('.nav');
 const yearTargets = document.querySelectorAll('[data-current-year]');
+const navGroupToggles = document.querySelectorAll('.nav-group-toggle');
 
 yearTargets.forEach(target => {
   target.textContent = new Date().getFullYear();
@@ -26,6 +27,18 @@ if (menuToggle && nav) {
     nav.classList.toggle('is-open', !expanded);
   });
 }
+
+navGroupToggles.forEach(toggle => {
+  const groupItems = toggle.parentElement.querySelector('.nav-group-items');
+
+  toggle.addEventListener('click', () => {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    if (groupItems) {
+      groupItems.classList.toggle('is-open', !expanded);
+    }
+  });
+});
 
 navLinks.forEach(link => {
   link.addEventListener('click', () => {
