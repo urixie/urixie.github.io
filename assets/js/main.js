@@ -13,7 +13,7 @@ function getWorkExperience(startYear, startMonth) {
   const months = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth);
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
-  return remainingMonths ? `${years} 年 ${remainingMonths} 个月` : `${years} 年`;
+  return remainingMonths ? `${years}年${remainingMonths}个月` : `${years}年`;
 }
 
 document.querySelectorAll('#work-experience, #work-experience-about').forEach(target => {
