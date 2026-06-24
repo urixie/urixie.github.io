@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CW32L011K8T6 通过 ADC 采集 NTC 热敏电阻电压，转换为 PWM 输出频率的完整工程配置与代码分析。">
+  <meta name="keywords" content="CW32L011, ADC, NTC, PWM, GTIM, 热敏电阻, 温度频率转换">
+  <meta name="author" content="XYJ">
+  <title>CW32L011 NTC 热敏电阻采集与 PWM 频率输出 - XYJ</title>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=adf9d9609ebb">
+  <style>
+    .article .file-name {
+      display: inline-flex;
+      align-items: center;
+      margin: 8px 0 0;
+      padding: 5px 10px;
+      border: 1px solid rgba(0, 230, 118, 0.22);
+      border-radius: 999px;
+      color: #b8f7d0;
+      background: rgba(0, 230, 118, 0.07);
+      font-family: Consolas, "JetBrains Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .article .step-card {
+      margin: 14px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(125, 211, 252, 0.13);
+      border-radius: 16px;
+      background: rgba(125, 211, 252, 0.035);
+    }
+
+    .article .step-card h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../index.html?v=adf9d9609ebb">← 返回首页</a>
+      <a href="../../index.html?v=adf9d9609ebb#mcu-stack">返回 MCU 平台</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">CW32L011 · ADC · NTC · PWM · GTIM2 · PA12</div>
+
+      <h1>CW32L011 NTC 热敏电阻采集与 PWM 频率输出</h1>
+
+      <p>
+        本文记录基于 CW32L011K8T6 的 ADC 采集 NTC 热敏电阻，并将采集结果转换为 PWM 输出频率的完整工程配置与代码分析。
+        实验在 CW32L011K8T6 StartKit 上完成，ADC 采集 12 通道热敏电阻分压值，取最小值计算 NTC 阻值，再映射为 PWM 频率由 PA12 输出。
+      </p>
+
+      <section id="overview">
+        <h2>一、功能概述</h2>
+        <p>
+          该工程实现了一个温度-频率转换链路：NTC 热敏电阻随温度改变阻值，通过分压电路将阻值变化转换为电压信号，
+          CW32L011 的 ADC 模块采集该电压，计算出当前 NTC 阻值后查表映射为 PWM 频率，最后由 GTIM2 通道 3 输出对应频率的 PWM 波形。
+        </p>
+
+        <p>数据流如下：</p>
+        <ol>
+          <li>ADC 顺序采样 12 个通道（AIN0～AIN11），每通道 10 次累加取平均</li>
+          <li>在 12 个通道结果中取最小值，认为是当前有效的 NTC 采样</li>
+          <li>将 ADC 值转换为电压，再通过 NTC 分压公式反推阻值</li>
+          <li>将阻值按经验公式映射为频率参数</li>
+          <li>用新频率参数重新配置 GTIM2 CH3，更新 PWM 输出频率</li>
+        </ol>
+
+        <div class="article-note">
+          核心思路：NTC 阻值随温度降低而增大，分压点电压随之升高；ADC 测得电压后反向算出阻值，再查表得到目标 PWM 频率，最终在 PA12 引脚输出相应频率的 PWM。
+        </div>
+      </section>
+
+      <section id="hardware">
+        <h2>二、硬件资源</h2>
+        <ul>
+          <li>芯片：CW32L011K8T6（ARM Cortex-M0+，48MHz）</li>
+          <li>开发板：CW32L011K8T6 StartKit</li>
+          <li>时钟：HSI 48MHz，HCLK = PCLK = SysClk = 48MHz</li>
+          <li>ADC 时钟：PCLK 8 分频 = 6MHz，采样周期 262 ADC 时钟（≥40μs）</li>
+        </ul>
+
+        <h3>引脚分配</h3>
+        <ul>
+          <li>PA00～PA09、PB00～PB01：ADC 模拟输入通道 AIN0～AIN11，连接 NTC 热敏电阻分压电路</li>
+          <li>PA12：GTIM2_CH3，PWM 输出引脚</li>
+        </ul>
+
+        <div class="article-warning">
+          PA00～PB01 共 12 个引脚需要配置为模拟输入模式（<code>PAxx_ANALOG_ENABLE()</code>），否则 ADC 无法正确采样。
+        </div>
+      </section>
+
+      <section id="clock-gpio">
+        <h2>三、时钟与 GPIO 配置</h2>
+
+        <h3>时钟配置</h3>
+        <p>
+          系统采用 HSI 时钟，配置为 48MHz。HCLK 和 PCLK 均不分频，直接等于系统时钟：
+        </p>
+        <pre><code>// 系统时钟初始化（伪代码）
+void SystemClock_Config(void)
+{
+    // 1. 使能 HSI 并校准到目标频率
+    // 2. 配置 HCLK 预分频：HCLK = HSI / 1
+    // 3. 配置 PCLK 预分频：PCLK = HSI / 1
+    // 4. 更新 SystemCoreClock = 48000000
+}</code></pre>
+
+        <h3>GPIO 配置（PWM 输出）</h3>
+        <p>
+          PA12 配置为定时器输出引脚，需要开启 GPIO 时钟、设置推挽输出、复用为 GTIM2_CH3：
+        </p>
+        <pre><code>// GPIO 初始化（伪代码）
+void GPIO_Config_PWM(void)
+{
+    // 1. 使能 GPIOA 外设时钟
+    // 2. 将 PA12 配置为数字输出模式
+    // 3. 设置 PA12 为推挽输出
+    // 4. 将 PA12 复用功能选择为 GTIM2_CH3
+}</code></pre>
+      </section>
+
+      <section id="adc-config">
+        <h2>四、ADC 配置与多通道采样</h2>
+
+        <h3>ADC GPIO 配置</h3>
+        <p>
+          12 个 ADC 通道全部配置为模拟输入模式。以 AIN0（PA00）为例，，其余通道同理：
+        </p>
+        <pre><code>// ADC GPIO 初始化（伪代码）
+void ADC_GPIO_Config(void)
+{
+    // 1. 使能 ADC 外设时钟
+    // 2. 使能 GPIOA、GPIOB 时钟
+    // 3. 将 PA00～PA09 配置为模拟输入模式
+    // 4. 将 PB00、PB01 配置为模拟输入模式
+    //    PA00_ANALOG_ENABLE();  // AIN0
+    //    PA01_ANALOG_ENABLE();  // AIN1
+    //    ...
+    //    PB00_ANALOG_ENABLE();  // AIN10
+    //    PB01_ANALOG_ENABLE();  // AIN11
+}</code></pre>
+
+        <h3>ADC 通道配置</h3>
+        <p>
+          ADC 配置为单次转换模式，使能 6 通道序列（AIN0～AIN5）。ADC 时钟为 PCLK 8 分频（6MHz），
+          采样周期 262 个 ADC 时钟（≥40μs），满足 BGR 采样保持时间要求：
+        </p>
+        <pre><code>// 配置 6 通道序列采样（伪代码）
+void ADC_Config_Channels(uint8_t startCh, uint8_t endCh)
+{
+    // 1. ADC_InitStructure 初始化为零
+    // 2. 配置 ADC 时钟分频：ADC_Clk_Div8（6MHz）
+    // 3. 配置转换模式：单次采样（ConvertMode_Once）
+    // 4. 使能 BGR（BGR_En = TRUE）
+    // 5. 配置序列使能寄存器，选择通道范围（如 SqrEns0to5）
+    // 6. 填充各通道参数：
+    //    for (i = 0; i < 通道数; i++) {
+    //        SQ[i].InputChannel = startCh + i;
+    //        SQ[i].SampTime = ADC_SampTime262Clk;
+    //    }
+    // 7. 清除所有中断标志
+    // 8. 使能序列结束中断（ADC_IT_EOS）
+    // 9. 使能 ADC
+}</code></pre>
+
+        <h3>读取 ADC 通道</h3>
+        <p>
+          软件触发转换，等待序列结束标志，读取 6 个通道的转换结果：
+        </p>
+        <pre><code>// 读取一批 ADC 通道（伪代码）
+void ADC_ReadChannels(uint8_t startCh, uint16_t* buf, uint8_t bufIdx)
+{
+    // 1. 配置目标通道
+    //    ADC_Config_Channels(startCh);
+    // 2. 软件触发转换开始
+    //    ADC_SoftwareStartConvCmd(ENABLE);
+    // 3. 等待序列结束标志（EOS）
+    //    while (!(ADC->ISR & EOS_Msk));
+    // 4. 清除中断标志
+    //    ADC_ClearITPendingBit(ADC_IT_EOS);
+    // 5. 读取各通道结果
+    //    for (i = 0; i < 6; i++) {
+    //        buf[bufIdx + i] = ADC_GetConversionValue(i);
+    //    }
+    // 6. 禁用 ADC
+    //    ADC_Disable();
+}</code></pre>
+
+        <h3>多通道累加平均</h3>
+        <p>
+          每通道采样多次并累加，最后除以采样次数得到平均值。12 个通道分两批读取：
+        </p>
+        <pre><code>// 多通道多次采样平均（伪代码）
+void ADC_MultiChannel_Average(void)
+{
+    // 1. 重置累加数组
+    //    memset(adc_sum, 0, sizeof(adc_sum));
+    //
+    // 2. 循环采样 N 次（如 10 次）
+    //    for (i = 0; i < SAMPLE_COUNT; i++) {
+    //        ADC_ReadChannels(0,  temp_buf, 0);  // CH0～CH5
+    //        SysTick_DelayMs(1);
+    //        ADC_ReadChannels(6,  temp_buf, 6);  // CH6～CH11
+    //        SysTick_DelayMs(1);
+    //
+    //        // 累加到结果数组
+    //        for (ch = 0; ch < CHANNEL_MAX; ch++) {
+    //            adc_sum[ch] += temp_buf[ch];
+    //        }
+    //    }
+    //
+    // 3. 计算平均值
+    //    for (ch = 0; ch < CHANNEL_MAX; ch++) {
+    //        adc_avg[ch] = adc_sum[ch] / SAMPLE_COUNT;
+    //    }
+}</code></pre>
+      </section>
+
+      <section id="gtim-pwm">
+        <h2>五、GTIM2 PWM 输出配置</h2>
+
+        <p>
+          CW32L011 的 GTIM2（通用定时器 2）通道 3（CH3）映射到 PA12，用于输出 PWM 波形。
+          采用边缘对齐、向上计数模式，输出 PWM1 波形（高电平有效）。
+        </p>
+
+        <pre><code>// GTIM2 PWM 输出配置（伪代码）
+void PWM_Output_Config(uint32_t frequency)
+{
+    // 1. 定义初始化结构体
+    //    GTIM_InitTypeDef       initStruct  = {0};
+    //    GTIM_OCModeCfgTypeDef  ocInitStruct = {0};
+
+    // 2. 配置基础定时器参数
+    //    initStruct.AlignMode    = GTIM_ALIGN_MODE_EDGE;  // 边缘对齐
+    //    initStruct.ARRBuffState = GTIM_ARR_BUFF_EN;       // ARR 缓冲使能
+    //    initStruct.Direction    = GTIM_DIRECTION_UP;      // 向上计数
+    //    initStruct.EventOption  = GTIM_EVENT_NORMAL;
+    //    initStruct.Prescaler    = 1 - 1;                  // 预分频 1
+    //    initStruct.PulseMode    = GTIM_PULSE_MODE_DIS;
+    //    initStruct.UpdateOption = GTIM_UPDATE_DIS;        // 禁用更新事件
+    //
+    //    // ARR = 补偿后时钟频率 / 目标频率 - 1
+    //    initStruct.ReloadValue  = (TimerClkHz / frequency) - 1;
+
+    // 3. 配置输出比较模式
+    //    ocInitStruct.FastMode    = DISABLE;
+    //    ocInitStruct.OCMode      = GTIM_OC_MODE_PWM1;  // PWM1：高电平有效
+    //    ocInitStruct.OCPolarity = GTIM_OC_POLAR_NONINVERT;
+    //    ocInitStruct.PreloadState = DISABLE;
+
+    // 4. 计算比较值（占空比 50%）
+    //    uint32_t compare = (ARR + 1) / 2;
+
+    // 5. 安全更新：先禁用定时器和通道
+    //    GTIM_OC3Cmd(GTIM2, DISABLE);
+    //    GTIM_Cmd(GTIM2, DISABLE);
+
+    // 6. 初始化并启动
+    //    GTIM_TimeBaseInit(GTIM2, &initStruct);
+    //    GTIM_OC3ModeCfg(GTIM2, &ocInitStruct);
+    //    GTIM_SetCompare3(GTIM2, compare);
+    //    GTIM_OC3Cmd(GTIM2, ENABLE);
+    //    GTIM_Cmd(GTIM2, ENABLE);
+}</code></pre>
+
+        <div class="article-note">
+          定时器时钟在实际运行中会存在误差，可通过实测补偿公式修正时钟频率参数（如 <code>TimerClkHz = 48000000 * 1000 / 986</code>），使输出频率更准确。
+        </div>
+      </section>
+
+      <section id="ntc-formula">
+        <h2>六、NTC 阻值到 PWM 频率的转换</h2>
+
+        <h3>求 ADC 最小值</h3>
+        <p>
+          在多通道采样结果中取最小值，作为当前有效的 NTC 采样值（排除干扰和异常）：
+        </p>
+        <pre><code>// 在通道数组中求最小值（伪代码）
+void Find_Adc_Min(uint16_t* adcArray, uint8_t len, uint16_t* minVal)
+{
+    *minVal = adcArray[0];
+    for (uint8_t i = 1; i < len; i++) {
+        if (adcArray[i] < *minVal)
+            *minVal = adcArray[i];
+    }
+}</code></pre>
+
+        <h3>NTC 阻值与频率计算</h3>
+        <p>
+          先将 ADC 值转换为电压（参考电压 5.0V，12 位 ADC，分辨率 4095），再做分压反推，
+          最后将阻值通过经验公式映射为 PWM 频率参数：
+        </p>
+        <pre><code>// NTC 电压 → 阻值 → 频率（伪代码）
+void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
+{
+    // 1. ADC 值 → 电压
+    //    float voltage = (float)adcMin * VREF / ADC_MAX;  // VREF=5.0V, ADC_MAX=4095
+
+    // 2. 电压限幅（根据分压电路确定合理范围）
+    //    if (voltage < VOLTAGE_MIN) voltage = VOLTAGE_MIN;
+    //    if (voltage > VOLTAGE_MAX) voltage = VOLTAGE_MAX;
+
+    // 3. 电压 → NTC 阻值（根据具体分压电路参数计算）
+    //    // 假设上拉电阻 R1 = 1.5kΩ，并联电阻 R2 = 10kΩ
+    //    // R_ntc = V / ((Vref - V) / R1 - V / R2)
+    //    float r_ntc = voltage / ((VREF - voltage) / R1 - voltage / R2);
+
+    // 4. 阻值 → 频率参数（经验公式，需根据实际 NTC 型号和标定数据调整）
+    //    // freq = (K1 + K2 * r_ntc / (K3 + K4 * r_ntc)) * FREF;
+    //    freq = freq * 1000;  // 单位转换
+    //    *freqParam = (uint32_t)(freq + 0.5f);  // 四舍五入
+}</code></pre>
+
+        <div class="article-warning">
+          NTC 分压电路参数（R1、R2）和经验公式系数（K1～K4、FREF）取决于实际硬件和标定数据，需根据具体型号和实验数据调整。
+        </div>
+      </section>
+
+      <section id="main-loop">
+        <h2>七、主循环逻辑</h2>
+
+        <pre><code>int main(void)
+{
+    // ============ 初始化阶段 ============
+    // 1. 系统时钟初始化（HSI 48MHz，HCLK=PCLK不分频）
+    SystemClock_Config();
+
+    // 2. GPIO 初始化（PA12 配置为 GTIM2_CH3 PWM 输出）
+    GPIO_Config_PWM();
+
+    // 3. 滴答定时器初始化（用于延时）
+    InitTick(48000000);
+
+    // 4. 使能 GTIM2 外设时钟
+    __SYSCTRL_GTIM2_CLK_ENABLE();
+
+    // 5. 初始化 PWM，默认输出频率（如 25820 Hz）
+    PWM_Output_Config(DEFAULT_FREQUENCY);
+
+    // 6. ADC 初始化（12 通道 GPIO 配置）
+    ADC_GPIO_Config();
+
+    // ============ 主循环 ============
+    while (1) {
+        // 1. 多通道 ADC 累加平均采样
+        ADC_MultiChannel_Average();
+
+        // 2. 取最小值作为有效 NTC 采样
+        uint16_t adcMin;
+        Find_Adc_Min(adc_avg, CHANNEL_MAX, &adcMin);
+
+        // 3. NTC 阻值计算 → PWM 频率参数
+        uint32_t freqParam;
+        NTC_To_Frequency(adcMin, &freqParam);
+
+        // 4. 用新频率参数更新 PWM 输出
+        PWM_Output_Config(freqParam);
+
+        // 5. 延时（采样间隔）
+        SysTick_DelayMs(50);
+    }
+}</code></pre>
+
+        <p>
+          主循环每约 52ms 更新一次 PWM 频率（50ms 延时 + ADC 采样耗时）。
+          频率变化范围由 NTC 阻值范围和经验公式共同决定，对应典型的热敏电阻温度特性曲线。
+        </p>
+      </section>
+
+      <section id="summary">
+        <h2>八、总结</h2>
+        <ul>
+          <li>CW32L011 的 ADC 支持最多 16 通道序列采样，本例使用 12 通道分两批读取</li>
+          <li>ADC 采样周期设置为 262 个 ADC 时钟（≥40μs），满足 BGR 采样保持时间要求</li>
+          <li>GTIM2 CH3 通过 PWM1 模式输出占空比 50% 的 PWM 波形</li>
+          <li>定时器时钟频率可通过实测补偿修正，使输出频率更准确</li>
+          <li>NTC 电压-阻值-频率映射公式取决于具体分压电路参数，需根据实际硬件调整</li>
+        </ul>
+      </section>
+
+      <footer class="article-footer">
+        <p>本文整理自 CW32L011K8T6 StartKit 调试代码，芯片手册参见 <a href="../../assets/docs/CW32L011_DataSheet_CN_V1.1.pdf?v=adf9d9609ebb" rel="noopener" target="_blank">《CW32L011 数据手册》</a> 和 <a href="../../assets/docs/CW32L011_UserManual_CN_V1.1.pdf?v=adf9d9609ebb" rel="noopener" target="_blank">《CW32L011 用户手册》</a>。</p>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../../assets/js/main.js?v=adf9d9609ebb"></script>
+</body>
+</html>
