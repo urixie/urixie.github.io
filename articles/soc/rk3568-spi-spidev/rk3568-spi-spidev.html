@@ -8,13 +8,13 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>RK3568 SPI / spidev 功能调试记录 - XYJ</title>
   <meta name="description" content="基于讯为 RK3568 开发板、Linux 5.10 和 Ubuntu Base 22 文件系统的 SPI / spidev 功能调试记录。">
-  <link rel="stylesheet" href="../../../assets/css/style.css?v=1ab1810d2f66">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=49cb9d5bb91e">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../../index.html?v=1ab1810d2f66">← 返回首页</a>
-      <a href="../../../index.html?v=1ab1810d2f66#soc-stack">返回 SOC 平台</a>
+      <a href="../../../index.html?v=49cb9d5bb91e">← 返回首页</a>
+      <a href="../../../index.html?v=49cb9d5bb91e#soc-stack">返回 SOC 平台</a>
     </div>
 
     <article class="article card">
@@ -57,7 +57,7 @@
         </ul>
 
         <figure>
-          <img src="images/rk3568-spi-01-pin.png?v=1ab1810d2f66" alt="iTOP-RK3568 SPI 转 CAN 模块连接引脚">
+          <img src="images/rk3568-spi-01-pin.png?v=49cb9d5bb91e" alt="iTOP-RK3568 SPI 转 CAN 模块连接引脚">
           <figcaption>SPI 转 CAN 模块连接到 iTOP-RK3568 的 SPI0_M1 引脚。</figcaption>
         </figure>
       </section>
@@ -82,7 +82,7 @@
         </ul>
 
         <figure>
-          <img src="images/rk3568-spi-02-menuconfig.png?v=1ab1810d2f66" alt="Linux 5.10 SPI support 中启用 Rockchip SPI 和 spidev">
+          <img src="images/rk3568-spi-02-menuconfig.png?v=49cb9d5bb91e" alt="Linux 5.10 SPI support 中启用 Rockchip SPI 和 spidev">
           <figcaption>在 SPI support 中启用 Rockchip SPI controller driver 和 User mode SPI device driver support。</figcaption>
         </figure>
       </section>
@@ -136,7 +136,7 @@
         </p>
 
         <figure>
-          <img src="images/rk3568-spi-03-spidev-node.png?v=1ab1810d2f66" alt="RK3568 系统中生成 /dev/spidev0.0 设备节点">
+          <img src="images/rk3568-spi-03-spidev-node.png?v=49cb9d5bb91e" alt="RK3568 系统中生成 /dev/spidev0.0 设备节点">
           <figcaption>系统中生成 /dev/spidev0.0 设备节点。</figcaption>
         </figure>
 
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
         </p>
 
         <figure>
-          <img src="images/rk3568-spi-04-logic-analyzer.png?v=1ab1810d2f66" alt="逻辑分析仪抓取 RK3568 SPI 波形">
+          <img src="images/rk3568-spi-04-logic-analyzer.png?v=49cb9d5bb91e" alt="逻辑分析仪抓取 RK3568 SPI 波形">
           <figcaption>逻辑分析仪抓取 SPI 波形，MOSI 数据为 01 到 0A。</figcaption>
         </figure>
       </section>
@@ -327,6 +327,6 @@ int main(int argc, char *argv[])
       </section>
     </article>
   </main>
-  <script src="../../../assets/js/main.js?v=1ab1810d2f66"></script>
+  <script src="../../../assets/js/main.js?v=49cb9d5bb91e"></script>
 </body>
 </html>

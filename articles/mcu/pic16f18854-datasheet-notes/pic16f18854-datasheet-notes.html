@@ -8,15 +8,15 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="description" content="PIC16F18854 数据手册中断、PPS、PWM、定时器、CCP 与 CLC 模块资料整理。">
   <title>PIC16F18854 单片机数据手册资料整理 - XYJ</title>
-  <link rel="stylesheet" href="../../../assets/css/style.css?v=1ab1810d2f66">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=49cb9d5bb91e">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../index.html?v=1ab1810d2f66">← 返回首页</a>
-          <a href="../../../index.html?v=1ab1810d2f66#mcu-stack">返回 MCU 平台</a>
+          <a href="../../../index.html?v=49cb9d5bb91e">← 返回首页</a>
+          <a href="../../../index.html?v=49cb9d5bb91e#mcu-stack">返回 MCU 平台</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav class="article-nav" aria-label="文章目录">
@@ -963,7 +963,7 @@
       </ul>
       </ul>
       <figure>
-        <img src="images/01-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/01-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 1：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p>该表明确了将外设输入信号连接到不同目标引脚时，需写入对应输入寄存器的值 ，用于指导 PPS 模块输入引脚的配置操作。</p>
@@ -974,7 +974,7 @@
       <p><strong>注意事项</strong></p>
       <p>并非表格中所有值对任意信号都有效 。以 INT 信号为例，因其只能映射到 PORTA 或 PORTB 端口引脚，所以只有对应 RA&lt;7:0&gt; 和 RB&lt;7:0 &gt; 的寄存器值（0<em>x</em>00−0<em>x</em>0<em>F</em> ）可写入 INTPP 寄存器用于配置 INT 信号引脚 。 实际使用时需依据具体信号可映射引脚范围来选择正确的寄存器写入值。</p>
       <figure>
-        <img src="images/02-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/02-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 2：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h3 id="13-1-pps-输入">13.1 PPS 输入</h3>
@@ -999,7 +999,7 @@
         <li>注释指出，RD&lt;7:0&gt; 和 RE&lt;2:0 &gt; 仅在 40/44 引脚设备中实现，且 RE3 仅在 MCLR 禁用时具备 PPS 输入功能 。</li>
       </ul>
       <figure>
-        <img src="images/03-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/03-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 3：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h3 id="13-3-双向引脚">13.3 双向引脚</h3>
@@ -1026,7 +1026,7 @@
         <li>设备上电复位（POR）会将所有 PPS 输入和输出选择清零为默认值。其他复位不会改变选择设置，默认输入和输出选择情况见表 13 - 1 和表 13 - 2 。</li>
       </ul>
       <figure>
-        <img src="images/04-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/04-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 4：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h3 id="13-8-寄存器概述">13.8 寄存器概述</h3>
@@ -1059,11 +1059,11 @@
         <li>位定义：bit 7 - 1 未实现，读为‘0’；bit 0 为 PPSLOCKED 位，置 1 时 PPS 被锁定，选择不可更改；置 0 时 PPS 未锁定，选择可更改 。</li>
       </ul>
       <figure>
-        <img src="images/05-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/05-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 5：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/06-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/06-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 6：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h2 id="19-0-pwm-模块功能概述">19.0 PWM 模块功能概述</h2>
@@ -1088,7 +1088,7 @@
         <li>分辨率：PWM 分辨率指一个 PWM 周期内可呈现的最大步数，分辨率越高，对脉冲宽度及负载供电控制越精确。 图 19 - 1 展示了 PWM 信号典型波形。</li>
       </ul>
       <figure>
-        <img src="images/07-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/07-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 7：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h3 id="19-1-pwm-模块功能概述">19.1 PWM 模块功能概述</h3>
@@ -1128,7 +1128,7 @@
         <li>PPS（外设引脚选择）和 TRIS Control：PPS 用于将 PWM 输出映射到具体引脚，TRIS 控制引脚的输入输出模式。</li>
       </ul>
       <figure>
-        <img src="images/08-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/08-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 8：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h4 id="19-1-1-pwm-时钟选择">19.1.1 PWM 时钟选择</h4>
@@ -1144,7 +1144,7 @@
         <li>公式：</li>
       </ul>
       <figure>
-        <img src="images/09-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/09-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 9：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p>PWM 频率是周期的倒数，通过向 PR2 寄存器写入值设定 PWM 周期。</p>
@@ -1159,7 +1159,7 @@
         <li>占空比计算：</li>
       </ul>
       <figure>
-        <img src="images/10-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/10-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 10：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h4 id="19-1-5-pwm-分辨率">19.1.5 PWM 分辨率</h4>
@@ -1170,7 +1170,7 @@
         <li>分辨率计算</li>
       </ul>
       <figure>
-        <img src="images/11-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/11-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 11：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h4 id="19-1-6-睡眠模式下的操作">19.1.6 睡眠模式下的操作</h4>
@@ -1187,7 +1187,7 @@
       </ul>
       <h4 id="19-1-9-pwm-频率和分辨率示例">19.1.9 PWM 频率和分辨率示例</h4>
       <figure>
-        <img src="images/12-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/12-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 12：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <ul>
@@ -1292,7 +1292,7 @@
         <li>bit 5 - 0：均为未实现位，读取值为‘0’ 。</li>
       </ul>
       <figure>
-        <img src="images/13-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/13-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 13：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h2 id="29-0-timer2-timer4-timer6模块功能概述">29.0 Timer2、Timer4、Timer6模块功能概述</h2>
@@ -1330,7 +1330,7 @@
         <li>单稳态（Monostable） ：受外部信号触发，按设定时间输出稳定电平脉冲 。可参考 Figure 29 - 1（Timer2 框图）和 Figure 29 - 2（时钟源框图）了解更多细节。</li>
       </ul>
       <figure>
-        <img src="images/14-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/14-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 14：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h4 id="29-1-可配置逻辑单元-clc-模块功能概述定时器2工作模式">29.1 可配置逻辑单元（CLC）模块功能概述定时器2工作模式</h4>
@@ -1372,7 +1372,7 @@
         <li>在调试冻结（Debug Freeze）模式下，外部触发信号将被忽略 。定时器工作模式由 TMRxHLT 寄存器的 MODE&lt;4:0&gt; 位控制 。</li>
       </ul>
       <figure>
-        <img src="images/15-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/15-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 15：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h2 id="30-0-捕获模式-比较模式-pwm-模式">30.0 捕获模式、比较模式、PWM 模式</h2>
@@ -1418,7 +1418,7 @@
         <li>捕获源通过配置 CCPxCAP 寄存器的 CCPxCTS&lt;2:0&gt; 位选择，可选项包括 CCPxPPS 输入、C1OUT\_sync、C2OUT\_sync、IOC\_interrupt、LC1\_out、LC2\_out、LC3\_out、LC4\_out 。图 30 - 1 展示了捕获操作简化示意图。</li>
       </ul>
       <figure>
-        <img src="images/16-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/16-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 16：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p><strong>捕获模式补充</strong></p>
@@ -1442,7 +1442,7 @@
         <li>匹配时可发生以下事件：翻转 CCPx 输出、置位 CCPx 输出、清零 CCPx 输出、生成自动转换触发、生成软件中断 。具体事件由 CCPxCON 寄存器的 CCPxMODE&lt;3:0&gt; 控制位决定。同时，PIR6 寄存器的 CCPxIF 中断标志位置位，若选择相关选项，还可触发 ADC 转换 。所有比较模式均可产生中断并触发 ADC 转换，图 30 - 2 展示了比较操作简化示意图。</li>
       </ul>
       <figure>
-        <img src="images/17-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/17-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 17：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p><strong>引脚配置（30.2.1）</strong></p>
@@ -1479,11 +1479,11 @@
         <li>所有 CCP 模块标准 PWM 功能相同，可在 CCPx 引脚生成最高 10 位分辨率的 PWM 信号 。其周期、占空比和分辨率由 PR2 寄存器、T2CON 寄存器、CCPRxL 寄存器、CCPxCON 寄存器控制 。图 30 - 4 展示 PWM 操作简化框图 。使用时需清零 CCPx 引脚对应的 TRIS 位，以启用 PWM 输出 。</li>
       </ul>
       <figure>
-        <img src="images/18-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/18-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 18：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/19-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/19-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 19：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p><strong>标准 PWM 操作设置步骤（30.3.2）</strong></p>
@@ -1553,7 +1553,7 @@
         <li>周期设定与计算：PWM 周期由 Timer2/4/6 的 PR2/4/6 寄存器指定，可通过公式</li>
       </ul>
       <figure>
-        <img src="images/20-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/20-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 20：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <ul>
@@ -1567,7 +1567,7 @@
         <li>计算依据：通过公式 30 - 2 计算 PWM 脉冲宽度，通过公式 30 - 3 计算 PWM 占空比 。</li>
       </ul>
       <figure>
-        <img src="images/21-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/21-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 21：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p><strong>PWM 占空比双缓冲</strong></p>
@@ -1586,7 +1586,7 @@
         <li>最大分辨率：当 PR2 为 255 时，最大 PWM 分辨率为 10 位，分辨率是 PR2 寄存器值的函数，计算公式</li>
       </ul>
       <figure>
-        <img src="images/22-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/22-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 22：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <ul>
@@ -1597,7 +1597,7 @@
         <li>表 30 - 2 展示了系统时钟<em>Fosc</em>=20 <em>MHz</em> 时，不同 PWM 频率对应的定时器预分频值（Timer Prescale）、PR2 值（PR2 Value）和最大分辨率（Maximum Resolution） 。例如，PWM 频率为1.22 <em>kHz</em> 时，预分频值为 16，PR2 值为0<em>xFF</em> ，最大分辨率为 10 位 。</li>
       </ul>
       <figure>
-        <img src="images/23-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/23-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 23：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <ul>
@@ -1838,7 +1838,7 @@
         <li>bit 1 - 0（C5TSEL&lt;1:0&gt;） ：CCP5 定时器选择位，不同编码决定 CCP5 在捕获 / 比较或 PWM 模式下使用的定时器 ，如 11 表示基于 TMR5（捕获 / 比较）或 TMR6（PWM），10 表示基于 TMR3（捕获 / 比较）或 TMR4（PWM），01 表示基于 TMR1（捕获 / 比较）或 TMR2（PWM），00 为保留 。</li>
       </ul>
       <figure>
-        <img src="images/24-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/24-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 24：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h2 id="22-0-可配置逻辑单元-clc-模块功能概述">22.0 可配置逻辑单元（CLC）模块功能概述</h2>
@@ -1868,7 +1868,7 @@
       <p><strong>模块实例</strong></p>
       <p>PIC16 (L) F18854 单片机具备 CLC1、CLC2、CLC3、CLC4 四个可配置逻辑单元模块实例。文档中寄存器和位名称里的 “x” 为通用标识，实际编程时需根据具体模块（1、2、3 或 4 ）进行替换，如控制寄存器一般描述为 CLCxCON，实际设备寄存器则为 CLC1CON、CLC2CON、CLC3CON 和 CLC4CON 。</p>
       <figure>
-        <img src="images/25-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/25-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 25：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <p>这是 PIC16 (L) F18854 单片机中可配置逻辑单元（CLCx）的简化框图 ：</p>
@@ -1920,7 +1920,7 @@
       <p><strong>注意事项</strong></p>
       <p>上电时数据选择处于未定义状态 。</p>
       <figure>
-        <img src="images/26-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/26-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 26：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h4 id="22-1-2-数据选通-data-gating">22.1.2 数据选通（Data Gating）</h4>
@@ -1987,11 +1987,11 @@
         <li>启用 CLCx：设置 LCxEN 位 。</li>
       </ol>
       <figure>
-        <img src="images/27-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/27-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 27：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/28-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/28-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 28：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <h3 id="22-7寄存器功能概述">22.7寄存器功能概述</h3>
@@ -2256,23 +2256,23 @@
         <li>bit 0 - MLC1OUT（Mirror copy of LC1OUT bit）：LC1OUT 位的镜像副本，用于反映 CLC1 模块的输出状态 。</li>
       </ul>
       <figure>
-        <img src="images/29-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/29-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 29：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/30-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/30-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 30：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/31-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/31-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 31：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/32-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/32-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 32：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <figure>
-        <img src="images/33-pic16f18854.png?v=1ab1810d2f66" alt="Image">
+        <img src="images/33-pic16f18854.png?v=49cb9d5bb91e" alt="Image">
         <figcaption>图 33：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
       <section class="article-footer">
@@ -2281,6 +2281,6 @@
       </section>
     </article>
   </main>
-  <script src="../../../assets/js/main.js?v=1ab1810d2f66"></script>
+  <script src="../../../assets/js/main.js?v=49cb9d5bb91e"></script>
 </body>
 </html>
