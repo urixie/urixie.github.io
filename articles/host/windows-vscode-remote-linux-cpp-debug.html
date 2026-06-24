@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Windows 下通过 VS Code Remote-SSH、CodeLLDB、CMake Tools 远程调试 Linux C/C++ 程序配置整理。">
+  <meta name="keywords" content="VS Code, Remote SSH, CodeLLDB, CMake Tools, Linux, C++, 远程调试, launch.json">
+  <meta name="author" content="XYJ">
+  <title>Windows 下通过 VS Code 远程调试 Linux C/C++ 程序配置 - XYJ</title>
+  <link rel="stylesheet" href="../../assets/css/style.css?v=5b0f6decf605">
+
+  <!--
+    适配 urixie.github.io 当前网站风格：
+    1. 复用 ../../assets/css/style.css 中的 article-page-shell / article / card / article-note / article-warning 等样式。
+    2. 复用 ../../assets/js/main.js 自动生成左侧文章目录。
+    3. 图片先保留为深色风格占位块；你手动下载图片后，按注释替换为真实 <img> 即可。
+    4. 建议保存路径：articles/host/windows-vscode-remote-linux-cpp-debug.html
+  -->
+  <style>
+    .article .file-name {
+      display: inline-flex;
+      align-items: center;
+      margin: 8px 0 0;
+      padding: 5px 10px;
+      border: 1px solid rgba(0, 230, 118, 0.22);
+      border-radius: 999px;
+      color: #b8f7d0;
+      background: rgba(0, 230, 118, 0.07);
+      font-family: Consolas, "JetBrains Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .article .step-card {
+      margin: 14px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(125, 211, 252, 0.13);
+      border-radius: 16px;
+      background: rgba(125, 211, 252, 0.035);
+    }
+
+    .article .step-card h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../index.html?v=5b0f6decf605">← 返回首页</a>
+      <a href="../../index.html?v=5b0f6decf605#host-stack">返回上位机 / 客户端</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">WINDOWS · VS CODE · REMOTE SSH · CODELLDB · CMAKE TOOLS · LINUX C/C++</div>
+
+      <h1>Windows 下通过 VS Code 远程调试 Linux C/C++ 程序配置</h1>
+
+      <p>
+        本文整理 Windows 主机通过 VS Code 连接 Linux 开发环境，并使用 CodeLLDB、CMake Tools 与 <code>launch.json</code> 完成 C/C++ 程序远程调试的基础配置流程。
+        这种方式适合把代码、编译器、CMake、调试器和运行环境都放在 Linux 端，而 Windows 端只保留 VS Code 图形化开发体验。
+      </p>
+
+      <div class="article-note">
+        本文整理自我的原创文章，主要面向 Windows + VS Code + Linux 远程开发场景，重点保留插件安装、Linux 依赖安装、launch.json 配置、调试流程和常见问题排查。
+      </div>
+
+      <section id="overview">
+        <h2>一、配置目标</h2>
+        <p>
+          目标是在 Windows 电脑上使用 VS Code 作为开发入口，通过 SSH 打开 Linux 端工程目录，在 Linux 环境中完成 C/C++ 项目的编译与调试。
+          这样可以避免 Windows 与 Linux 编译环境不一致的问题，同时保留 VS Code 图形化断点、变量查看、调用栈查看等调试体验。
+        </p>
+
+        <div class="article-note">
+          核心思路：Windows 端只负责运行 VS Code 客户端；代码、编译器、CMake、调试器和 VS Code Server 运行在 Linux 远程环境中。
+        </div>
+
+        <figure>
+          <img src="../../assets/img/articles/windows-vscode-remote-debug-01-overview.png?v=5b0f6decf605" alt="VS Code 远程调试 Linux C/C++ 程序示意图">
+          <figcaption>图 1：Windows 通过 VS Code 远程连接 Linux 并调试 C/C++ 程序。</figcaption>
+        </figure>
+      </section>
+
+      <section id="plugins">
+        <h2>二、VS Code 插件配置</h2>
+        <p>
+          在 VS Code 中需要准备远程连接、C/C++ 编辑与调试相关插件。对于远程 Linux 调试，建议按下面顺序配置。
+        </p>
+
+        <ol>
+          <li>在 Windows 本地 VS Code 安装 <strong>Remote - SSH</strong>，用于通过 SSH 打开 Linux 远程目录。</li>
+          <li>连接到 Linux 后，在远程环境中安装 <strong>CodeLLDB</strong>，用于 LLDB 调试。</li>
+          <li>如果项目使用 CMake，安装 <strong>CMake Tools</strong>，用于识别 CMake target，并为 <code>${command:cmake.launchTargetPath}</code> 提供可执行文件路径。</li>
+          <li>建议安装 <strong>clangd</strong> 或 C/C++ 相关插件，用于代码补全、跳转和诊断。</li>
+        </ol>
+
+        <figure>
+          <img src="../../assets/img/articles/windows-vscode-remote-debug-02-codelldb.png?v=5b0f6decf605" alt="VS Code 安装 CodeLLDB 插件">
+          <figcaption>图 2：在 VS Code 扩展市场安装 CodeLLDB。</figcaption>
+        </figure>
+
+        <div class="article-warning">
+          建议重点检查三件事：VS Code 左下角是否已经连接到远程 Linux 主机；CodeLLDB 是否安装在远程环境；CMake Tools 是否已经完成 Configure 并选择了正确的 Launch Target。
+        </div>
+      </section>
+
+      <section id="linux-deps">
+        <h2>三、Linux 依赖安装</h2>
+        <p>
+          在 Linux 远程主机上更新软件源并安装编译与调试工具：
+        </p>
+
+        <pre><code>sudo apt update
+sudo apt install -y build-essential cmake clangd lldb ninja-build gdb</code></pre>
+
+        <p>
+          如果是全新的 Ubuntu / Debian 环境，以上命令可以一站式安装编译和调试所需的全部常用工具，避免后续出现找不到编译器、构建工具或调试器的问题。
+        </p>
+
+        <p>
+          安装完成后，可以使用下面命令确认工具是否可用。
+        </p>
+
+        <pre><code>cmake --version
+clangd --version
+lldb --version
+gcc --version
+g++ --version</code></pre>
+      </section>
+
+      <section id="launch-json">
+        <h2>四、launch.json 配置</h2>
+        <p>
+          在工程根目录下创建 <code>.vscode/launch.json</code>。如果工程由 CMake 管理，并且已经通过 CMake Tools 选择了启动目标，可以使用下面配置。
+        </p>
+
+        <span class="file-name">.vscode/launch.json</span>
+        <pre><code>{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug C/C++ Program",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    }
+  ]
+}</code></pre>
+
+        <h3>字段说明</h3>
+        <ul>
+          <li><code>name</code>：调试配置名称，会显示在 VS Code 调试下拉菜单中。</li>
+          <li><code>type</code>：调试器类型。使用 CodeLLDB 时填写 <code>lldb</code>。</li>
+          <li><code>request</code>：调试启动模式。<code>launch</code> 表示启动程序并调试；<code>attach</code> 表示附加到已经运行的进程。</li>
+          <li><code>program</code>：要调试的可执行文件路径。这里使用 <code>${command:cmake.launchTargetPath}</code>，由 CMake Tools 自动解析当前选中的 CMake 启动目标。</li>
+          <li><code>args</code>：程序启动参数。没有参数时保持空数组。</li>
+          <li><code>cwd</code>：程序运行工作目录。通常设置为当前工程根目录。</li>
+          <li><code>stopOnEntry</code>：是否在程序入口处暂停。调试普通程序时通常设置为 <code>false</code>。</li>
+        </ul>
+
+        <div class="article-warning">
+          使用 <code>${command:cmake.launchTargetPath}</code> 前，需要先执行 CMake Configure，并在 CMake Tools 中选择正确的 Launch Target。否则该变量可能无法解析到可执行文件。
+        </div>
+
+        <h3>带参数版本</h3>
+        <p>
+          如果程序需要命令行参数，可以把参数写入 <code>args</code>。
+        </p>
+
+        <span class="file-name">.vscode/launch.json</span>
+        <pre><code>{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug C/C++ Program With Args",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": ["--config", "./config.json"],
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    }
+  ]
+}</code></pre>
+      </section>
+
+      <section id="debug-flow">
+        <h2>五、推荐调试流程</h2>
+
+        <div class="step-card">
+          <h3>步骤 1：连接 Linux 主机</h3>
+          <p>在 VS Code 中通过 Remote - SSH 连接 Linux 主机，并打开远程工程目录。</p>
+        </div>
+
+        <div class="step-card">
+          <h3>步骤 2：配置 CMake 工程</h3>
+          <p>在 VS Code 命令面板中执行 <code>CMake: Configure</code>，确保工程可以正常生成构建目录。</p>
+        </div>
+
+        <div class="step-card">
+          <h3>步骤 3：选择调试目标</h3>
+          <p>通过 CMake Tools 选择要运行的 target，确保 <code>${command:cmake.launchTargetPath}</code> 能解析到正确的可执行文件。</p>
+        </div>
+
+        <div class="step-card">
+          <h3>步骤 4：设置断点并启动调试</h3>
+          <p>在源文件中打断点，打开“运行和调试”面板，选择前面配置的 <strong>Debug C/C++ Program</strong>，点击启动调试。</p>
+        </div>
+      </section>
+
+      <section id="faq">
+        <h2>六、常见问题</h2>
+
+        <h3>1. 启动调试时提示找不到可执行文件</h3>
+        <p>
+          优先检查 CMake Tools 是否已经 Configure 成功、是否选择了正确的 Launch Target，以及当前项目是否真的生成了可执行目标。
+        </p>
+
+        <h3>2. CodeLLDB 装了但远程调试不可用</h3>
+        <p>
+          检查 CodeLLDB 是不是安装在远程 Linux 环境中。使用 Remote - SSH 后，扩展面板里通常会区分“本地安装”和“远程安装”。
+        </p>
+
+        <h3>3. 断点不生效</h3>
+        <p>
+          检查程序是否以 Debug 模式编译，编译参数中是否包含调试信息。CMake 工程可以使用下面命令重新生成 Debug 构建目录。
+        </p>
+
+        <pre><code>cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build</code></pre>
+
+        <h3>4. 不使用 CMake 怎么配置</h3>
+        <p>
+          如果程序不是 CMake 工程，可以把 <code>program</code> 改成固定可执行文件路径，例如：
+        </p>
+
+        <pre><code>"program": "${workspaceFolder}/build/app"</code></pre>
+      </section>
+
+      <footer class="article-footer">
+        <p>本文整理自我的原创调试记录，重点保留 VS Code Remote-SSH、CodeLLDB、CMake Tools 与 launch.json 的核心配置流程。</p>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../../assets/js/main.js?v=5b0f6decf605"></script>
+</body>
+</html>
