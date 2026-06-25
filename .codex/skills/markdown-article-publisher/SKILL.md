@@ -1,6 +1,6 @@
 ---
 name: markdown-article-publisher
-description: 将本仓库中的中文 Markdown 技术资料整理为可部署的静态文章目录，并把远程图片下载为文章本地资源、自动生成文章目录、更新首页入口和缓存版本。用于新增或更新 `articles/**/<slug>/*.md` 技术文档、含 Feishu 等远程图片链接的长文、需要发布到 `articles/` 的文章。
+description: 将本仓库中的中文 Markdown 技术资料整理为可部署的静态文章目录，并把远程图片下载为文章本地资源、自动生成文章目录、更新首页入口和缓存版本。用于新增或更新 articles 下按 slug 组织的 Markdown 技术文档、含 Feishu 等远程图片链接的长文、需要发布到 articles/ 的文章。
 ---
 
 # Markdown 文章发布
@@ -13,6 +13,7 @@ description: 将本仓库中的中文 Markdown 技术资料整理为可部署的
 2. 在 `articles/<platform>/<slug>/scripts/` 新建或更新 `build_<slug>_article.py`：
    - UTF-8 读取 Markdown；不要用 PowerShell 文本管道重写中文内容。
    - 将远程图片下载到 `articles/<platform>/<slug>/images/`，按稳定序号命名；已存在且非空的文件默认复用，提供 `--refresh-images` 强制重下与 `--skip-download` 仅重建页面。
+   - 如需用 Python/Pillow 生成本地图、时序图或流程图，不要通过 PowerShell here-string / 管道传递含中文的绘图脚本；优先把脚本作为 UTF-8 文件运行，或在内联脚本中用 `\uXXXX` Unicode 转义构造中文文本，并显式加载中文字体（如 `NotoSansSC-VF.ttf`、`msyh.ttc`、`simhei.ttf`）。生成后必须用 `view_image` 或等效方式抽查图片，确认中文没有变成 `?`。
    - 生成 `articles/<platform>/<slug>/<slug>.html`，图片只能引用同目录的 `images/...`；附件放在 `docs/`，不保留远程临时 URL。
    - 把 Markdown 标题转为稳定 `id`，并以同一组 `id` 生成 `article-sidebar`、返回首页/平台链接和 `article-nav` 目录。
 3. 在 `index.html` 对应的平台分类加入文章入口，使用现有 `platform-item` 结构；不要恢复已经删除的首页卡片或章节。
