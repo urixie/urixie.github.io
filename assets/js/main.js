@@ -99,10 +99,8 @@ function buildHomeHash(topic, category) {
 
 function updateHomeHash(topic, category, options = {}) {
   if (options.skipHash) return;
-
   const nextHash = buildHomeHash(topic, category);
   if (window.location.hash === nextHash) return;
-
   const method = options.replace ? 'replaceState' : 'pushState';
   window.history[method](null, '', nextHash);
 }
@@ -566,6 +564,35 @@ function getInitialArticleSectionIndex(sections) {
   return index >= 0 ? index : 0;
 }
 
+function dedupeArticleLinks(links) {
+  const seen = new Set();
+  return links.filter(item => {
+    if (!item?.href || !item?.text) return false;
+    const key = `${item.text}|${item.href}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function createArticleReaderActions(links) {
+  const actionItems = dedupeArticleLinks(links);
+  if (actionItems.length === 0) return null;
+
+  const actions = document.createElement('div');
+  actions.className = 'article-reader-actions';
+  actions.setAttribute('aria-label', '文章操作');
+
+  actionItems.forEach(item => {
+    const a = document.createElement('a');
+    a.href = item.href;
+    a.textContent = item.text;
+    actions.appendChild(a);
+  });
+
+  return actions;
+}
+
 function buildArticleNav() {
   const articleShell = document.querySelector('.article-page-shell');
   const article = document.querySelector('.article');
@@ -592,8 +619,15 @@ function buildArticleNav() {
 
   if (articleSections.length === 0) return;
 
+  const articleFooter = article.querySelector('.article-footer');
   const topbarLinks = articleTopbar
     ? Array.from(articleTopbar.querySelectorAll('a')).map(link => ({
+        text: link.textContent.trim(),
+        href: link.getAttribute('href')
+      }))
+    : [];
+  const footerLinks = articleFooter
+    ? Array.from(articleFooter.querySelectorAll('a')).map(link => ({
         text: link.textContent.trim(),
         href: link.getAttribute('href')
       }))
@@ -603,6 +637,7 @@ function buildArticleNav() {
   const articleMeta = article.querySelector('.post-meta')?.textContent.trim() || '';
 
   articleTopbar?.remove();
+  articleFooter?.remove();
 
   const sectionViewer = document.createElement('div');
   sectionViewer.className = 'article-section-viewer';
@@ -612,8 +647,13 @@ function buildArticleNav() {
   sectionInner.className = 'article-section-inner';
   sectionViewer.appendChild(sectionInner);
 
+  const readerActions = createArticleReaderActions([...topbarLinks, ...footerLinks]);
+
   article.classList.add('article-section-mode');
   article.insertBefore(sectionViewer, articleSections[0]);
+  if (readerActions) {
+    article.insertBefore(readerActions, sectionViewer);
+  }
 
   articleSections.forEach((section, index) => {
     section.classList.add('article-reader-section');
@@ -645,18 +685,6 @@ function buildArticleNav() {
     contextBlock.appendChild(contextMeta);
   }
 
-  const quickLinks = document.createElement('div');
-  quickLinks.className = 'article-nav-actions';
-
-  topbarLinks.forEach(item => {
-    if (!item.href || !item.text) return;
-
-    const a = document.createElement('a');
-    a.href = item.href;
-    a.textContent = item.text;
-    quickLinks.appendChild(a);
-  });
-
   const navTitle = document.createElement('div');
   navTitle.className = 'article-nav-title';
   navTitle.textContent = '文章目录';
@@ -681,11 +709,6 @@ function buildArticleNav() {
   });
 
   articleNavCard.appendChild(contextBlock);
-
-  if (quickLinks.children.length > 0) {
-    articleNavCard.appendChild(quickLinks);
-  }
-
   articleNavCard.appendChild(navTitle);
   articleNavCard.appendChild(articleNav);
   articleSidebar.appendChild(articleNavCard);
@@ -756,7 +779,7 @@ async function initArticlePage() {
   );
   loadStylesheetOnce(
     'article-section-reader',
-    getAssetUrl('../css/article-section-reader.css?v=20260709-section1')
+    getAssetUrl('../css/article-section-reader.css?v=20260709-section2')
   );
 
   await ensureHomeData();
