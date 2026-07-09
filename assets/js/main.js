@@ -1,3 +1,127 @@
+function injectLinuxTopic() {
+  const nav = document.querySelector('.nav#site-nav');
+  const stackList = document.querySelector('#hardware-stack .stack-list');
+  const tagCloud = document.querySelector('.tag-cloud');
+
+  if (!nav || !stackList) return;
+  if (document.querySelector('#linux-group') || document.querySelector('#linux-basic')) return;
+
+  const linuxNavGroup = document.createElement('div');
+  linuxNavGroup.className = 'nav-group';
+  linuxNavGroup.id = 'linux-group';
+  linuxNavGroup.innerHTML = `
+    <button class="nav-group-toggle" type="button" aria-expanded="false">
+      <span>Linux专题</span>
+      <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+    </button>
+    <div class="nav-group-items">
+      <a class="nav-sub" href="#linux-basic">基础与文件系统</a>
+      <a class="nav-sub" href="#linux-process">进程与内存</a>
+      <a class="nav-sub" href="#linux-shell">Shell与服务</a>
+      <a class="nav-sub" href="#linux-embedded">嵌入式调试</a>
+    </div>
+  `;
+
+  const mcuGroup = document.querySelector('#mcu-group');
+  if (mcuGroup) {
+    nav.insertBefore(linuxNavGroup, mcuGroup);
+  } else {
+    nav.appendChild(linuxNavGroup);
+  }
+
+  const linuxCards = document.createElement('template');
+  linuxCards.innerHTML = `
+    <article class="stack-card" id="linux-basic">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>基础与文件系统</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e">
+            <strong>Linux · 基础命令与文件系统</strong>
+            <span>目录结构 / 权限 / grep / find / tar / scp / /proc / /sys · 建立嵌入式 Linux 调试基础</span>
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <article class="stack-card" id="linux-process">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>进程与内存</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e">
+            <strong>Linux · 进程、线程与内存管理</strong>
+            <span>process / thread / maps / fd / signal / strace / core dump / gdb · 面向用户态程序排错</span>
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <article class="stack-card" id="linux-shell">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>Shell与服务</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e">
+            <strong>Linux · Shell 脚本与 systemd 服务</strong>
+            <span>Shell / 变量 / 重定向 / 日志 / crontab / systemd / journalctl · 适合部署和开机自启</span>
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <article class="stack-card" id="linux-embedded">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>嵌入式调试</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e">
+            <strong>嵌入式 Linux · 驱动与系统调试</strong>
+            <span>设备树 / dmesg / sysfs / procfs / 内核模块 / 交叉编译 / gdbserver · 面向板级调试</span>
+          </a>
+        </div>
+      </div>
+    </article>
+  `;
+
+  const freeRtosCard = document.querySelector('#freertos-basic');
+  const cStructCard = document.querySelector('#c-struct');
+  if (freeRtosCard) {
+    freeRtosCard.before(linuxCards.content);
+  } else if (cStructCard) {
+    cStructCard.before(linuxCards.content);
+  } else {
+    stackList.prepend(linuxCards.content);
+  }
+
+  if (tagCloud && !tagCloud.querySelector('[data-topic="linux"]')) {
+    const tags = [
+      ['Linux', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+      ['文件系统', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+      ['/proc', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+      ['/sys', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+      ['进程', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
+      ['线程', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
+      ['strace', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
+      ['systemd', 'articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e'],
+      ['Shell脚本', 'articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e'],
+      ['设备树', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
+      ['dmesg', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
+      ['gdbserver', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e']
+    ];
+
+    tags.forEach(([text, href], index) => {
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = text;
+      if (index === 0) {
+        link.dataset.topic = 'linux';
+      }
+      tagCloud.appendChild(link);
+    });
+  }
+}
+
 function injectFreeRtosTopic() {
   const nav = document.querySelector('.nav#site-nav');
   const stackList = document.querySelector('#hardware-stack .stack-list');
@@ -117,6 +241,7 @@ function injectFreeRtosTopic() {
   }
 }
 
+injectLinuxTopic();
 injectFreeRtosTopic();
 
 const navLinks = document.querySelectorAll('.nav a');
@@ -239,11 +364,6 @@ function buildArticleNav() {
       }))
     : [];
 
-  /*
-   * 关键点：
-   * 必须删除文章正文顶部按钮。
-   * 返回入口只保留在文章导航卡片里。
-   */
   articleTopbar?.remove();
 
   const articleSidebar = document.createElement('aside');
