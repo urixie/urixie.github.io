@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FreeRTOS 任务管理与栈空间 - XYJ</title>
+  <meta name="description" content="整理 FreeRTOS 任务创建、任务删除、任务延时、任务优先级、任务句柄、任务栈、栈水位检测和任务设计方法。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#freertos-task">返回 FreeRTOS专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">FREERTOS · TASK · STACK · PRIORITY</div>
+      <h1>FreeRTOS 任务管理与栈空间</h1>
+
+      <p>
+        FreeRTOS 的任务可以理解为嵌入式系统中的轻量线程。每个任务都有自己的任务函数、栈空间、优先级和任务控制块。任务设计是否合理，会直接影响系统实时性、稳定性和可维护性。
+      </p>
+
+      <section>
+        <h2>一、任务创建</h2>
+        <p>
+          常用 <code>xTaskCreate()</code> 创建动态任务，也可以用 <code>xTaskCreateStatic()</code> 创建静态任务。动态任务由 FreeRTOS 堆分配任务控制块和栈，静态任务由用户提供内存，更适合对内存确定性要求高的项目。
+        </p>
+        <pre><code>static void led_task(void *arg)
+{
+    (void)arg;
+
+    while (1) {
+        led_toggle();
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+xTaskCreate(led_task, "led", 1024, NULL, 1, NULL);</code></pre>
+        <p>
+          任务函数通常是一个不会返回的无限循环。如果任务确实要结束，应调用 <code>vTaskDelete(NULL)</code> 删除自己。
+        </p>
+      </section>
+
+      <section>
+        <h2>二、任务句柄</h2>
+        <p>
+          任务句柄用于操作指定任务，例如删除、挂起、恢复、通知等。创建任务时可以保存句柄。
+        </p>
+        <pre><code>static TaskHandle_t s_uart_task_handle;
+
+xTaskCreate(uart_task,
+            "uart",
+            2048,
+            NULL,
+            3,
+            &amp;s_uart_task_handle);</code></pre>
+        <p>
+          如果后续不需要主动控制任务，可以把最后一个参数传 <code>NULL</code>。如果需要从中断或其它任务通知该任务，建议保存句柄。
+        </p>
+      </section>
+
+      <section>
+        <h2>三、任务优先级设计</h2>
+        <p>
+          优先级应该按实时性和阻塞行为设计，而不是按“功能重要性”随意设置。高优先级任务应该尽快完成处理并进入阻塞态。
+        </p>
+        <ul>
+          <li>硬实时响应任务：优先级较高，但必须短小。</li>
+          <li>通信接收任务：通常高于普通业务任务。</li>
+          <li>显示刷新任务：优先级不宜过高，避免影响采样和通信。</li>
+          <li>日志、存储、统计任务：一般优先级较低。</li>
+        </ul>
+        <div class="article-warning">
+          高优先级任务如果写成无阻塞死循环，会饿死低优先级任务。这类问题表现为系统某些功能不运行，但并不一定死机。
+        </div>
+      </section>
+
+      <section>
+        <h2>四、任务延时：vTaskDelay 与 vTaskDelayUntil</h2>
+        <p>
+          <code>vTaskDelay()</code> 是相对延时，从当前调用时刻开始等待指定 Tick。<code>vTaskDelayUntil()</code> 是周期性延时，适合固定周期任务。
+        </p>
+        <pre><code>void sample_task(void *arg)
+{
+    TickType_t last_wake = xTaskGetTickCount();
+
+    while (1) {
+        adc_sample_once();
+        vTaskDelayUntil(&amp;last_wake, pdMS_TO_TICKS(10));
+    }
+}</code></pre>
+        <p>
+          周期采样、周期控制、定时通信更适合用 <code>vTaskDelayUntil()</code>，它比简单 <code>vTaskDelay()</code> 更容易维持稳定周期。
+        </p>
+      </section>
+
+      <section>
+        <h2>五、任务栈空间</h2>
+        <p>
+          每个 FreeRTOS 任务都有独立栈。任务栈用于保存局部变量、函数调用上下文、中断嵌套时的部分上下文等。栈太小会导致栈溢出，栈太大又会浪费 RAM。
+        </p>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 340" role="img" aria-label="FreeRTOS 任务栈示意图">
+            <rect x="95" y="70" width="160" height="210" rx="14" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="175" y="105" text-anchor="middle" font-size="16" font-weight="700">Task A 栈</text>
+            <rect x="125" y="135" width="100" height="36" fill="#dcfce7" stroke="#16a34a"/>
+            <text x="175" y="158" text-anchor="middle" font-size="13">局部变量</text>
+            <rect x="125" y="171" width="100" height="36" fill="#fef3c7" stroke="#d97706"/>
+            <text x="175" y="194" text-anchor="middle" font-size="13">函数调用</text>
+            <rect x="125" y="207" width="100" height="36" fill="#fee2e2" stroke="#dc2626"/>
+            <text x="175" y="230" text-anchor="middle" font-size="13">剩余空间</text>
+            <rect x="300" y="70" width="160" height="210" rx="14" fill="#ede9fe" stroke="#7c3aed"/>
+            <text x="380" y="105" text-anchor="middle" font-size="16" font-weight="700">Task B 栈</text>
+            <rect x="330" y="135" width="100" height="80" fill="#dcfce7" stroke="#16a34a"/>
+            <text x="380" y="180" text-anchor="middle" font-size="13">局部大数组</text>
+            <rect x="330" y="215" width="100" height="28" fill="#fee2e2" stroke="#dc2626"/>
+            <text x="380" y="234" text-anchor="middle" font-size="12">风险</text>
+            <rect x="525" y="115" width="150" height="110" rx="14" fill="#f8fafc" stroke="#64748b"/>
+            <text x="600" y="150" text-anchor="middle" font-size="14">栈水位检测</text>
+            <text x="600" y="175" text-anchor="middle" font-size="14">确认剩余栈空间</text>
+            <text x="600" y="200" text-anchor="middle" font-size="13">uxTaskGetStackHighWaterMark</text>
+          </svg>
+          <figcaption>图 1：每个任务有独立栈，局部大数组是栈溢出的常见原因。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>六、栈水位检测</h2>
+        <p>
+          FreeRTOS 提供栈水位检测接口，可以查看任务历史运行过程中剩余栈空间的最小值。调试阶段建议重点关注通信、显示、文件系统、协议解析等任务。
+        </p>
+        <pre><code>UBaseType_t watermark = uxTaskGetStackHighWaterMark(NULL);
+printf("stack watermark = %u\n", (unsigned)watermark);</code></pre>
+        <p>
+          如果水位值很小，说明任务栈接近耗尽，需要增大栈或减少局部变量占用。尤其不要在任务函数里定义几 KB 的局部数组。
+        </p>
+      </section>
+
+      <section>
+        <h2>七、任务设计检查清单</h2>
+        <ul>
+          <li>任务职责是否单一。</li>
+          <li>任务是否有明确阻塞点。</li>
+          <li>优先级是否按实时性设计。</li>
+          <li>任务栈是否经过水位检测。</li>
+          <li>是否避免局部大数组。</li>
+          <li>任务删除前是否释放相关资源。</li>
+          <li>周期任务是否使用 <code>vTaskDelayUntil()</code>。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#freertos-task">返回 FreeRTOS专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
