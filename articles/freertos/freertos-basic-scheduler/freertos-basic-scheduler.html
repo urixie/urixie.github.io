@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FreeRTOS 基础概念与调度机制 - XYJ</title>
+  <meta name="description" content="整理 FreeRTOS 基础概念、任务、调度器、抢占式调度、时间片、Tick、中断优先级和嵌入式项目使用建议。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#freertos-basic">返回 FreeRTOS专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">FREERTOS · RTOS · SCHEDULER · TICK</div>
+      <h1>FreeRTOS 基础概念与调度机制</h1>
+
+      <p>
+        FreeRTOS 是嵌入式项目中常见的轻量级实时操作系统内核。它主要解决多个任务如何共享 CPU、任务之间如何通信、如何等待事件、如何处理超时以及如何管理有限内存等问题。
+      </p>
+
+      <div class="article-note">
+        学 FreeRTOS 不要一开始就背 API。建议先理解 4 个核心概念：任务、调度器、阻塞等待、同步通信。只要理解这 4 个点，再看队列、信号量、互斥锁和定时器就会清晰很多。
+      </div>
+
+      <section>
+        <h2>一、为什么需要 RTOS</h2>
+        <p>
+          在简单裸机程序中，通常只有一个 <code>while(1)</code> 主循环，所有任务都在主循环里轮询执行。当功能越来越多时，例如按键、显示、通信、采样、存储、网络、升级同时存在，裸机轮询会变得难维护。
+        </p>
+        <ul>
+          <li>轮询任务多了以后，每个模块互相影响。</li>
+          <li>某个函数阻塞太久，会拖慢整个系统。</li>
+          <li>超时、等待、重试逻辑容易写得很混乱。</li>
+          <li>模块之间缺少清晰的通信边界。</li>
+        </ul>
+        <p>
+          RTOS 的价值是把系统拆成多个任务，每个任务像一个独立小线程，由调度器负责在它们之间切换。
+        </p>
+      </section>
+
+      <section>
+        <h2>二、FreeRTOS 的核心对象</h2>
+        <ul>
+          <li><strong>Task</strong>：任务，系统中的一个执行单元。</li>
+          <li><strong>Scheduler</strong>：调度器，决定当前运行哪个任务。</li>
+          <li><strong>Queue</strong>：队列，用于任务间传递数据。</li>
+          <li><strong>Semaphore</strong>：信号量，用于事件同步或资源计数。</li>
+          <li><strong>Mutex</strong>：互斥锁，用于保护共享资源。</li>
+          <li><strong>Software Timer</strong>：软件定时器，用于周期或单次回调。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>三、任务状态</h2>
+        <p>
+          FreeRTOS 中任务并不是一直运行。一个任务可能处于就绪、运行、阻塞、挂起等状态。理解任务状态，是理解 RTOS 的关键。
+        </p>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 320" role="img" aria-label="FreeRTOS 任务状态转换图">
+            <rect x="80" y="120" width="130" height="70" rx="14" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="145" y="162" text-anchor="middle" font-size="16" font-weight="700">Ready</text>
+            <rect x="315" y="120" width="130" height="70" rx="14" fill="#dcfce7" stroke="#16a34a"/>
+            <text x="380" y="162" text-anchor="middle" font-size="16" font-weight="700">Running</text>
+            <rect x="550" y="120" width="130" height="70" rx="14" fill="#fef3c7" stroke="#d97706"/>
+            <text x="615" y="162" text-anchor="middle" font-size="16" font-weight="700">Blocked</text>
+            <path d="M210 155 L315 155" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-state)"/>
+            <text x="262" y="140" text-anchor="middle" font-size="13">被调度</text>
+            <path d="M445 155 L550 155" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-state)"/>
+            <text x="497" y="140" text-anchor="middle" font-size="13">等待事件/延时</text>
+            <path d="M615 195 C615 260 145 260 145 195" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-state)"/>
+            <text x="380" y="280" text-anchor="middle" font-size="13">事件到来 / 延时结束</text>
+            <path d="M380 120 C380 65 145 65 145 120" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-state)"/>
+            <text x="262" y="62" text-anchor="middle" font-size="13">时间片结束 / 更高优先级抢占</text>
+            <defs><marker id="arrow-state" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker></defs>
+          </svg>
+          <figcaption>图 1：任务在 Ready、Running、Blocked 等状态之间切换。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>四、抢占式调度与优先级</h2>
+        <p>
+          FreeRTOS 常用抢占式调度。调度器总是优先运行最高优先级的就绪任务。如果一个更高优先级任务从阻塞态变成就绪态，它可以抢占当前低优先级任务。
+        </p>
+        <pre><code>xTaskCreate(sensor_task, "sensor", 2048, NULL, 3, NULL);
+xTaskCreate(uart_task,   "uart",   2048, NULL, 2, NULL);
+xTaskCreate(led_task,    "led",    1024, NULL, 1, NULL);
+
+vTaskStartScheduler();</code></pre>
+        <p>
+          优先级不是越高越好。高优先级任务如果长期不阻塞，会让低优先级任务没有机会运行。任务中应该通过 <code>vTaskDelay</code>、队列等待、信号量等待等方式主动进入阻塞态。
+        </p>
+      </section>
+
+      <section>
+        <h2>五、Tick 与系统节拍</h2>
+        <p>
+          Tick 是 FreeRTOS 的系统节拍。每次 Tick 中断到来，内核会更新系统时间、处理延时列表，并判断是否需要任务切换。
+        </p>
+        <pre><code>// 延时 100ms，写法推荐用 pdMS_TO_TICKS
+vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
+        <p>
+          如果 Tick 频率是 1000Hz，一个 Tick 就是 1ms；如果 Tick 频率是 100Hz，一个 Tick 就是 10ms。工程中不要直接写 Tick 数，优先使用 <code>pdMS_TO_TICKS()</code>。
+        </p>
+      </section>
+
+      <section>
+        <h2>六、中断优先级注意事项</h2>
+        <p>
+          Cortex-M 上使用 FreeRTOS 时，中断优先级配置非常重要。能调用 FreeRTOS FromISR API 的中断，优先级不能高于内核允许管理的最高中断优先级，否则可能导致难以复现的异常。
+        </p>
+        <ul>
+          <li>中断中调用队列、信号量等接口，要使用 <code>xxxFromISR</code> 版本。</li>
+          <li>中断回调尽量短，只做数据搬运和事件通知。</li>
+          <li>复杂处理放到任务中执行。</li>
+          <li>中断优先级要和 <code>configMAX_SYSCALL_INTERRUPT_PRIORITY</code> 匹配。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>七、工程使用建议</h2>
+        <ul>
+          <li>每个任务职责要单一，不要一个任务包办所有功能。</li>
+          <li>任务中避免长时间死循环占用 CPU。</li>
+          <li>任务优先级要按实时性排序，不按“重要性”排序。</li>
+          <li>通信优先用队列、通知、信号量，不要随意共享全局变量。</li>
+          <li>开启栈水位检查，确认每个任务栈大小是否合理。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#freertos-basic">返回 FreeRTOS专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
