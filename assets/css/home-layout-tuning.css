@@ -1,16 +1,16 @@
-/* 首页布局微调：让一级导航恢复个人知识库侧栏气质，二级导航作为当前专题目录。 */
+/* 首页布局微调：一级导航恢复早期个人侧栏布局，二级导航作为当前专题目录。 */
 .home-shell {
-  grid-template-columns: 232px 252px minmax(0, 980px);
+  grid-template-columns: 280px 252px minmax(0, 980px);
   gap: 22px;
   padding: 24px 32px 24px 0;
 }
 
 .home-shell.is-about {
-  grid-template-columns: 232px minmax(0, 980px);
+  grid-template-columns: 280px minmax(0, 980px);
 }
 
 .primary-sidebar {
-  padding: 22px 18px 16px;
+  padding: 28px 24px;
 }
 
 .secondary-sidebar {
@@ -19,29 +19,47 @@
 
 .profile-compact {
   display: block;
-  padding-bottom: 18px;
+  padding-bottom: 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  text-align: left;
+  text-align: center;
 }
 
 .profile-compact-top {
-  display: flex;
-  align-items: center;
-  gap: 13px;
+  display: block;
   min-width: 0;
 }
 
 .profile-compact-avatar {
-  flex: 0 0 auto;
-  width: 62px;
-  height: 62px;
-  margin: 0;
-  border-radius: 20px;
-  box-shadow: 0 0 26px rgba(0, 230, 118, 0.12);
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 18px;
+  padding: 3px;
+  border: 1px solid rgba(0, 230, 118, 0.48);
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgba(0, 230, 118, 0.5), rgba(125, 211, 252, 0.32)) border-box,
+    rgba(17, 24, 34, 0.86);
+  box-shadow:
+    0 0 30px rgba(0, 230, 118, 0.14),
+    0 14px 34px rgba(0, 0, 0, 0.32);
+}
+
+.profile-compact-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 24px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .profile-compact-avatar img {
-  border-radius: 17px;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  object-fit: cover;
 }
 
 .profile-identity {
@@ -50,16 +68,19 @@
 
 .profile-compact h1 {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.18;
+  font-size: 22px;
+  line-height: 1.25;
   letter-spacing: -0.02em;
 }
 
 .profile-compact .profile-summary {
-  margin: 7px 0 0;
+  margin: 12px 0 0;
   color: #aeb8c5;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.7;
+  text-align: justify;
+  text-indent: 2em;
+  overflow-wrap: break-word;
 }
 
 .profile-compact .profile-email {
@@ -67,17 +88,16 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  width: 100%;
   max-width: 100%;
-  margin-top: 14px;
-  padding: 7px 10px;
+  margin-top: 12px;
+  padding: 7px 11px;
   border: 1px solid rgba(125, 211, 252, 0.16);
   border-radius: 999px;
   color: var(--link);
   background: rgba(125, 211, 252, 0.045);
   font-family: Consolas, "JetBrains Mono", monospace;
-  font-size: 11px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.4;
   transition: 0.2s ease;
 }
 
@@ -89,8 +109,8 @@
 }
 
 .profile-compact .profile-email-icon {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
   fill: currentColor;
 }
@@ -103,8 +123,8 @@
 }
 
 .primary-nav {
-  margin-top: 18px;
-  max-height: calc(100dvh - 310px);
+  margin-top: 22px;
+  max-height: calc(100dvh - 405px);
   gap: 8px;
 }
 
@@ -197,35 +217,34 @@
   min-height: 190px;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1400px) {
   .home-shell {
-    grid-template-columns: 220px 240px minmax(0, 1fr);
+    grid-template-columns: 260px 244px minmax(0, 1fr);
     gap: 20px;
     padding-right: 24px;
   }
 
   .home-shell.is-about {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
   }
 
   .primary-sidebar {
-    padding-inline: 16px;
+    padding: 24px 20px;
   }
 
-  .primary-nav-button {
-    grid-template-columns: 34px minmax(0, 1fr) auto;
-    gap: 9px;
-    padding-inline: 12px 10px;
+  .profile-compact-avatar {
+    width: 86px;
+    height: 86px;
+    border-radius: 25px;
   }
 
-  .primary-nav-code {
-    width: 32px;
-    height: 32px;
-    border-radius: 11px;
+  .profile-compact-avatar img,
+  .profile-compact-avatar::after {
+    border-radius: 21px;
   }
 
-  .primary-nav-title {
-    font-size: 13px;
+  .primary-nav {
+    max-height: calc(100dvh - 370px);
   }
 }
 
@@ -257,18 +276,23 @@
   .profile-compact {
     margin-bottom: 14px;
     padding-bottom: 14px;
+    text-align: left;
   }
 
   .profile-compact-top {
+    display: flex;
+    align-items: center;
     gap: 12px;
   }
 
   .profile-compact-avatar {
     width: 50px;
     height: 50px;
+    margin: 0;
     border-radius: 16px;
   }
 
+  .profile-compact-avatar::after,
   .profile-compact-avatar img {
     border-radius: 13px;
   }
@@ -278,7 +302,11 @@
   }
 
   .profile-compact .profile-summary {
+    margin-top: 6px;
     font-size: 12px;
+    line-height: 1.45;
+    text-align: left;
+    text-indent: 0;
   }
 
   .profile-compact .profile-email {
