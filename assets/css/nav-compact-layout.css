@@ -1,0 +1,53 @@
+/* 一级导航与二级导航紧贴布局：二级栏宽度与一级栏保持一致。 */
+@media (min-width: 901px) {
+  .home-shell {
+    grid-template-columns: 280px 280px minmax(0, 1fr) !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+  }
+
+  .home-shell.is-about {
+    grid-template-columns: 280px minmax(0, 1fr) !important;
+    column-gap: 0 !important;
+  }
+
+  .primary-sidebar {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .secondary-sidebar {
+    width: auto;
+    padding-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .secondary-head {
+    padding-left: 18px;
+  }
+
+  .secondary-nav-card {
+    margin-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .home-content {
+    margin-left: 22px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1400px) {
+  .home-shell {
+    grid-template-columns: 260px 260px minmax(0, 1fr) !important;
+  }
+
+  .home-shell.is-about {
+    grid-template-columns: 260px minmax(0, 1fr) !important;
+  }
+
+  .home-content {
+    margin-left: 20px;
+  }
+}
