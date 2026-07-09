@@ -17,57 +17,59 @@ document.querySelectorAll('#work-experience, #work-experience-about').forEach(ta
 });
 
 const legacyHomeHashMap = {
-  'hardware-stack': ['c', 'basic'],
-  'c-basic': ['c', 'basic'],
-  'c-pointer': ['c', 'pointer'],
-  'c-data-storage': ['c', 'data-storage'],
-  'c-stack-heap': ['c', 'stack-heap'],
-  'c-struct': ['c', 'struct'],
-  'c-embedded': ['c', 'embedded'],
-  'c-debug': ['c', 'debug'],
-  'verilog-basic': ['verilog', 'basic'],
-  'verilog-logic': ['verilog', 'logic'],
-  'verilog-fsm': ['verilog', 'fsm'],
-  'verilog-sim': ['verilog', 'simulation'],
-  'windows-uqitong': ['windows', 'uqitong'],
-  'windows-iventoy': ['windows', 'iventoy'],
-  'linux-basic': ['linux', 'basic'],
-  'linux-process': ['linux', 'process'],
-  'linux-shell': ['linux', 'shell'],
-  'linux-embedded': ['linux', 'embedded'],
-  'linux-uboot': ['linux', 'uboot'],
-  'linux-kernel-build': ['linux', 'kernel'],
-  'linux-rootfs-build': ['linux', 'rootfs'],
-  'freertos-basic': ['freertos', 'scheduler'],
-  'freertos-task': ['freertos', 'task'],
-  'freertos-ipc': ['freertos', 'ipc'],
-  'freertos-debug': ['freertos', 'timer'],
-  'mcu-stack': ['mcu', 'microchip'],
+  'hardware-stack': ['foundation', 'c-basic'],
+  'c-basic': ['foundation', 'c-basic'],
+  'c-pointer': ['foundation', 'pointer-memory'],
+  'c-data-storage': ['foundation', 'pointer-memory'],
+  'c-stack-heap': ['foundation', 'pointer-memory'],
+  'c-struct': ['foundation', 'data-structure'],
+  'c-embedded': ['foundation', 'embedded-c'],
+  'c-debug': ['foundation', 'debug-engineering'],
+  'verilog-basic': ['fpga', 'hdl-basic'],
+  'verilog-logic': ['fpga', 'hdl-basic'],
+  'verilog-fsm': ['fpga', 'hdl-basic'],
+  'verilog-sim': ['fpga', 'verification'],
+  'windows-uqitong': ['dev-tools', 'windows-install'],
+  'windows-iventoy': ['dev-tools', 'pxe-iventoy'],
+  'linux-basic': ['soc-linux', 'linux-basic'],
+  'linux-process': ['soc-linux', 'linux-basic'],
+  'linux-shell': ['soc-linux', 'linux-basic'],
+  'linux-embedded': ['soc-linux', 'driver-debug'],
+  'linux-uboot': ['soc-linux', 'boot-kernel-rootfs'],
+  'linux-kernel-build': ['soc-linux', 'boot-kernel-rootfs'],
+  'linux-rootfs-build': ['soc-linux', 'boot-kernel-rootfs'],
+  'freertos-basic': ['realtime', 'freertos-basic'],
+  'freertos-task': ['realtime', 'task-management'],
+  'freertos-ipc': ['realtime', 'ipc-sync'],
+  'freertos-debug': ['realtime', 'timer-memory-debug'],
+  'mcu-stack': ['mcu', 'common'],
   'mcu-st': ['mcu', 'st'],
   'mcu-wh': ['mcu', 'wh'],
   'mcu-microchip': ['mcu', 'microchip'],
   'mcu-sl': ['mcu', 'silicon-labs'],
   'mcu-espressif': ['mcu', 'espressif'],
-  'mcu-xilinx': ['mcu', 'xilinx'],
-  'soc-stack': ['soc', 'rockchip'],
-  'soc-orbit': ['soc', 'orbit'],
-  'soc-rockchip': ['soc', 'rockchip'],
-  'fpga-stack': ['fpga', 'anlogic'],
+  'mcu-xilinx': ['fpga', 'xilinx'],
+  'soc-stack': ['soc-linux', 'rockchip'],
+  'soc-orbit': ['soc-linux', 'other-soc'],
+  'soc-rockchip': ['soc-linux', 'rockchip'],
+  'fpga-stack': ['fpga', 'hdl-basic'],
   'fpga-microchip': ['fpga', 'microchip'],
   'fpga-lattice': ['fpga', 'lattice'],
   'fpga-anlogic': ['fpga', 'anlogic'],
-  'gui-stack': ['gui', 'nxp'],
+  'gui-stack': ['gui', 'lvgl'],
   'gui-nxp': ['gui', 'nxp'],
   'gui-dfc': ['gui', 'dfc'],
-  'host-stack': ['host', 'debug'],
-  'host-wireless': ['host', 'wireless'],
-  'host-debug': ['host', 'debug'],
+  'host-stack': ['host-tools', 'debug-config'],
+  'host-wireless': ['host-tools', 'wireless-client'],
+  'host-debug': ['host-tools', 'debug-config'],
   'about': ['about', null]
 };
 
 const homeState = {
   topicId: '',
-  categoryId: ''
+  categoryId: '',
+  articleSlug: '',
+  articleHref: ''
 };
 
 function getHomeTopics() {
@@ -92,14 +94,29 @@ function findCategory(topic, categoryId) {
   return topic.children.find(category => category.id === categoryId) || topic.children[0];
 }
 
-function buildHomeHash(topic, category) {
-  if (!topic) return '#c/basic';
-  return category ? `#${topic.id}/${category.id}` : `#${topic.id}`;
+function getArticleSlug(article) {
+  if (!article?.href) return '';
+  const cleanHref = article.href.split('#')[0].split('?')[0];
+  const filename = cleanHref.split('/').filter(Boolean).pop() || '';
+  return filename.replace(/\.html$/i, '');
 }
 
-function updateHomeHash(topic, category, options = {}) {
+function findArticle(category, articleSlug) {
+  const articles = Array.isArray(category?.articles) ? category.articles : [];
+  if (!articles.length) return null;
+  return articles.find(article => getArticleSlug(article) === articleSlug) || articles[0];
+}
+
+function buildHomeHash(topic, category, article) {
+  if (!topic) return '#foundation/c-basic';
+  if (category && article) return `#${topic.id}/${category.id}/${getArticleSlug(article)}`;
+  if (category) return `#${topic.id}/${category.id}`;
+  return `#${topic.id}`;
+}
+
+function updateHomeHash(topic, category, article, options = {}) {
   if (options.skipHash) return;
-  const nextHash = buildHomeHash(topic, category);
+  const nextHash = buildHomeHash(topic, category, article);
   if (window.location.hash === nextHash) return;
   const method = options.replace ? 'replaceState' : 'pushState';
   window.history[method](null, '', nextHash);
@@ -107,15 +124,15 @@ function updateHomeHash(topic, category, options = {}) {
 
 function parseHomeHash() {
   const rawHash = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
-  if (!rawHash) return { topicId: 'c', categoryId: 'basic' };
+  if (!rawHash) return { topicId: 'foundation', categoryId: 'c-basic', articleSlug: '' };
 
   if (legacyHomeHashMap[rawHash]) {
     const [topicId, categoryId] = legacyHomeHashMap[rawHash];
-    return { topicId, categoryId };
+    return { topicId, categoryId, articleSlug: '' };
   }
 
-  const [topicId, categoryId] = rawHash.split('/').filter(Boolean);
-  return { topicId: topicId || 'c', categoryId: categoryId || null };
+  const [topicId, categoryId, articleSlug] = rawHash.split('/').filter(Boolean);
+  return { topicId: topicId || 'foundation', categoryId: categoryId || null, articleSlug: articleSlug || '' };
 }
 
 function scrollHomeToTop() {
@@ -125,6 +142,153 @@ function scrollHomeToTop() {
 
 function createCountLabel(count) {
   return count > 0 ? `${count}篇` : '暂无';
+}
+
+function isAbsoluteOrSpecialUrl(value) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#|mailto:|tel:)/i.test(value);
+}
+
+function getDirectoryPath(path) {
+  return String(path || '').split('#')[0].split('?')[0].replace(/[^/]*$/, '');
+}
+
+function resolveRelativeUrl(base, value) {
+  if (!value || isAbsoluteOrSpecialUrl(value)) return value;
+  try {
+    return new URL(value, new URL(base, window.location.href)).pathname.replace(/^\//, '');
+  } catch (error) {
+    return `${base}${value}`;
+  }
+}
+
+function createLoadingCard(message = '正在加载文章...') {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'inline-article-placeholder card';
+  wrapper.innerHTML = `<p>${message}</p>`;
+  return wrapper;
+}
+
+function createErrorCard(message) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'inline-article-placeholder card is-error';
+  const title = document.createElement('h2');
+  title.textContent = '文章加载失败';
+  const desc = document.createElement('p');
+  desc.textContent = message || '请稍后刷新页面重试。';
+  wrapper.append(title, desc);
+  return wrapper;
+}
+
+function createArticleWelcome(topic, category) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'inline-article-placeholder card';
+
+  const eyebrow = document.createElement('span');
+  eyebrow.className = 'inline-article-eyebrow';
+  eyebrow.textContent = topic?.title || '文章阅读';
+
+  const title = document.createElement('h2');
+  title.textContent = category ? category.title : '选择左侧文章开始阅读';
+
+  const desc = document.createElement('p');
+  desc.textContent = category?.desc || topic?.desc || '左侧二级导航已经整合文章索引，点击任意文章后将在这里直接加载正文。';
+
+  wrapper.append(eyebrow, title, desc);
+  return wrapper;
+}
+
+function extractArticleSourceFromRoute(html, routeHref) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const body = doc.body;
+  const source = body?.dataset.articleSource;
+  if (!source) return null;
+  const routeBase = getDirectoryPath(routeHref);
+  return resolveRelativeUrl(routeBase, source);
+}
+
+function rewriteInlineArticleHtml(html, sourceHref) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const sourceBase = getDirectoryPath(sourceHref);
+
+  doc.querySelectorAll('script').forEach(script => script.remove());
+  doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
+  doc.querySelectorAll('.topbar, .article-topbar').forEach(nav => nav.remove());
+
+  doc.querySelectorAll('[src]').forEach(node => {
+    const value = node.getAttribute('src');
+    const nextValue = resolveRelativeUrl(sourceBase, value);
+    if (nextValue) node.setAttribute('src', nextValue);
+  });
+
+  doc.querySelectorAll('[href]').forEach(node => {
+    const value = node.getAttribute('href');
+    if (!value || value.includes('index.html')) return;
+    const nextValue = resolveRelativeUrl(sourceBase, value);
+    if (nextValue) node.setAttribute('href', nextValue);
+  });
+
+  const article = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+  return article.innerHTML;
+}
+
+async function fetchInlineArticleHtml(article) {
+  const routeHref = article.href;
+  const routeResponse = await fetch(routeHref, { cache: 'no-cache' });
+  if (!routeResponse.ok) {
+    throw new Error(`无法读取文章入口：${routeHref}`);
+  }
+
+  const routeHtml = await routeResponse.text();
+  const sourceHref = extractArticleSourceFromRoute(routeHtml, routeHref) || routeHref;
+  const sourceResponse = await fetch(sourceHref, { cache: 'no-cache' });
+  if (!sourceResponse.ok) {
+    throw new Error(`无法读取文章源文件：${sourceHref}`);
+  }
+
+  return rewriteInlineArticleHtml(await sourceResponse.text(), sourceHref);
+}
+
+async function renderInlineArticle(topic, category, article, options = {}) {
+  const articleList = document.querySelector('#articleList');
+  const articleEmpty = document.querySelector('#articleEmpty');
+  const contentIndex = document.querySelector('#contentIndex');
+  const contentTitle = document.querySelector('#contentTitle');
+  const contentDesc = document.querySelector('#contentDesc');
+
+  if (!articleList || !article) return;
+
+  homeState.topicId = topic?.id || '';
+  homeState.categoryId = category?.id || '';
+  homeState.articleSlug = getArticleSlug(article);
+  homeState.articleHref = article.href;
+
+  if (contentIndex) contentIndex.textContent = 'READ';
+  if (contentTitle) contentTitle.textContent = article.title;
+  if (contentDesc) contentDesc.textContent = article.desc || category?.desc || '';
+  if (articleEmpty) articleEmpty.classList.add('hidden');
+
+  articleList.replaceChildren(createLoadingCard());
+  renderPrimaryNav();
+  renderSecondaryNav(topic);
+  updateHomeHash(topic, category, article, options);
+
+  try {
+    const html = await fetchInlineArticleHtml(article);
+    const articleShell = document.createElement('article');
+    articleShell.className = 'inline-article article card';
+    articleShell.innerHTML = html;
+    articleList.replaceChildren(articleShell);
+
+    if (window.initArticlePage) {
+      window.initArticlePage(articleShell);
+    }
+  } catch (error) {
+    articleList.replaceChildren(createErrorCard(error.message));
+  }
+
+  if (options.scroll !== false) {
+    scrollHomeToTop();
+  }
 }
 
 function renderPrimaryNav() {
@@ -184,8 +348,13 @@ function renderSecondaryNav(topic) {
   if (!hasChildren) return;
 
   topic.children.forEach(category => {
-    const button = document.createElement('button');
+    const card = document.createElement('section');
     const active = category.id === homeState.categoryId;
+    card.className = 'secondary-nav-card';
+    card.classList.toggle('active', active);
+    card.dataset.categoryId = category.id;
+
+    const button = document.createElement('button');
     button.type = 'button';
     button.className = 'secondary-nav-button';
     button.dataset.categoryId = category.id;
@@ -203,32 +372,51 @@ function renderSecondaryNav(topic) {
 
     button.append(title, count);
     button.addEventListener('click', () => switchCategory(category.id));
-    secondaryNav.appendChild(button);
+    card.appendChild(button);
+
+    const articles = Array.isArray(category.articles) ? category.articles : [];
+    if (articles.length > 0) {
+      const list = document.createElement('div');
+      list.className = 'secondary-article-list';
+
+      articles.forEach(article => {
+        const link = document.createElement('a');
+        const slug = getArticleSlug(article);
+        const selected = active && slug === homeState.articleSlug;
+        link.className = 'secondary-article-link';
+        link.classList.toggle('active', selected);
+        link.href = article.href;
+        link.dataset.articleSlug = slug;
+        link.setAttribute('aria-current', selected ? 'page' : 'false');
+
+        const linkTitle = document.createElement('span');
+        linkTitle.className = 'secondary-article-title';
+        linkTitle.textContent = article.title;
+
+        const linkDesc = document.createElement('span');
+        linkDesc.className = 'secondary-article-desc';
+        linkDesc.textContent = article.desc || '';
+
+        link.append(linkTitle, linkDesc);
+        link.addEventListener('click', event => {
+          event.preventDefault();
+          selectArticle(topic.id, category.id, slug);
+        });
+        list.appendChild(link);
+      });
+
+      card.appendChild(list);
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'secondary-article-empty';
+      empty.textContent = Array.isArray(category.placeholders) && category.placeholders.length > 0
+        ? `${category.placeholders.join('、')} 后续补充。`
+        : '暂无文章，后续补充。';
+      card.appendChild(empty);
+    }
+
+    secondaryNav.appendChild(card);
   });
-}
-
-function renderArticleCard(article) {
-  const card = document.createElement('a');
-  card.className = 'article-card';
-  card.href = article.href;
-
-  const heading = document.createElement('h3');
-  heading.textContent = article.title;
-
-  const desc = document.createElement('p');
-  desc.textContent = article.desc;
-
-  const tags = document.createElement('div');
-  tags.className = 'article-tags';
-
-  (article.tags || []).forEach(tag => {
-    const tagItem = document.createElement('span');
-    tagItem.textContent = tag;
-    tags.appendChild(tagItem);
-  });
-
-  card.append(heading, desc, tags);
-  return card;
 }
 
 function renderAboutContent(topic) {
@@ -267,39 +455,46 @@ function renderArticles(topic, category) {
     return;
   }
 
-  const categoryIndex = topic.children.findIndex(item => item.id === category.id);
-  const articles = Array.isArray(category.articles) ? category.articles : [];
-  const placeholders = Array.isArray(category.placeholders) ? category.placeholders : [];
+  const article = findArticle(category, homeState.articleSlug);
 
-  if (contentIndex) contentIndex.textContent = String(categoryIndex + 1).padStart(2, '0');
-  if (contentTitle) contentTitle.textContent = category.title;
-  if (contentDesc) contentDesc.textContent = category.desc || topic.desc || '';
-
-  if (articles.length === 0) {
-    articleEmpty.textContent = placeholders.length > 0
-      ? `${placeholders.join('、')} 暂无文章，后续补充。`
-      : '当前分类暂无文章，后续补充。';
-    articleEmpty.classList.remove('hidden');
+  if (!article) {
+    if (contentIndex) contentIndex.textContent = String(topic.children.findIndex(item => item.id === category.id) + 1).padStart(2, '0');
+    if (contentTitle) contentTitle.textContent = category.title;
+    if (contentDesc) contentDesc.textContent = category.desc || topic.desc || '';
+    articleList.appendChild(createArticleWelcome(topic, category));
     return;
   }
 
-  articles.forEach(article => {
-    articleList.appendChild(renderArticleCard(article));
-  });
+  renderInlineArticle(topic, category, article, { replace: true, scroll: false });
 }
 
 function switchTopic(topicId, options = {}) {
-  const topic = findTopic(topicId) || findTopic('c');
+  const topic = findTopic(topicId) || findTopic('foundation');
   if (!topic) return;
 
   const category = findCategory(topic, options.categoryId);
+  const article = options.articleSlug ? findArticle(category, options.articleSlug) : findArticle(category, '');
+
   homeState.topicId = topic.id;
   homeState.categoryId = category?.id || '';
+  homeState.articleSlug = article ? getArticleSlug(article) : '';
+  homeState.articleHref = article?.href || '';
 
   renderPrimaryNav();
   renderSecondaryNav(topic);
-  renderArticles(topic, category);
-  updateHomeHash(topic, category, options);
+
+  if (!category) {
+    renderArticles(topic, null);
+    updateHomeHash(topic, null, null, options);
+    return;
+  }
+
+  if (article) {
+    renderInlineArticle(topic, category, article, options);
+  } else {
+    renderArticles(topic, category);
+    updateHomeHash(topic, category, null, options);
+  }
 
   if (options.scroll !== false) {
     scrollHomeToTop();
@@ -311,21 +506,39 @@ function switchCategory(categoryId, options = {}) {
   if (!topic) return;
 
   const category = findCategory(topic, categoryId);
+  const article = findArticle(category, options.articleSlug || '');
+
   homeState.categoryId = category?.id || '';
+  homeState.articleSlug = article ? getArticleSlug(article) : '';
+  homeState.articleHref = article?.href || '';
 
   renderSecondaryNav(topic);
-  renderArticles(topic, category);
-  updateHomeHash(topic, category, options);
+
+  if (article) {
+    renderInlineArticle(topic, category, article, options);
+  } else {
+    renderArticles(topic, category);
+    updateHomeHash(topic, category, null, options);
+  }
 
   if (options.scroll !== false) {
     scrollHomeToTop();
   }
 }
 
+function selectArticle(topicId, categoryId, articleSlug, options = {}) {
+  const topic = findTopic(topicId);
+  const category = findCategory(topic, categoryId);
+  const article = findArticle(category, articleSlug);
+  if (!topic || !category || !article) return;
+  renderInlineArticle(topic, category, article, options);
+}
+
 function restoreHomeFromHash(options = {}) {
   const parsed = parseHomeHash();
   switchTopic(parsed.topicId, {
     categoryId: parsed.categoryId,
+    articleSlug: parsed.articleSlug,
     replace: options.replace,
     skipHash: options.skipHash,
     scroll: options.scroll
@@ -353,455 +566,88 @@ window.homeNav = {
   renderArticles,
   switchTopic,
   switchCategory,
+  selectArticle,
   initHome
 };
 window.switchTopic = switchTopic;
 window.switchCategory = switchCategory;
+window.selectArticle = selectArticle;
 
 function normalizeHeadingId(index) {
-  return `article-section-${index + 1}`;
+  return `section-${index + 1}`;
 }
 
-function getMainScriptUrl() {
-  const scripts = Array.from(document.scripts);
-  const currentScript = document.currentScript || scripts.find(script => /\/assets\/js\/main\.js(?:\?|$)/.test(script.src));
-  return currentScript?.src || new URL('/assets/js/main.js', window.location.origin).href;
-}
+function buildArticleToc(root = document) {
+  const toc = root.querySelector('#articleToc');
+  const article = root.querySelector('.article');
+  if (!toc || !article) return;
 
-function getSiteRootUrl() {
-  return new URL('../../index.html', getMainScriptUrl()).href;
-}
-
-function getAssetUrl(relativePath) {
-  return new URL(relativePath, getMainScriptUrl()).href;
-}
-
-function loadStylesheetOnce(id, href) {
-  if (document.getElementById(id)) return;
-  const link = document.createElement('link');
-  link.id = id;
-  link.rel = 'stylesheet';
-  link.href = href;
-  document.head.appendChild(link);
-}
-
-function loadScriptOnce(id, src) {
-  if (document.getElementById(id)) {
-    return Promise.resolve();
-  }
-
-  return new Promise(resolve => {
-    const script = document.createElement('script');
-    script.id = id;
-    script.src = src;
-    script.onload = () => resolve();
-    script.onerror = () => resolve();
-    document.head.appendChild(script);
-  });
-}
-
-function ensureHomeData() {
-  if (getHomeTopics().length > 0) {
-    return Promise.resolve(getHomeTopics());
-  }
-
-  if (!window.__homeDataLoading) {
-    window.__homeDataLoading = loadScriptOnce(
-      'home-data-dynamic',
-      getAssetUrl('home-data.js?v=704b803539b3')
-    ).then(() => getHomeTopics());
-  }
-
-  return window.__homeDataLoading;
-}
-
-function normalizePathname(pathname) {
-  return decodeURIComponent(pathname || '')
-    .replace(/\\/g, '/')
-    .replace(/\/+/g, '/')
-    .replace(/\/$/, '');
-}
-
-function getArticlePathFromHref(href) {
-  try {
-    return normalizePathname(new URL(href, getSiteRootUrl()).pathname);
-  } catch (error) {
-    return '';
-  }
-}
-
-function findArticleContextByPath() {
-  const currentPath = normalizePathname(window.location.pathname);
-  let matched = null;
-
-  getHomeTopics().forEach(topic => {
-    (topic.children || []).forEach(category => {
-      (category.articles || []).forEach(article => {
-        if (matched || !article?.href) return;
-        const articlePath = getArticlePathFromHref(article.href);
-        if (articlePath && articlePath === currentPath) {
-          matched = { topic, category, article };
-        }
-      });
-    });
-  });
-
-  return matched;
-}
-
-function findArticleContextByTopbar(articleTopbar) {
-  if (!articleTopbar) return null;
-
-  const links = Array.from(articleTopbar.querySelectorAll('a'));
-  for (const link of links) {
-    const href = link.getAttribute('href') || '';
-    const hash = href.includes('#') ? href.split('#').pop() : '';
-    if (!hash) continue;
-
-    const [topicId, categoryId] = legacyHomeHashMap[hash] || hash.split('/').filter(Boolean);
-    const topic = findTopic(topicId);
-    const category = findCategory(topic, categoryId);
-    if (topic) return { topic, category, article: null };
-  }
-
-  return null;
-}
-
-function getCurrentArticleContext(articleTopbar) {
-  return findArticleContextByPath() || findArticleContextByTopbar(articleTopbar) || {
-    topic: findTopic('c') || getHomeTopics()[0] || null,
-    category: null,
-    article: null
-  };
-}
-
-function buildTopicHomeHref(topic) {
-  const category = findCategory(topic, null);
-  return `${getSiteRootUrl()}${buildHomeHash(topic, category)}`;
-}
-
-function createProfileBlock() {
-  const profile = document.createElement('div');
-  profile.className = 'profile-compact';
-  profile.innerHTML = `
-    <div class="profile-compact-top">
-      <div class="profile-compact-avatar">
-        <img src="${getAssetUrl('../img/avatar-surf.jpg?v=704b803539b3')}" alt="XYJ 网站头像">
-      </div>
-      <div class="profile-identity">
-        <h1>XYJ</h1>
-        <p class="profile-summary">嵌入式软件工程师，${getWorkExperience(2022, 1)}经验。</p>
-      </div>
-    </div>
-    <a class="profile-email" href="mailto:xyj.work@qq.com" aria-label="发送邮件到 xyj.work@qq.com">
-      <svg class="profile-email-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 5h16c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2Zm0 2v.4l8 5.1 8-5.1V7H4Zm0 2.7V17h16V9.7l-7.46 4.76a1 1 0 0 1-1.08 0L4 9.7Z"/>
-      </svg>
-      <span>xyj.work@qq.com</span>
-    </a>
-  `;
-  return profile;
-}
-
-function buildArticlePrimarySidebar() {
-  const articleShell = document.querySelector('.article-page-shell');
-  if (!articleShell || articleShell.querySelector('.article-primary-sidebar')) return;
-
-  const context = getCurrentArticleContext(document.querySelector('.article-topbar'));
-  const activeTopicId = context.topic?.id || '';
-  const topics = getHomeTopics();
-  if (topics.length === 0) return;
-
-  const sidebar = document.createElement('aside');
-  sidebar.className = 'article-primary-sidebar';
-  sidebar.setAttribute('aria-label', '站点一级导航');
-
-  const top = document.createElement('div');
-  const primaryNav = document.createElement('nav');
-  primaryNav.className = 'primary-nav';
-  primaryNav.setAttribute('aria-label', '一级目录');
-
-  topics.forEach((topic, index) => {
-    const link = document.createElement('a');
-    const active = topic.id === activeTopicId;
-    link.className = 'primary-nav-button';
-    link.href = buildTopicHomeHref(topic);
-    link.title = topic.title;
-    link.classList.toggle('active', active);
-    link.setAttribute('aria-current', active ? 'page' : 'false');
-
-    const code = document.createElement('span');
-    code.className = 'primary-nav-code';
-    code.textContent = topic.shortTitle || String(index + 1).padStart(2, '0');
-
-    const title = document.createElement('span');
-    title.className = 'primary-nav-title';
-    title.textContent = topic.title;
-
-    const count = document.createElement('span');
-    count.className = 'primary-nav-count';
-    count.textContent = topic.id === 'about' ? 'INFO' : createCountLabel(getTopicArticleCount(topic));
-
-    link.append(code, title, count);
-    primaryNav.appendChild(link);
-  });
-
-  top.append(createProfileBlock(), primaryNav);
-
-  const footer = document.createElement('div');
-  footer.className = 'sidebar-footer';
-  footer.innerHTML = `<span>© ${new Date().getFullYear()} XYJ。</span>`;
-
-  sidebar.append(top, footer);
-  articleShell.insertBefore(sidebar, articleShell.firstElementChild);
-}
-
-function getInitialArticleSectionIndex(sections) {
-  const hash = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
-  if (!hash) return 0;
-
-  const index = sections.findIndex(section => section.id === hash);
-  return index >= 0 ? index : 0;
-}
-
-function dedupeArticleLinks(links) {
-  const seen = new Set();
-  return links.filter(item => {
-    if (!item?.href || !item?.text) return false;
-    const key = `${item.text}|${item.href}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function createArticleReaderActions(links) {
-  const actionItems = dedupeArticleLinks(links);
-  if (actionItems.length === 0) return null;
-
-  const actions = document.createElement('div');
-  actions.className = 'article-reader-actions';
-  actions.setAttribute('aria-label', '文章操作');
-
-  actionItems.forEach(item => {
-    const a = document.createElement('a');
-    a.href = item.href;
-    a.textContent = item.text;
-    actions.appendChild(a);
-  });
-
-  return actions;
-}
-
-function createArticleActionSidebar(links) {
-  const actions = createArticleReaderActions(links);
-  if (!actions) return null;
-
-  const actionSidebar = document.createElement('aside');
-  actionSidebar.className = 'article-action-sidebar';
-  actionSidebar.setAttribute('aria-label', '文章操作');
-
-  const actionTitle = document.createElement('div');
-  actionTitle.className = 'article-action-title';
-  actionTitle.textContent = '文章操作';
-
-  actionSidebar.append(actionTitle, actions);
-  return actionSidebar;
-}
-
-function buildArticleNav() {
-  const articleShell = document.querySelector('.article-page-shell');
-  const article = document.querySelector('.article');
-  const articleTopbar = document.querySelector('.article-topbar');
-
-  if (!articleShell || !article) return;
-  if (articleShell.querySelector('.article-sidebar')) return;
-
-  const headings = Array.from(article.querySelectorAll('section h2'));
-  if (headings.length === 0) return;
+  const headings = Array.from(article.querySelectorAll('h2'));
+  toc.replaceChildren();
 
   headings.forEach((heading, index) => {
-    const section = heading.closest('section');
-    if (!section) return;
-
-    if (!section.id) {
-      section.id = normalizeHeadingId(index);
-    }
-  });
-
-  const articleSections = headings
-    .map(heading => heading.closest('section'))
-    .filter(Boolean);
-
-  if (articleSections.length === 0) return;
-
-  const articleFooter = article.querySelector('.article-footer');
-  const topbarLinks = articleTopbar
-    ? Array.from(articleTopbar.querySelectorAll('a')).map(link => ({
-        text: link.textContent.trim(),
-        href: link.getAttribute('href')
-      }))
-    : [];
-  const footerLinks = articleFooter
-    ? Array.from(articleFooter.querySelectorAll('a')).map(link => ({
-        text: link.textContent.trim(),
-        href: link.getAttribute('href')
-      }))
-    : [];
-
-  const articleTitle = article.querySelector('h1')?.textContent.trim() || document.title.replace(/\s*-\s*XYJ\s*$/, '');
-  const articleMeta = article.querySelector('.post-meta')?.textContent.trim() || '';
-
-  articleTopbar?.remove();
-  articleFooter?.remove();
-
-  const sectionViewer = document.createElement('div');
-  sectionViewer.className = 'article-section-viewer';
-  sectionViewer.setAttribute('aria-live', 'polite');
-
-  const sectionInner = document.createElement('div');
-  sectionInner.className = 'article-section-inner';
-  sectionViewer.appendChild(sectionInner);
-
-  const actionSidebar = createArticleActionSidebar([...topbarLinks, ...footerLinks]);
-
-  article.classList.add('article-section-mode');
-  article.insertBefore(sectionViewer, articleSections[0]);
-
-  articleSections.forEach((section, index) => {
-    section.classList.add('article-reader-section');
-    section.dataset.sectionIndex = String(index);
-    section.hidden = true;
-    sectionInner.appendChild(section);
-  });
-
-  const articleSidebar = document.createElement('aside');
-  articleSidebar.className = 'article-sidebar';
-  articleSidebar.setAttribute('aria-label', '文章导航');
-
-  const articleNavCard = document.createElement('div');
-  articleNavCard.className = 'article-nav-card';
-
-  const contextBlock = document.createElement('div');
-  contextBlock.className = 'article-nav-context';
-
-  const contextEyebrow = document.createElement('span');
-  contextEyebrow.textContent = '当前文章';
-
-  const contextTitle = document.createElement('h2');
-  contextTitle.textContent = articleTitle;
-
-  contextBlock.append(contextEyebrow, contextTitle);
-  if (articleMeta) {
-    const contextMeta = document.createElement('p');
-    contextMeta.textContent = articleMeta;
-    contextBlock.appendChild(contextMeta);
-  }
-
-  const navTitle = document.createElement('div');
-  navTitle.className = 'article-nav-title';
-  navTitle.textContent = '文章目录';
-
-  const articleNav = document.createElement('nav');
-  articleNav.className = 'article-nav';
-
-  headings.forEach((heading, index) => {
-    const section = articleSections[index];
-    if (!section) return;
-
+    if (!heading.id) heading.id = normalizeHeadingId(index);
     const link = document.createElement('a');
-    link.href = `#${section.id}`;
-    link.textContent = heading.textContent.trim();
-    link.dataset.sectionIndex = String(index);
-
-    if (index === 0) {
-      link.classList.add('active');
-    }
-
-    articleNav.appendChild(link);
+    link.href = `#${heading.id}`;
+    link.textContent = heading.textContent;
+    toc.appendChild(link);
   });
+}
 
-  articleNavCard.appendChild(contextBlock);
-  articleNavCard.appendChild(navTitle);
-  articleNavCard.appendChild(articleNav);
-  articleSidebar.appendChild(articleNavCard);
+function initCopyButtons(root = document) {
+  const codeBlocks = root.querySelectorAll('pre');
+  codeBlocks.forEach((pre, index) => {
+    if (pre.parentElement?.classList.contains('code-block-wrap')) return;
 
-  articleShell.insertBefore(articleSidebar, article);
-  if (actionSidebar) {
-    articleShell.insertBefore(actionSidebar, article.nextSibling);
-  }
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrap';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
 
-  const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
+    const button = document.createElement('button');
+    button.className = 'copy-code-button';
+    button.type = 'button';
+    button.textContent = '复制';
+    button.setAttribute('aria-label', `复制第 ${index + 1} 段代码`);
 
-  function switchArticleSection(index, options = {}) {
-    const nextIndex = Math.max(0, Math.min(index, articleSections.length - 1));
-    const activeSection = articleSections[nextIndex];
-    if (!activeSection) return;
-
-    articleSections.forEach((section, sectionIndex) => {
-      const active = sectionIndex === nextIndex;
-      section.hidden = !active;
-      section.classList.toggle('active', active);
-    });
-
-    articleNavLinks.forEach((link, linkIndex) => {
-      const active = linkIndex === nextIndex;
-      link.classList.toggle('active', active);
-      link.setAttribute('aria-current', active ? 'page' : 'false');
-    });
-
-    if (options.updateHash !== false) {
-      const nextHash = `#${activeSection.id}`;
-      if (window.location.hash !== nextHash) {
-        window.history.pushState(null, '', nextHash);
+    button.addEventListener('click', async () => {
+      const text = pre.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = '已复制';
+        setTimeout(() => {
+          button.textContent = '复制';
+        }, 1500);
+      } catch (error) {
+        button.textContent = '复制失败';
+        setTimeout(() => {
+          button.textContent = '复制';
+        }, 1500);
       }
-    }
-
-    if (options.scrollViewer !== false) {
-      sectionViewer.scrollTo({ top: 0, behavior: 'auto' });
-    }
-  }
-
-  articleNavLinks.forEach((link, index) => {
-    link.addEventListener('click', event => {
-      event.preventDefault();
-      switchArticleSection(index);
     });
-  });
 
-  window.addEventListener('hashchange', () => {
-    const hash = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
-    const index = articleSections.findIndex(section => section.id === hash);
-    if (index >= 0) {
-      switchArticleSection(index, { updateHash: false });
-    }
-  });
-
-  document.body.classList.add('article-reader-page');
-  switchArticleSection(getInitialArticleSectionIndex(articleSections), {
-    updateHash: false,
-    scrollViewer: false
+    wrapper.appendChild(button);
   });
 }
 
-async function initArticlePage() {
-  const articleShell = document.querySelector('.article-page-shell');
-  if (!articleShell) return;
-
-  articleShell.classList.add('article-layout-shell');
-  loadStylesheetOnce(
-    'article-layout-tuning',
-    getAssetUrl('../css/article-layout-tuning.css?v=20260709-article1')
-  );
-  loadStylesheetOnce(
-    'article-section-reader',
-    getAssetUrl('../css/article-section-reader.css?v=20260709-section3')
-  );
-
-  await ensureHomeData();
-  buildArticlePrimarySidebar();
-  buildArticleNav();
+function enhanceArticleTables(root = document) {
+  const tables = root.querySelectorAll('.article table');
+  tables.forEach(table => {
+    if (table.parentElement?.classList.contains('table-scroll')) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-scroll';
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
 }
+
+function initArticlePage(root = document) {
+  buildArticleToc(root);
+  initCopyButtons(root);
+  enhanceArticleTables(root);
+}
+
+window.initArticlePage = initArticlePage;
 
 initHome();
 initArticlePage();
