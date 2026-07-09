@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Verilog 状态机设计方法 - XYJ</title>
+  <meta name="description" content="整理 Verilog 有限状态机 FSM 的设计方法，包括一段式、两段式、三段式状态机、状态编码、状态跳转、输出逻辑和工程检查清单。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#verilog-fsm">返回 Verilog专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">VERILOG · FSM · STATE MACHINE · FPGA</div>
+      <h1>Verilog 状态机设计方法</h1>
+
+      <p>
+        状态机是 FPGA 设计中最常用的控制结构。协议解析、ADC 采样时序、SPI/IIC 控制、帧接收、按键消抖、启动流程控制，几乎都可以用状态机描述。状态机的核心是：当前状态、状态跳转条件、下一状态和输出逻辑。
+      </p>
+
+      <div class="article-note">
+        状态机不是为了让代码显得复杂，而是为了把流程拆清楚。只要一个模块存在多个阶段，并且不同阶段行为不同，就应该考虑状态机。
+      </div>
+
+      <section>
+        <h2>一、状态机的基本组成</h2>
+        <ul>
+          <li>当前状态：<code>state</code>，记录现在处于哪个阶段。</li>
+          <li>下一状态：<code>next_state</code>，组合逻辑计算下一步去哪里。</li>
+          <li>跳转条件：输入事件、计数结束、握手完成、超时等。</li>
+          <li>输出逻辑：根据状态或跳转条件产生控制信号。</li>
+        </ul>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 300" role="img" aria-label="Verilog 状态机跳转图">
+            <circle cx="170" cy="145" r="55" fill="#e0f2fe" stroke="#0284c7"/><text x="170" y="151" text-anchor="middle" font-size="16" font-weight="700">IDLE</text>
+            <circle cx="380" cy="145" r="55" fill="#dcfce7" stroke="#16a34a"/><text x="380" y="151" text-anchor="middle" font-size="16" font-weight="700">START</text>
+            <circle cx="590" cy="145" r="55" fill="#fef3c7" stroke="#d97706"/><text x="590" y="151" text-anchor="middle" font-size="16" font-weight="700">DONE</text>
+            <path d="M225 145 L325 145" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-fsm)"/><text x="275" y="130" text-anchor="middle" font-size="13">start</text>
+            <path d="M435 145 L535 145" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-fsm)"/><text x="485" y="130" text-anchor="middle" font-size="13">finish</text>
+            <path d="M590 200 C510 260 250 260 170 200" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-fsm)"/><text x="380" y="268" text-anchor="middle" font-size="13">clear</text>
+            <defs><marker id="arrow-fsm" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker></defs>
+          </svg>
+          <figcaption>图 1：状态机用状态和跳转条件描述控制流程。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>二、状态编码</h2>
+        <p>
+          状态通常用 <code>localparam</code> 定义，避免在代码里直接写魔法数字。</p>
+        <pre><code>localparam S_IDLE  = 2'd0;
+localparam S_START = 2'd1;
+localparam S_WAIT  = 2'd2;
+localparam S_DONE  = 2'd3;
+
+reg [1:0] state;
+reg [1:0] next_state;</code></pre>
+        <p>
+          小型状态机可以用二进制编码；速度要求高、状态较多时，也可以考虑 one-hot 编码。具体由综合工具和目标 FPGA 资源决定。</p>
+      </section>
+
+      <section>
+        <h2>三、三段式状态机</h2>
+        <p>
+          三段式状态机把“状态寄存器”“下一状态组合逻辑”“输出逻辑”分开，结构清晰，适合大多数工程代码。</p>
+        <pre><code>// 第一段：状态寄存器
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        state &lt;= S_IDLE;
+    else
+        state &lt;= next_state;
+end
+
+// 第二段：下一状态组合逻辑
+always @(*) begin
+    next_state = state;
+    case (state)
+        S_IDLE: begin
+            if (start)
+                next_state = S_START;
+        end
+        S_START: begin
+            next_state = S_WAIT;
+        end
+        S_WAIT: begin
+            if (done)
+                next_state = S_DONE;
+        end
+        S_DONE: begin
+            next_state = S_IDLE;
+        end
+        default: begin
+            next_state = S_IDLE;
+        end
+    endcase
+end
+
+// 第三段：输出逻辑
+always @(*) begin
+    busy = 1'b0;
+    case (state)
+        S_START,
+        S_WAIT: busy = 1'b1;
+        default: busy = 1'b0;
+    endcase
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>四、一段式、两段式、三段式怎么选</h2>
+        <table>
+          <thead><tr><th>写法</th><th>特点</th><th>建议</th></tr></thead>
+          <tbody>
+            <tr><td>一段式</td><td>状态跳转和输出写在一个时序 always 中</td><td>小状态机可用，但复杂后不易维护</td></tr>
+            <tr><td>两段式</td><td>状态寄存器一段，组合逻辑一段</td><td>常用，但输出逻辑要注意毛刺</td></tr>
+            <tr><td>三段式</td><td>状态寄存器、跳转逻辑、输出逻辑分开</td><td>推荐作为工程默认写法</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>五、Moore 与 Mealy</h2>
+        <p>
+          Moore 状态机输出只和当前状态有关；Mealy 状态机输出和当前状态、输入条件都有关。Moore 更稳定，Mealy 响应更快，但要注意组合路径和毛刺。</p>
+        <pre><code>// Moore：输出只看 state
+assign busy = (state == S_WAIT);
+
+// Mealy：输出和 state、输入都有关
+assign fire = (state == S_WAIT) &amp;&amp; data_valid;</code></pre>
+      </section>
+
+      <section>
+        <h2>六、状态机常见错误</h2>
+        <ul>
+          <li>没有 default 分支，异常状态无法恢复。</li>
+          <li>组合逻辑中没有默认赋值，推断 latch。</li>
+          <li>状态跳转条件没有打一拍，导致跨时钟域问题。</li>
+          <li>输出信号毛刺影响下游模块。</li>
+          <li>状态太多但命名不清晰，后期难以维护。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>七、工程检查清单</h2>
+        <ul>
+          <li>状态名是否能表达真实流程。</li>
+          <li>复位后状态是否确定。</li>
+          <li>所有状态是否都有跳转出口。</li>
+          <li>是否有 default 恢复到安全状态。</li>
+          <li>输出信号是否可能出现毛刺。</li>
+          <li>跨时钟域输入是否先同步。</li>
+          <li>仿真是否覆盖异常状态和超时路径。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#verilog-fsm">返回 Verilog专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
