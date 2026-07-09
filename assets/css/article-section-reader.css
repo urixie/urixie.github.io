@@ -17,20 +17,21 @@ body.article-reader-page {
   overflow: hidden;
 }
 
+/* 章节阅读模式下，正文区不再展示文章顶部摘要，只保留当前章节。 */
 .article-section-mode > .post-meta,
 .article-section-mode > h1,
 .article-section-mode > p,
 .article-section-mode > .article-note,
 .article-section-mode > .article-warning {
-  flex: 0 0 auto;
+  display: none !important;
 }
 
 .article-section-viewer {
   flex: 1 1 auto;
   min-height: 0;
-  margin-top: 24px;
-  padding: 22px 14px 22px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0;
+  padding: 0 14px 22px 0;
+  border-top: none;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -104,9 +105,9 @@ body.article-reader-page {
 
   .article-section-viewer {
     max-height: 72dvh;
-    margin-top: 20px;
-    padding: 18px 10px 18px 0;
-    border-top-color: rgba(255, 255, 255, 0.07);
+    margin-top: 0;
+    padding: 0 10px 18px 0;
+    border-top: none;
   }
 }
 
