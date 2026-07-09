@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言指针与内存模型整理 - XYJ</title>
-  <meta name="description" content="面向嵌入式工程实践整理 C 语言指针、数组、字符串、栈、堆、野指针、越界访问和缓冲区设计。">
+  <meta name="description" content="面向嵌入式工程实践整理 C 语言指针、数组、字符串、栈、堆、指针函数、函数指针、野指针、越界访问和缓冲区设计。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
 </head>
 <body>
@@ -18,12 +18,12 @@
     </div>
 
     <article class="article card">
-      <div class="post-meta">C LANGUAGE · POINTER · MEMORY</div>
+      <div class="post-meta">C LANGUAGE · POINTER · MEMORY · FUNCTION POINTER</div>
 
       <h1>C语言指针与内存模型整理</h1>
 
       <p>
-        本文整理 C 语言中最容易出错、但也是嵌入式开发最常用的指针与内存知识。重点关注地址、解引用、数组、字符串、缓冲区、栈、堆、野指针、越界访问以及协议解析中的典型写法。
+        本文整理 C 语言中最容易出错、但也是嵌入式开发最常用的指针与内存知识。重点关注地址、解引用、数组与指针、字符串、缓冲区、栈、堆、指针函数、函数指针、野指针、越界访问以及协议解析中的典型写法。
       </p>
 
       <div class="article-note">
@@ -40,6 +40,7 @@
           <li>输出函数结果：通过指针把读取结果写回调用者。</li>
           <li>访问寄存器地址：把固定地址转换成寄存器指针。</li>
           <li>组织动态数据：链表、队列、环形缓冲区等结构都依赖指针。</li>
+          <li>组织回调入口：通过函数指针实现驱动回调、命令分发和状态机处理。</li>
         </ul>
       </section>
 
@@ -51,7 +52,7 @@
         <pre><code>uint16_t adc = 1234;
 uint16_t *p = &amp;adc;
 
-*p = 2048;      // 修改 adc 的值
+*p = 2048;       // 修改 adc 的值
 uint16_t v = *p; // 读取 adc 的值</code></pre>
         <p>
           指针使用前必须保证它指向有效对象。空指针、野指针、已经释放的内存、已经离开作用域的局部变量地址，都是常见风险来源。
@@ -59,22 +60,49 @@ uint16_t v = *p; // 读取 adc 的值</code></pre>
       </section>
 
       <section>
-        <h2>三、数组名、指针与字符串</h2>
+        <h2>三、数组与指针</h2>
         <p>
-          在表达式中，数组名通常会退化为指向首元素的指针。但数组和指针不是完全相同的东西，数组有固定存储空间，指针只是保存地址。
+          数组是一段连续存储空间，指针是保存地址的变量。在大多数表达式中，数组名会退化为指向首元素的指针，但数组和指针不是同一个概念。
         </p>
         <pre><code>uint8_t frame[8] = {0xAA, 0x55, 0x01, 0x02};
 uint8_t *p = frame;
 
-uint8_t head0 = frame[0];
-uint8_t head1 = *(p + 1);</code></pre>
+uint8_t head0 = frame[0];   // 数组下标访问
+uint8_t head1 = *(p + 1);   // 指针偏移访问
+
+sizeof(frame); // 结果是整个数组大小：8
+sizeof(p);     // 结果是指针变量大小：与平台位宽有关</code></pre>
+        <p>
+          函数参数中的数组写法会退化为指针，所以函数内部无法通过 <code>sizeof(buf)</code> 得到原始数组长度。工程接口应同时传入指针和长度。
+        </p>
+        <pre><code>int frame_parse(const uint8_t *buf, uint16_t len)
+{
+    if (buf == NULL || len &lt; 4U) {
+        return -1;
+    }
+
+    if (buf[0] != 0xAA || buf[1] != 0x55) {
+        return -2;
+    }
+
+    return 0;
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>四、字符串、字符数组与二进制缓冲区</h2>
         <p>
           字符串本质上是以 <code>\0</code> 结尾的字符数组。如果处理的是串口、SPI、Flash 中的二进制数据，不要假设它一定有字符串结束符。
+        </p>
+        <pre><code>char name[] = "ESP32";          // 字符串，末尾自动带 \0
+uint8_t bin[] = {0x45, 0x53};   // 二进制数据，不一定有 \0</code></pre>
+        <p>
+          协议帧和文件内容优先使用 <code>uint8_t *</code> 表示原始字节流。只有确定数据是文本并且有结束符时，才使用字符串函数。
         </p>
       </section>
 
       <section>
-        <h2>四、指针加减与数据类型长度</h2>
+        <h2>五、指针加减与数据类型长度</h2>
         <p>
           指针加一不是地址加一字节，而是移动一个指向类型的长度。<code>uint16_t *</code> 加一会移动 2 字节，<code>uint32_t *</code> 加一会移动 4 字节。
         </p>
@@ -88,7 +116,7 @@ p = p + 1; // 地址移动 sizeof(uint32_t) 字节</code></pre>
       </section>
 
       <section>
-        <h2>五、栈、堆、全局区与静态区</h2>
+        <h2>六、栈、堆、全局区与静态区</h2>
         <p>
           嵌入式系统中，内存区域通常比较有限。局部变量一般在栈上，全局变量和静态变量位于静态存储区，动态申请的内存在堆上。小 MCU 项目中应谨慎使用动态内存。
         </p>
@@ -103,30 +131,83 @@ p = p + 1; // 地址移动 sizeof(uint32_t) 字节</code></pre>
       </section>
 
       <section>
-        <h2>六、野指针、空指针与越界访问</h2>
+        <h2>七、指针函数与函数指针</h2>
         <p>
-          指针问题最难排查的地方在于：错误不一定马上暴露。一次越界写入可能破坏旁边变量，最终在完全无关的代码位置表现为死机、重启或随机数据异常。
+          指针函数和函数指针名字相近，但含义完全不同。指针函数是“返回指针的函数”；函数指针是“指向函数入口地址的指针”。
         </p>
-        <pre><code>int buffer_write(uint8_t *buf, uint16_t buf_size, uint16_t index, uint8_t value)
+        <h3>7.1 指针函数</h3>
+        <p>
+          指针函数的返回值是一个指针，常用于返回静态缓冲区、查表结果或对象地址。注意不要返回局部变量的地址。
+        </p>
+        <pre><code>static const char *state_names[] = {
+    "IDLE",
+    "RUN",
+    "ERROR",
+};
+
+const char *get_state_name(uint8_t state)
 {
-    if (buf == NULL) {
-        return -1;
+    if (state &gt;= 3U) {
+        return "UNKNOWN";
     }
-
-    if (index &gt;= buf_size) {
-        return -2;
-    }
-
-    buf[index] = value;
-    return 0;
+    return state_names[state];
 }</code></pre>
+        <div class="article-warning">
+          不要返回函数内部局部数组的地址。函数返回后，局部数组所在栈空间已经失效，继续访问会产生未定义行为。
+        </div>
+        <pre><code>// 错误示例
+char *get_name_bad(void)
+{
+    char name[16] = "device";
+    return name; // 错误：返回局部变量地址
+}</code></pre>
+
+        <h3>7.2 函数指针</h3>
         <p>
-          工程中所有涉及指针和长度的函数，都应该同时传入缓冲区指针和缓冲区长度，不要只传指针。
+          函数指针保存函数入口地址，常用于回调函数、命令分发表、驱动抽象层和状态机处理。它可以减少大量分支判断，让新增命令只需要增加表项。
         </p>
+        <pre><code>typedef int (*cmd_handler_t)(const uint8_t *data, uint16_t len);
+
+typedef struct {
+    uint8_t cmd;
+    cmd_handler_t handler;
+} cmd_item_t;
+
+static int handle_read(const uint8_t *data, uint16_t len)
+{
+    (void)data;
+    (void)len;
+    return 0;
+}
+
+static int handle_write(const uint8_t *data, uint16_t len)
+{
+    (void)data;
+    (void)len;
+    return 0;
+}
+
+static const cmd_item_t g_cmd_table[] = {
+    {0x01, handle_read},
+    {0x02, handle_write},
+};</code></pre>
+        <p>
+          调用函数指针前必须确认它不为空，并且要统一函数签名。回调是在中断中执行、任务中执行还是主循环中执行，也必须提前约定清楚。
+        </p>
+        <pre><code>int dispatch_cmd(uint8_t cmd, const uint8_t *data, uint16_t len)
+{
+    for (uint16_t i = 0; i &lt; ARRAY_SIZE(g_cmd_table); i++) {
+        if (g_cmd_table[i].cmd == cmd &amp;&amp; g_cmd_table[i].handler != NULL) {
+            return g_cmd_table[i].handler(data, len);
+        }
+    }
+
+    return -1;
+}</code></pre>
       </section>
 
       <section>
-        <h2>七、二级指针与指针数组</h2>
+        <h2>八、二级指针与指针数组</h2>
         <p>
           二级指针常用于修改调用者持有的指针，或者处理字符串表、命令表。指针数组则常用于保存多个字符串或多个回调入口。
         </p>
@@ -136,7 +217,7 @@ p = p + 1; // 地址移动 sizeof(uint32_t) 字节</code></pre>
     "ERROR",
 };
 
-const char *get_state_name(uint8_t state)
+const char *get_state_name_simple(uint8_t state)
 {
     if (state &gt;= 3U) {
         return "UNKNOWN";
@@ -149,7 +230,7 @@ const char *get_state_name(uint8_t state)
       </section>
 
       <section>
-        <h2>八、嵌入式场景下的指针用法</h2>
+        <h2>九、嵌入式场景下的指针用法</h2>
         <p>
           常见场景包括串口协议解析、Flash 数据读写、DMA 接收缓冲区、上位机参数下发、显示缓存刷新等。此类函数的接口建议统一表达为“数据指针 + 数据长度”。
         </p>
@@ -175,12 +256,34 @@ int parse_frame(const uint8_t *data, uint16_t len, app_frame_t *out_frame)
       </section>
 
       <section>
-        <h2>九、指针问题排查清单</h2>
+        <h2>十、野指针、空指针与越界访问</h2>
+        <p>
+          指针问题最难排查的地方在于：错误不一定马上暴露。一次越界写入可能破坏旁边变量，最终在完全无关的代码位置表现为死机、重启或随机数据异常。
+        </p>
+        <pre><code>int buffer_write(uint8_t *buf, uint16_t buf_size, uint16_t index, uint8_t value)
+{
+    if (buf == NULL) {
+        return -1;
+    }
+
+    if (index &gt;= buf_size) {
+        return -2;
+    }
+
+    buf[index] = value;
+    return 0;
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>十一、指针问题排查清单</h2>
         <ul>
           <li>指针使用前是否判空。</li>
           <li>是否同时传入了缓冲区长度。</li>
           <li>数组访问下标是否小于数组长度。</li>
+          <li>函数参数中的数组是否误用 <code>sizeof</code> 求长度。</li>
           <li>是否返回了局部变量地址。</li>
+          <li>函数指针调用前是否判空，函数签名是否一致。</li>
           <li>是否把二进制数据误当成字符串处理。</li>
           <li>结构体强转时是否考虑了对齐和大小端。</li>
           <li>大数组是否放在了栈上导致栈溢出。</li>
