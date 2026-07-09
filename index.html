@@ -33,6 +33,20 @@
         <nav class="nav" id="site-nav">
           <a href="#hardware-stack">技术栈矩阵</a>
 
+          <div class="nav-group" id="c-language-group">
+            <button class="nav-group-toggle" type="button" aria-expanded="true">
+              <span>C语言专题</span>
+              <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="nav-group-items is-open">
+              <a class="nav-sub" href="#c-basic">基础语法</a>
+              <a class="nav-sub" href="#c-pointer">指针与内存</a>
+              <a class="nav-sub" href="#c-struct">结构体与数据组织</a>
+              <a class="nav-sub" href="#c-embedded">嵌入式 C</a>
+              <a class="nav-sub" href="#c-debug">调试与工程实践</a>
+            </div>
+          </div>
+
           <div class="nav-group" id="mcu-group">
             <button class="nav-group-toggle" type="button" aria-expanded="false">
               <span>MCU</span>
@@ -111,6 +125,71 @@
         </div>
 
         <div class="stack-list">
+          <article class="stack-card" id="c-basic">
+            <div class="post-meta">C语言专题</div>
+
+            <div class="platform-category">
+              <h4>基础语法</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>变量 / 类型 / 运算符 / 流程控制 / 函数 · 面向嵌入式工程的 C 语言基础整理</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="c-pointer">
+            <div class="post-meta">C语言专题</div>
+
+            <div class="platform-category">
+              <h4>指针与内存</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>指针 / 数组 / 字符串 / 栈 / 堆 / 越界访问 · 梳理 C 语言最容易出错的内存问题</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="c-struct">
+            <div class="post-meta">C语言专题</div>
+
+            <div class="platform-category">
+              <h4>结构体与数据组织</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>struct / union / enum / 位域 / 协议帧 / 寄存器映射 · 适合参数配置和通信协议设计</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="c-embedded">
+            <div class="post-meta">C语言专题</div>
+
+            <div class="platform-category">
+              <h4>嵌入式 C</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>volatile / static / const / 宏 / 中断 / 寄存器操作 · 贴近 STM32、ESP32 和驱动开发场景</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="stack-card" id="c-debug">
+            <div class="post-meta">C语言专题</div>
+
+            <div class="platform-category">
+              <h4>调试与工程实践</h4>
+              <div class="platform-items">
+                <div class="platform-item">
+                  <span>断点调试 / 日志 / map 文件 / HardFault / 编译告警 / 代码规范 · 沉淀实际项目排错经验</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
           <article class="stack-card" id="mcu-st">
             <div class="post-meta">ST</div>
 
@@ -376,6 +455,12 @@
       <section class="widget">
         <h3>关键词</h3>
         <div class="tag-cloud">
+          <a href="#c-basic">C语言</a>
+          <a href="#c-pointer">指针</a>
+          <a href="#c-pointer">内存</a>
+          <a href="#c-struct">结构体</a>
+          <a href="#c-embedded">嵌入式 C</a>
+          <a href="#c-debug">调试</a>
           <a href="articles/mcu/efm8bb10f8i-qfn20-development-notes/efm8bb10f8i-qfn20-development-notes.html?v=bb7d9a57684e">EFM8BB1</a>
           <a href="articles/mcu/efm8bb10f8i-qfn20-development-notes/efm8bb10f8i-qfn20-development-notes.html?v=bb7d9a57684e">8051</a>
           <a href="articles/mcu/efm8bb10f8i-qfn20-development-notes/efm8bb10f8i-qfn20-development-notes.html?v=bb7d9a57684e">C2 Debug</a>
