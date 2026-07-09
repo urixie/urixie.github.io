@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Linux 基础命令与文件系统 - XYJ</title>
+  <meta name="description" content="整理 Linux 基础命令、目录结构、权限、软链接、文件搜索、压缩打包、设备文件、/proc、/sys 和嵌入式 Linux 常用排查方法。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#linux-basic">返回 Linux专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">LINUX · COMMAND · FILESYSTEM · PERMISSION</div>
+      <h1>Linux 基础命令与文件系统</h1>
+
+      <p>
+        本文整理 Linux 入门和嵌入式 Linux 调试中最常用的基础命令与文件系统知识。重点不是背命令，而是理解 Linux 中“一切皆文件”的思想：普通文件、目录、设备节点、进程信息、内核参数，都可以通过统一的文件接口进行查看和操作。
+      </p>
+
+      <div class="article-note">
+        嵌入式 Linux 调试时，很多问题不是代码本身，而是路径、权限、设备节点、挂载点、脚本执行环境和文件系统状态出错。先熟悉基础命令和目录结构，后面看驱动、进程和系统服务会轻松很多。
+      </div>
+
+      <section>
+        <h2>一、Linux 目录结构</h2>
+        <p>
+          Linux 没有 Windows 那种 C 盘、D 盘概念，所有内容都挂在根目录 <code>/</code> 下面。不同目录有不同职责。
+        </p>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 360" role="img" aria-label="Linux 目录结构示意图">
+            <rect x="330" y="30" width="100" height="46" rx="12" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="380" y="60" text-anchor="middle" font-size="18" font-weight="700">/</text>
+            <g font-size="14" fill="#0f172a">
+              <rect x="60" y="130" width="110" height="42" rx="10" fill="#dcfce7" stroke="#16a34a"/><text x="115" y="157" text-anchor="middle">/bin</text>
+              <rect x="190" y="130" width="110" height="42" rx="10" fill="#dcfce7" stroke="#16a34a"/><text x="245" y="157" text-anchor="middle">/etc</text>
+              <rect x="320" y="130" width="110" height="42" rx="10" fill="#fef3c7" stroke="#d97706"/><text x="375" y="157" text-anchor="middle">/dev</text>
+              <rect x="450" y="130" width="110" height="42" rx="10" fill="#ede9fe" stroke="#7c3aed"/><text x="505" y="157" text-anchor="middle">/proc</text>
+              <rect x="580" y="130" width="110" height="42" rx="10" fill="#ede9fe" stroke="#7c3aed"/><text x="635" y="157" text-anchor="middle">/sys</text>
+              <rect x="120" y="240" width="120" height="42" rx="10" fill="#f8fafc" stroke="#64748b"/><text x="180" y="267" text-anchor="middle">/home</text>
+              <rect x="320" y="240" width="120" height="42" rx="10" fill="#f8fafc" stroke="#64748b"/><text x="380" y="267" text-anchor="middle">/mnt</text>
+              <rect x="520" y="240" width="120" height="42" rx="10" fill="#f8fafc" stroke="#64748b"/><text x="580" y="267" text-anchor="middle">/tmp</text>
+            </g>
+            <g stroke="#64748b" stroke-width="2">
+              <path d="M380 76 L115 130"/><path d="M380 76 L245 130"/><path d="M380 76 L375 130"/><path d="M380 76 L505 130"/><path d="M380 76 L635 130"/>
+              <path d="M380 76 L180 240"/><path d="M380 76 L380 240"/><path d="M380 76 L580 240"/>
+            </g>
+          </svg>
+          <figcaption>图 1：Linux 常见目录结构，嵌入式调试经常关注 /dev、/proc、/sys、/etc。</figcaption>
+        </figure>
+        <ul>
+          <li><code>/bin</code>、<code>/sbin</code>：基础命令。</li>
+          <li><code>/etc</code>：配置文件。</li>
+          <li><code>/dev</code>：设备节点，例如串口、磁盘、GPIO 相关设备。</li>
+          <li><code>/proc</code>：进程和内核运行时信息。</li>
+          <li><code>/sys</code>：设备模型、驱动、总线、类等信息。</li>
+          <li><code>/mnt</code>、<code>/media</code>：挂载外部存储或临时文件系统。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>二、常用查看命令</h2>
+        <p>
+          日常定位问题时，先看文件、路径、权限和内容是否正确。
+        </p>
+        <pre><code>pwd                 # 查看当前路径
+ls -lah             # 查看文件和权限
+cat file.txt        # 输出文本文件
+head -n 20 log.txt  # 查看文件前 20 行
+tail -f app.log     # 实时跟踪日志
+du -sh *            # 查看当前目录下各项大小
+df -h               # 查看磁盘/分区挂载和空间</code></pre>
+      </section>
+
+      <section>
+        <h2>三、搜索与过滤</h2>
+        <p>
+          Linux 调试经常需要在大量日志和源码中查找关键字。常用组合是 <code>grep</code>、<code>find</code>、<code>xargs</code>。
+        </p>
+        <pre><code>grep -rn "error" .
+find . -name "*.c"
+find . -name "*.log" -mtime -1
+ps aux | grep app
+cat /proc/cpuinfo | grep Hardware</code></pre>
+        <p>
+          在嵌入式板子上，如果没有完整 GNU 工具，BusyBox 版本命令可能参数较少，需要根据实际系统裁剪情况调整写法。
+        </p>
+      </section>
+
+      <section>
+        <h2>四、权限与用户</h2>
+        <p>
+          Linux 文件权限分为所有者、所属组和其它用户三类，每类有读、写、执行权限。很多“命令不能执行”“设备打不开”的问题，本质是权限不对。
+        </p>
+        <pre><code>chmod +x run.sh
+chmod 755 app
+chown root:root app
+ls -l /dev/ttyS0</code></pre>
+        <p>
+          对脚本来说，只有读权限不够，还需要执行权限；对设备节点来说，应用程序还需要具备访问该设备节点的权限。
+        </p>
+      </section>
+
+      <section>
+        <h2>五、软链接与硬链接</h2>
+        <p>
+          软链接类似快捷方式，保存的是目标路径；硬链接是多个文件名指向同一个 inode。嵌入式系统里常用软链接管理版本、库文件和启动脚本。
+        </p>
+        <pre><code>ln -s app_v1.2.0 app_current
+ls -l app_current</code></pre>
+        <p>
+          如果移动了软链接指向的目标文件，软链接可能失效。排查程序找不到动态库时，也要检查软链接是否正确。
+        </p>
+      </section>
+
+      <section>
+        <h2>六、压缩、传输与同步</h2>
+        <pre><code>tar -czf project.tar.gz project/
+tar -xzf project.tar.gz
+scp app root@192.168.1.10:/usr/bin/
+rsync -avz ./build/ root@192.168.1.10:/opt/app/</code></pre>
+        <p>
+          嵌入式开发中，常用 <code>scp</code> 或 <code>rsync</code> 把可执行文件传到开发板，再通过 SSH 登录运行。频繁调试时，<code>rsync</code> 比重复全量拷贝更高效。
+        </p>
+      </section>
+
+      <section>
+        <h2>七、/proc 与 /sys</h2>
+        <p>
+          <code>/proc</code> 和 <code>/sys</code> 是理解 Linux 运行状态的窗口。它们看起来像文件系统，但很多内容并不是真实磁盘文件，而是内核导出的运行时信息。
+        </p>
+        <pre><code>cat /proc/meminfo
+cat /proc/interrupts
+cat /proc/cmdline
+cat /proc/mounts
+ls /sys/class
+ls /sys/bus/platform/devices</code></pre>
+        <p>
+          调试驱动、设备树、内存、CPU、中断、挂载点时，这两个目录非常重要。
+        </p>
+      </section>
+
+      <section>
+        <h2>八、工程检查清单</h2>
+        <ul>
+          <li>程序路径是否正确。</li>
+          <li>脚本是否有执行权限。</li>
+          <li>设备节点是否存在，权限是否允许访问。</li>
+          <li>文件系统是否只读挂载。</li>
+          <li>动态库软链接是否正确。</li>
+          <li>日志路径所在分区是否有剩余空间。</li>
+          <li>BusyBox 命令是否支持你使用的参数。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#linux-basic">返回 Linux专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
