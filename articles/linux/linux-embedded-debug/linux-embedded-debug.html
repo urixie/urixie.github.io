@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式 Linux 驱动与系统调试 - XYJ</title>
+  <meta name="description" content="整理嵌入式 Linux 驱动与系统调试，包括设备树、设备节点、dmesg、sysfs、procfs、内核模块、交叉编译、gdbserver、strace 和串口日志。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#linux-embedded">返回 Linux专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">LINUX · EMBEDDED · DEVICE TREE · DRIVER · DEBUG</div>
+      <h1>嵌入式 Linux 驱动与系统调试</h1>
+
+      <p>
+        嵌入式 Linux 调试通常横跨内核、设备树、驱动、用户态程序、文件系统和启动脚本。本文按工程排错视角整理常见入口：串口日志、dmesg、设备树、设备节点、sysfs/procfs、内核模块、交叉编译和 gdbserver。
+      </p>
+
+      <div class="article-note">
+        调嵌入式 Linux 不要一上来就改代码。先确认硬件连线、设备树是否生效、驱动是否匹配、设备节点是否创建、权限是否正确、用户程序打开路径是否正确。
+      </div>
+
+      <section>
+        <h2>一、启动日志与串口控制台</h2>
+        <p>
+          串口日志是嵌入式 Linux 最重要的第一现场。U-Boot、内核启动、驱动 probe、rootfs 挂载、systemd 启动都可以从串口看到线索。
+        </p>
+        <pre><code>dmesg
+cat /proc/cmdline
+cat /proc/version
+uname -a</code></pre>
+        <p>
+          如果系统无法启动，优先保留完整串口日志；如果系统已经启动，优先用 <code>dmesg</code> 查看内核日志。</p>
+      </section>
+
+      <section>
+        <h2>二、设备树调试</h2>
+        <p>
+          设备树描述硬件资源，例如 GPIO、I2C、SPI、UART、中断、时钟、电源和 pinctrl。驱动能否 probe 成功，很多时候取决于设备树节点是否正确。
+        </p>
+        <pre><code>ls /proc/device-tree
+find /proc/device-tree -name "*spi*"
+hexdump -C /proc/device-tree/model</code></pre>
+        <p>
+          常见问题包括 compatible 不匹配、pinctrl 未配置、GPIO 极性错误、中断号错误、status 没有设为 okay。</p>
+      </section>
+
+      <section>
+        <h2>三、驱动 probe 与 dmesg</h2>
+        <p>
+          驱动加载后会根据 compatible、总线类型或设备 ID 匹配设备。匹配成功后执行 probe。probe 失败时，通常会在 dmesg 中留下错误码。</p>
+        <pre><code>dmesg | grep -i spi
+dmesg | grep -i i2c
+dmesg | grep -i error</code></pre>
+        <p>
+          如果用户态找不到设备，先确认驱动是否 probe，再确认设备节点是否创建，最后确认权限和应用路径。</p>
+      </section>
+
+      <section>
+        <h2>四、设备节点与 sysfs</h2>
+        <p>
+          Linux 中很多设备会在 <code>/dev</code> 下生成节点，例如串口、SPI、I2C、输入设备等。<code>/sys</code> 则可以查看设备、驱动、总线和类的关系。</p>
+        <pre><code>ls -l /dev/ttyS*
+ls -l /dev/spidev*
+ls /sys/class
+ls /sys/bus/platform/devices
+ls /sys/bus/spi/devices</code></pre>
+      </section>
+
+      <section>
+        <h2>五、内核模块</h2>
+        <p>
+          如果驱动编译成模块，可以使用 <code>insmod</code>、<code>rmmod</code>、<code>lsmod</code> 调试加载和卸载。</p>
+        <pre><code>insmod my_driver.ko
+lsmod
+rmmod my_driver
+dmesg | tail -n 80</code></pre>
+        <p>
+          模块加载失败时，要检查内核版本、符号依赖、设备树匹配和模块参数。</p>
+      </section>
+
+      <section>
+        <h2>六、交叉编译与部署</h2>
+        <p>
+          嵌入式 Linux 用户程序通常在 PC 上交叉编译，再拷贝到板子运行。常见问题是工具链架构不匹配、动态库缺失、运行权限不够。</p>
+        <pre><code>file app
+readelf -h app
+ldd app
+scp app root@192.168.1.10:/opt/app/</code></pre>
+        <p>
+          如果目标板没有 <code>ldd</code>，可以用 <code>readelf -d</code> 查看依赖库。</p>
+      </section>
+
+      <section>
+        <h2>七、用户态调试：strace 与 gdbserver</h2>
+        <p>
+          <code>strace</code> 用来跟踪系统调用，<code>gdbserver</code> 用来远程调试程序。文件打不开、设备打不开、权限问题，优先用 strace；崩溃和逻辑错误，可以用 gdbserver。</p>
+        <pre><code>strace -o trace.log ./app
+
+gdbserver :2345 ./app
+# PC 端：
+# target remote 192.168.1.10:2345</code></pre>
+      </section>
+
+      <section>
+        <h2>八、常见排查路径</h2>
+        <table>
+          <thead><tr><th>现象</th><th>排查路径</th></tr></thead>
+          <tbody>
+            <tr><td>设备节点不存在</td><td>设备树 status / compatible / 驱动 probe / udev 或 mdev</td></tr>
+            <tr><td>open 设备失败</td><td>路径、权限、驱动是否加载、strace errno</td></tr>
+            <tr><td>SPI/I2C 无数据</td><td>pinctrl、片选、时钟、设备树、逻辑分析仪</td></tr>
+            <tr><td>程序运行提示 not found</td><td>架构错误、动态链接器缺失、库依赖缺失</td></tr>
+            <tr><td>系统启动卡住</td><td>串口日志、rootfs 挂载、init/systemd、内核 panic</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>九、工程检查清单</h2>
+        <ul>
+          <li>设备树节点是否实际进入运行系统。</li>
+          <li>compatible 是否和驱动匹配。</li>
+          <li>dmesg 中是否有 probe 成功或失败信息。</li>
+          <li>设备节点是否创建，权限是否正确。</li>
+          <li>用户程序打开路径是否与设备节点一致。</li>
+          <li>应用架构和动态库是否匹配目标板。</li>
+          <li>问题是否能通过 strace、gdbserver 或串口日志复现。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#linux-embedded">返回 Linux专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
