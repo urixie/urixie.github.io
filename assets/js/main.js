@@ -558,6 +558,14 @@ function buildArticlePrimarySidebar() {
   articleShell.insertBefore(sidebar, articleShell.firstElementChild);
 }
 
+function getInitialArticleSectionIndex(sections) {
+  const hash = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
+  if (!hash) return 0;
+
+  const index = sections.findIndex(section => section.id === hash);
+  return index >= 0 ? index : 0;
+}
+
 function buildArticleNav() {
   const articleShell = document.querySelector('.article-page-shell');
   const article = document.querySelector('.article');
@@ -578,6 +586,12 @@ function buildArticleNav() {
     }
   });
 
+  const articleSections = headings
+    .map(heading => heading.closest('section'))
+    .filter(Boolean);
+
+  if (articleSections.length === 0) return;
+
   const topbarLinks = articleTopbar
     ? Array.from(articleTopbar.querySelectorAll('a')).map(link => ({
         text: link.textContent.trim(),
@@ -589,6 +603,24 @@ function buildArticleNav() {
   const articleMeta = article.querySelector('.post-meta')?.textContent.trim() || '';
 
   articleTopbar?.remove();
+
+  const sectionViewer = document.createElement('div');
+  sectionViewer.className = 'article-section-viewer';
+  sectionViewer.setAttribute('aria-live', 'polite');
+
+  const sectionInner = document.createElement('div');
+  sectionInner.className = 'article-section-inner';
+  sectionViewer.appendChild(sectionInner);
+
+  article.classList.add('article-section-mode');
+  article.insertBefore(sectionViewer, articleSections[0]);
+
+  articleSections.forEach((section, index) => {
+    section.classList.add('article-reader-section');
+    section.dataset.sectionIndex = String(index);
+    section.hidden = true;
+    sectionInner.appendChild(section);
+  });
 
   const articleSidebar = document.createElement('aside');
   articleSidebar.className = 'article-sidebar';
@@ -633,12 +665,13 @@ function buildArticleNav() {
   articleNav.className = 'article-nav';
 
   headings.forEach((heading, index) => {
-    const section = heading.closest('section');
+    const section = articleSections[index];
     if (!section) return;
 
     const link = document.createElement('a');
     link.href = `#${section.id}`;
     link.textContent = heading.textContent.trim();
+    link.dataset.sectionIndex = String(index);
 
     if (index === 0) {
       link.classList.add('active');
@@ -660,32 +693,56 @@ function buildArticleNav() {
   articleShell.insertBefore(articleSidebar, article);
 
   const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
-  const articleSections = headings
-    .map(heading => heading.closest('section'))
-    .filter(Boolean);
 
-  function updateActiveArticleNav() {
-    const current = articleSections
-      .slice()
-      .reverse()
-      .find(section => window.scrollY >= section.offsetTop - 170);
+  function switchArticleSection(index, options = {}) {
+    const nextIndex = Math.max(0, Math.min(index, articleSections.length - 1));
+    const activeSection = articleSections[nextIndex];
+    if (!activeSection) return;
 
-    if (!current) return;
-
-    articleNavLinks.forEach(link => {
-      link.classList.toggle('active', link.getAttribute('href') === `#${current.id}`);
+    articleSections.forEach((section, sectionIndex) => {
+      const active = sectionIndex === nextIndex;
+      section.hidden = !active;
+      section.classList.toggle('active', active);
     });
+
+    articleNavLinks.forEach((link, linkIndex) => {
+      const active = linkIndex === nextIndex;
+      link.classList.toggle('active', active);
+      link.setAttribute('aria-current', active ? 'page' : 'false');
+    });
+
+    if (options.updateHash !== false) {
+      const nextHash = `#${activeSection.id}`;
+      if (window.location.hash !== nextHash) {
+        window.history.pushState(null, '', nextHash);
+      }
+    }
+
+    if (options.scrollViewer !== false) {
+      sectionViewer.scrollTo({ top: 0, behavior: 'auto' });
+    }
   }
 
-  articleNavLinks.forEach(link => {
-    link.addEventListener('click', () => {
-      articleNavLinks.forEach(item => item.classList.remove('active'));
-      link.classList.add('active');
+  articleNavLinks.forEach((link, index) => {
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      switchArticleSection(index);
     });
   });
 
-  window.addEventListener('scroll', updateActiveArticleNav, { passive: true });
-  updateActiveArticleNav();
+  window.addEventListener('hashchange', () => {
+    const hash = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
+    const index = articleSections.findIndex(section => section.id === hash);
+    if (index >= 0) {
+      switchArticleSection(index, { updateHash: false });
+    }
+  });
+
+  document.body.classList.add('article-reader-page');
+  switchArticleSection(getInitialArticleSectionIndex(articleSections), {
+    updateHash: false,
+    scrollViewer: false
+  });
 }
 
 async function initArticlePage() {
@@ -696,6 +753,10 @@ async function initArticlePage() {
   loadStylesheetOnce(
     'article-layout-tuning',
     getAssetUrl('../css/article-layout-tuning.css?v=20260709-article1')
+  );
+  loadStylesheetOnce(
+    'article-section-reader',
+    getAssetUrl('../css/article-section-reader.css?v=20260709-section1')
   );
 
   await ensureHomeData();
