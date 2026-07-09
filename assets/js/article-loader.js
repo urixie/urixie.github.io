@@ -1,19 +1,27 @@
 (function () {
   const body = document.body;
   const source = body?.dataset.articleSource;
+  const rootPrefix = body?.dataset.rootPrefix || '../../../';
   const topicHref = body?.dataset.topicHref;
   const topicLabel = body?.dataset.topicLabel;
 
-  function escapeRegExp(text) {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function rewriteArticleTopbar(html) {
     let nextHtml = html;
 
+    nextHtml = nextHtml.replace(/\.\.\/\.\.\/\.\.\/assets\//g, `${rootPrefix}assets/`);
+
     nextHtml = nextHtml.replace(
       /<a\s+href="[^"]*index\.html[^"]*">\s*←\s*返回首页\s*<\/a>/,
-      '<a href="../../../index.html?v=704b803539b3">← 返回首页</a>'
+      `<a href="${rootPrefix}index.html?v=704b803539b3">← 返回首页</a>`
     );
 
     if (topicHref && topicLabel) {
@@ -43,7 +51,7 @@
   }
 
   loadArticle().catch(error => {
-    const message = escapeRegExp(error.message || '文章加载失败');
-    document.body.innerHTML = `<main class="article-page-shell"><article class="article card"><h1>文章加载失败</h1><p>${message}</p><p><a href="../../../index.html?v=704b803539b3">返回首页</a></p></article></main>`;
+    const message = escapeHtml(error.message || '文章加载失败');
+    document.body.innerHTML = `<main class="article-page-shell"><article class="article card"><h1>文章加载失败</h1><p>${message}</p><p><a href="${rootPrefix}index.html?v=704b803539b3">返回首页</a></p></article></main>`;
   });
 })();
