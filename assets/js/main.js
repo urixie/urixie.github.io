@@ -593,6 +593,22 @@ function createArticleReaderActions(links) {
   return actions;
 }
 
+function createArticleActionSidebar(links) {
+  const actions = createArticleReaderActions(links);
+  if (!actions) return null;
+
+  const actionSidebar = document.createElement('aside');
+  actionSidebar.className = 'article-action-sidebar';
+  actionSidebar.setAttribute('aria-label', '文章操作');
+
+  const actionTitle = document.createElement('div');
+  actionTitle.className = 'article-action-title';
+  actionTitle.textContent = '文章操作';
+
+  actionSidebar.append(actionTitle, actions);
+  return actionSidebar;
+}
+
 function buildArticleNav() {
   const articleShell = document.querySelector('.article-page-shell');
   const article = document.querySelector('.article');
@@ -647,13 +663,10 @@ function buildArticleNav() {
   sectionInner.className = 'article-section-inner';
   sectionViewer.appendChild(sectionInner);
 
-  const readerActions = createArticleReaderActions([...topbarLinks, ...footerLinks]);
+  const actionSidebar = createArticleActionSidebar([...topbarLinks, ...footerLinks]);
 
   article.classList.add('article-section-mode');
   article.insertBefore(sectionViewer, articleSections[0]);
-  if (readerActions) {
-    article.insertBefore(readerActions, sectionViewer);
-  }
 
   articleSections.forEach((section, index) => {
     section.classList.add('article-reader-section');
@@ -714,6 +727,9 @@ function buildArticleNav() {
   articleSidebar.appendChild(articleNavCard);
 
   articleShell.insertBefore(articleSidebar, article);
+  if (actionSidebar) {
+    articleShell.insertBefore(actionSidebar, article.nextSibling);
+  }
 
   const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
 
@@ -779,7 +795,7 @@ async function initArticlePage() {
   );
   loadStylesheetOnce(
     'article-section-reader',
-    getAssetUrl('../css/article-section-reader.css?v=20260709-section2')
+    getAssetUrl('../css/article-section-reader.css?v=20260709-section3')
   );
 
   await ensureHomeData();
