@@ -40,7 +40,7 @@ function injectTopic(config) {
 
   const topicCard = document.createElement('article');
   topicCard.className = 'stack-card';
-  topicCard.id = config.topicCardId || `${config.tagTopic}-topic`;
+  topicCard.id = config.topicCardId || `${config.tagTopic}-topic-card`;
   topicCard.innerHTML = `<div class="post-meta">${config.title}</div>`;
 
   config.cards.forEach(card => {
@@ -69,6 +69,21 @@ function injectTopic(config) {
   appendTagLinks(tagCloud, config.tagTopic, config.tags);
 }
 
+function createTopicCard(title, topicCardId) {
+  const topicCard = document.createElement('article');
+  topicCard.className = 'stack-card';
+  topicCard.id = topicCardId;
+  topicCard.innerHTML = `<div class="post-meta">${title}</div>`;
+  return topicCard;
+}
+
+function makePlaceholderItem(title, text = '暂无') {
+  const item = document.createElement('div');
+  item.className = 'platform-item';
+  item.innerHTML = `<strong>${title}</strong><span>${text}</span>`;
+  return item;
+}
+
 function consolidateStaticTopicCards(config) {
   const cards = config.cardIds
     .map(id => document.getElementById(id))
@@ -76,23 +91,68 @@ function consolidateStaticTopicCards(config) {
 
   if (cards.length <= 1 || document.getElementById(config.topicCardId)) return;
 
-  const topicCard = document.createElement('article');
-  topicCard.className = 'stack-card';
-  topicCard.id = config.topicCardId;
-  topicCard.innerHTML = `<div class="post-meta">${config.title}</div>`;
-
+  const topicCard = createTopicCard(config.title, config.topicCardId);
   cards[0].before(topicCard);
 
   cards.forEach(card => {
     const originalId = card.id;
-    const category = card.querySelector('.platform-category');
+    const categories = Array.from(card.querySelectorAll(':scope > .platform-category'));
 
-    if (category) {
-      card.removeAttribute('id');
-      category.id = originalId;
+    categories.forEach((category, index) => {
+      if (index === 0) {
+        category.id = originalId;
+      }
       topicCard.appendChild(category);
-    }
+    });
 
+    card.remove();
+  });
+}
+
+function consolidateStaticCardsByMeta(config) {
+  const cards = config.cardIds
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+
+  if (cards.length <= 1 || document.getElementById(config.topicCardId)) return;
+
+  const topicCard = createTopicCard(config.title, config.topicCardId);
+  cards[0].before(topicCard);
+
+  cards.forEach(card => {
+    const originalId = card.id;
+    const meta = card.querySelector(':scope > .post-meta')?.textContent.trim() || originalId;
+    const mergedCategory = document.createElement('div');
+    mergedCategory.className = 'platform-category';
+    mergedCategory.id = originalId;
+    mergedCategory.innerHTML = `<h4>${meta}</h4><div class="platform-items"></div>`;
+
+    const mergedItems = mergedCategory.querySelector('.platform-items');
+    const categories = Array.from(card.querySelectorAll(':scope > .platform-category'));
+
+    categories.forEach(category => {
+      const subTitle = category.querySelector('h4')?.textContent.trim() || meta;
+      const items = Array.from(category.querySelectorAll('.platform-items > .platform-item'));
+
+      if (items.length === 0) {
+        mergedItems.appendChild(makePlaceholderItem(subTitle));
+        return;
+      }
+
+      items.forEach(item => {
+        const cloned = item.cloneNode(true);
+        const hasTitle = Boolean(cloned.querySelector('strong'));
+        const spanText = cloned.querySelector('span')?.textContent.trim() || '暂无';
+
+        if (!hasTitle) {
+          cloned.innerHTML = `<strong>${subTitle}</strong><span>${spanText}</span>`;
+        }
+
+        mergedItems.appendChild(cloned);
+      });
+    });
+
+    topicCard.appendChild(mergedCategory);
     card.remove();
   });
 }
@@ -338,6 +398,56 @@ consolidateStaticTopicCards({
     'c-struct',
     'c-embedded',
     'c-debug'
+  ]
+});
+
+consolidateStaticCardsByMeta({
+  title: 'MCU',
+  topicCardId: 'mcu-topic-card',
+  cardIds: [
+    'mcu-st',
+    'mcu-wh',
+    'mcu-microchip',
+    'mcu-sl',
+    'mcu-espressif',
+    'mcu-xilinx'
+  ]
+});
+
+consolidateStaticCardsByMeta({
+  title: 'SOC',
+  topicCardId: 'soc-topic-card',
+  cardIds: [
+    'soc-orbit',
+    'soc-rockchip'
+  ]
+});
+
+consolidateStaticCardsByMeta({
+  title: 'FPGA',
+  topicCardId: 'fpga-topic-card',
+  cardIds: [
+    'fpga-microchip',
+    'fpga-lattice',
+    'fpga-anlogic'
+  ]
+});
+
+consolidateStaticCardsByMeta({
+  title: 'GUI',
+  topicCardId: 'gui-topic-card',
+  cardIds: [
+    'gui-nxp',
+    'gui-dfc'
+  ]
+});
+
+consolidateStaticCardsByMeta({
+  title: '上位机',
+  topicCardId: 'host-topic-card',
+  cardIds: [
+    'host-wireless',
+    'host-debug'
   ]
 });
 
