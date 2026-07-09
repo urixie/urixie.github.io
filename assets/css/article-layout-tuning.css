@@ -157,12 +157,12 @@
 .article-primary-sidebar .primary-nav-button {
   position: relative;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   width: 100%;
-  min-height: 58px;
-  padding: 10px 12px 10px 14px;
+  min-height: 54px;
+  padding: 10px 12px 10px 16px;
   border: 1px solid rgba(125, 211, 252, 0.13);
   border-radius: 16px;
   color: var(--muted);
@@ -184,18 +184,7 @@
 }
 
 .article-primary-sidebar .primary-nav-code {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(0, 230, 118, 0.2);
-  border-radius: 12px;
-  color: var(--accent);
-  background: rgba(0, 230, 118, 0.065);
-  font-family: Consolas, "JetBrains Mono", monospace;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1;
+  display: none !important;
 }
 
 .article-primary-sidebar .primary-nav-title {
@@ -229,12 +218,6 @@
 
 .article-primary-sidebar .primary-nav-button.active::before {
   background: var(--accent);
-}
-
-.article-primary-sidebar .primary-nav-button:hover .primary-nav-code,
-.article-primary-sidebar .primary-nav-button.active .primary-nav-code {
-  border-color: rgba(0, 230, 118, 0.42);
-  background: rgba(0, 230, 118, 0.12);
 }
 
 .article-primary-sidebar .primary-nav-button.active .primary-nav-title {
@@ -386,10 +369,10 @@
 
   .article-primary-sidebar .primary-nav-button {
     flex: 0 0 auto;
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
     min-width: 172px;
-    min-height: 66px;
+    min-height: 62px;
     scroll-snap-align: start;
   }
 
@@ -404,7 +387,7 @@
   }
 
   .article-primary-sidebar .primary-nav-count {
-    grid-column: 2;
+    grid-column: 1;
     justify-self: start;
   }
 
