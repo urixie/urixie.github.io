@@ -10,6 +10,93 @@ function appendTagLinks(tagCloud, topic, tags) {
   });
 }
 
+function injectWindowsTopic() {
+  const nav = document.querySelector('.nav#site-nav');
+  const stackList = document.querySelector('#hardware-stack .stack-list');
+  const tagCloud = document.querySelector('.tag-cloud');
+
+  if (!nav || !stackList) return;
+  if (document.querySelector('#windows-group') || document.querySelector('#windows-uqitong')) return;
+
+  const windowsNavGroup = document.createElement('div');
+  windowsNavGroup.className = 'nav-group';
+  windowsNavGroup.id = 'windows-group';
+  windowsNavGroup.innerHTML = `
+    <button class="nav-group-toggle" type="button" aria-expanded="false">
+      <span>Windows装机专题</span>
+      <svg class="nav-group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+    </button>
+    <div class="nav-group-items">
+      <a class="nav-sub" href="#windows-uqitong">优启通U盘装机</a>
+      <a class="nav-sub" href="#windows-iventoy">iVentoy PXE装机</a>
+    </div>
+  `;
+
+  const mcuGroup = document.querySelector('#mcu-group');
+  if (mcuGroup) {
+    nav.insertBefore(windowsNavGroup, mcuGroup);
+  } else {
+    nav.appendChild(windowsNavGroup);
+  }
+
+  const windowsCards = document.createElement('template');
+  windowsCards.innerHTML = `
+    <article class="stack-card" id="windows-uqitong">
+      <div class="post-meta">Windows装机专题</div>
+      <div class="platform-category">
+        <h4>优启通U盘装机</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e">
+            <strong>优启通 · U盘启动盘与Windows重装教程</strong>
+            <span>U盘启动盘 / 进入PE / 原版ISO / 分区 / 引导修复 / 驱动处理 · 适合手动重装 Win10 / Win11</span>
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <article class="stack-card" id="windows-iventoy">
+      <div class="post-meta">Windows装机专题</div>
+      <div class="platform-category">
+        <h4>iVentoy PXE装机</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e">
+            <strong>iVentoy · PXE安装Windows与网卡驱动处理</strong>
+            <span>PXE启动 / 原版ISO / boot.wim / install.wim / USB转网口 / 注入网卡驱动 · 解决安装环境没网问题</span>
+          </a>
+        </div>
+      </div>
+    </article>
+  `;
+
+  const linuxCard = document.querySelector('#linux-basic');
+  const freeRtosCard = document.querySelector('#freertos-basic');
+  const cStructCard = document.querySelector('#c-struct');
+  if (linuxCard) {
+    linuxCard.before(windowsCards.content);
+  } else if (freeRtosCard) {
+    freeRtosCard.before(windowsCards.content);
+  } else if (cStructCard) {
+    cStructCard.before(windowsCards.content);
+  } else {
+    stackList.prepend(windowsCards.content);
+  }
+
+  appendTagLinks(tagCloud, 'windows-install', [
+    ['Windows装机', 'articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e'],
+    ['优启通', 'articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e'],
+    ['PE系统', 'articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e'],
+    ['U盘启动盘', 'articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e'],
+    ['重装Win10', 'articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e'],
+    ['重装Win11', 'articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html?v=bb7d9a57684e'],
+    ['iVentoy', 'articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e'],
+    ['PXE装机', 'articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e'],
+    ['boot.wim', 'articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e'],
+    ['install.wim', 'articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e'],
+    ['网卡驱动', 'articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e'],
+    ['USB转网口', 'articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html?v=bb7d9a57684e']
+  ]);
+}
+
 function injectLinuxTopic() {
   const nav = document.querySelector('.nav#site-nav');
   const stackList = document.querySelector('#hardware-stack .stack-list');
@@ -278,6 +365,7 @@ function injectFreeRtosTopic() {
   ]);
 }
 
+injectWindowsTopic();
 injectLinuxTopic();
 injectFreeRtosTopic();
 
