@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Verilog Testbench仿真与调试 - XYJ</title>
+  <meta name="description" content="整理 Verilog Testbench、时钟复位激励、波形查看、$display、$dumpfile、任务 task、断言思路、仿真排错和 FPGA 调试方法。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#verilog-sim">返回 Verilog专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">VERILOG · TESTBENCH · SIMULATION · DEBUG</div>
+      <h1>Verilog Testbench仿真与调试</h1>
+
+      <p>
+        FPGA 设计不能只靠上板测试。Testbench 可以在仿真环境中给 DUT 提供时钟、复位和输入激励，观察输出是否符合预期。很多时序、状态机和协议问题，在上板前就应该通过仿真发现。
+      </p>
+
+      <div class="article-note">
+        工程建议：每写一个有明确输入输出的模块，都至少写一个基础 Testbench。尤其是 ADC/SPI/IIC/UART/帧解析/FIFO/状态机这类模块，没有仿真就上板，后期排错成本会非常高。
+      </div>
+
+      <section>
+        <h2>一、Testbench基本结构</h2>
+        <p>
+          Testbench 本身不综合成硬件，只用于仿真。它通常没有端口，内部例化待测模块 DUT，然后产生输入激励。</p>
+        <pre><code>`timescale 1ns/1ps
+
+module tb_counter;
+
+reg clk;
+reg rst_n;
+wire [7:0] cnt;
+
+counter dut (
+    .clk   (clk),
+    .rst_n (rst_n),
+    .cnt   (cnt)
+);
+
+endmodule</code></pre>
+      </section>
+
+      <section>
+        <h2>二、产生时钟和复位</h2>
+        <p>
+          仿真中最常见的激励是时钟和复位。时钟用 <code>always</code> 周期翻转，复位用 <code>initial</code> 控制释放时刻。</p>
+        <pre><code>initial begin
+    clk = 1'b0;
+end
+
+always #10 clk = ~clk; // 50MHz
+
+initial begin
+    rst_n = 1'b0;
+    #100;
+    rst_n = 1'b1;
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>三、输入激励</h2>
+        <p>
+          输入激励可以直接在 <code>initial</code> 中按时间推进，也可以封装成 <code>task</code>，让测试过程更清晰。</p>
+        <pre><code>task send_pulse;
+begin
+    trig = 1'b1;
+    @(posedge clk);
+    trig = 1'b0;
+    @(posedge clk);
+end
+endtask
+
+initial begin
+    trig = 1'b0;
+    wait(rst_n == 1'b1);
+    repeat (5) send_pulse();
+    #1000;
+    $finish;
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>四、波形输出</h2>
+        <p>
+          使用 Icarus Verilog、GTKWave 等工具时，可以输出 VCD 波形文件。其它 FPGA IDE 也有自己的波形查看器。</p>
+        <pre><code>initial begin
+    $dumpfile("tb_counter.vcd");
+    $dumpvars(0, tb_counter);
+end</code></pre>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 300" role="img" aria-label="Testbench仿真流程图">
+            <rect x="60" y="110" width="140" height="70" rx="14" fill="#e0f2fe" stroke="#0284c7"/><text x="130" y="140" text-anchor="middle" font-size="14" font-weight="700">Testbench</text><text x="130" y="162" text-anchor="middle" font-size="13">clk/rst/激励</text>
+            <rect x="310" y="110" width="140" height="70" rx="14" fill="#dcfce7" stroke="#16a34a"/><text x="380" y="140" text-anchor="middle" font-size="14" font-weight="700">DUT</text><text x="380" y="162" text-anchor="middle" font-size="13">待测模块</text>
+            <rect x="560" y="110" width="140" height="70" rx="14" fill="#fef3c7" stroke="#d97706"/><text x="630" y="140" text-anchor="middle" font-size="14" font-weight="700">波形/日志</text><text x="630" y="162" text-anchor="middle" font-size="13">VCD/$display</text>
+            <path d="M200 145 L310 145" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-tb)"/>
+            <path d="M450 145 L560 145" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-tb)"/>
+            <defs><marker id="arrow-tb" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker></defs>
+          </svg>
+          <figcaption>图 1：Testbench 产生激励，DUT 输出结果，最后通过波形和日志判断是否正确。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>五、$display调试</h2>
+        <p>
+          <code>$display</code> 可以在仿真控制台打印变量值，适合快速判断状态跳转、计数值和错误路径。</p>
+        <pre><code>always @(posedge clk) begin
+    if (data_valid) begin
+        $display("time=%0t data=%h", $time, data);
+    end
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>六、自检查Testbench</h2>
+        <p>
+          更好的 Testbench 不只是看波形，而是自动判断输出是否正确。这样改代码后可以快速回归验证。</p>
+        <pre><code>if (cnt !== 8'd10) begin
+    $display("ERROR: cnt expected 10, got %0d", cnt);
+    $finish;
+end else begin
+    $display("PASS");
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>七、常见仿真问题</h2>
+        <table>
+          <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
+          <tbody>
+            <tr><td>波形全是 X</td><td>复位没有释放、信号未初始化、分支未赋值</td></tr>
+            <tr><td>输出慢一拍</td><td>时序逻辑寄存器更新延迟，确认是否符合设计</td></tr>
+            <tr><td>状态机不跳转</td><td>跳转条件没有拉高、握手信号时序不对</td></tr>
+            <tr><td>仿真正确上板错误</td><td>时序约束、跨时钟域、复位同步、外设真实时序</td></tr>
+            <tr><td>综合后行为不同</td><td>不可综合语句、latch、阻塞/非阻塞误用</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>八、上板调试思路</h2>
+        <p>
+          上板调试时，可以使用 FPGA 厂商提供的逻辑分析仪工具抓内部信号，例如 SignalTap、ILA、安路或其它工具链中的在线调试功能。抓信号时要优先抓状态机状态、计数器、valid/ready、错误标志和外设接口关键线。</p>
+      </section>
+
+      <section>
+        <h2>九、仿真检查清单</h2>
+        <ul>
+          <li>是否产生了稳定时钟。</li>
+          <li>复位时长是否足够。</li>
+          <li>是否覆盖正常路径、异常路径和边界条件。</li>
+          <li>是否检查输出结果，而不是只看波形。</li>
+          <li>Testbench 是否包含必要的超时退出。</li>
+          <li>上板前是否确认时序约束和跨时钟域处理。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#verilog-sim">返回 Verilog专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
