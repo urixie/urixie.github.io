@@ -106,42 +106,28 @@
       ]
     },
     {
-      id: 'verilog',
-      title: 'Verilog专题',
-      shortTitle: 'HDL',
-      desc: '从语法、电路行为、状态机到 Testbench 的 HDL 工程整理。',
+      id: 'fpga',
+      title: 'FPGA开发',
+      shortTitle: 'FPGA',
+      desc: '以 FPGA 工程为主线，把 HDL 基础、仿真验证、时序约束、接口实践和厂商差异放在同一知识域内整理。',
       children: [
         {
-          id: 'basic',
-          title: '基础语法',
-          desc: '从硬件角度理解 module、wire、reg、assign 和 always。',
+          id: 'hdl-basic',
+          title: 'HDL基础',
+          desc: 'Verilog 是 FPGA 开发的基础能力，集中整理语法、电路行为、组合逻辑、时序逻辑和状态机。',
           articles: [
             {
               title: 'Verilog · 基础语法与硬件描述思维',
               desc: 'module / wire / reg / assign / always / 阻塞赋值 / 非阻塞赋值 / parameter · 从硬件角度理解语法',
               href: withVersion('articles/verilog/verilog-basic-syntax/verilog-basic-syntax.html'),
               tags: ['Verilog', '基础语法']
-            }
-          ]
-        },
-        {
-          id: 'logic',
-          title: '组合逻辑与时序逻辑',
-          desc: '区分组合逻辑、锁存器、寄存器、复位和流水线行为。',
-          articles: [
+            },
             {
               title: 'Verilog · 组合逻辑与时序逻辑',
               desc: '组合逻辑 / latch / 寄存器 / 复位 / 计数器 / 边沿检测 / 流水线 · 区分电路行为和代码写法',
               href: withVersion('articles/verilog/verilog-combinational-sequential/verilog-combinational-sequential.html'),
               tags: ['组合逻辑', '时序逻辑']
-            }
-          ]
-        },
-        {
-          id: 'fsm',
-          title: '状态机设计',
-          desc: '适合协议、采样和控制流程的状态机设计方法。',
-          articles: [
+            },
             {
               title: 'Verilog · 状态机设计方法',
               desc: 'FSM / 状态编码 / 三段式状态机 / Moore / Mealy / default安全状态 · 适合协议和采样流程控制',
@@ -151,9 +137,9 @@
           ]
         },
         {
-          id: 'simulation',
-          title: '仿真与调试',
-          desc: '用 Testbench、自检查和波形先把问题留在上板之前。',
+          id: 'verification',
+          title: '仿真验证',
+          desc: '用 Testbench、自检查和波形分析把问题尽量留在上板之前。',
           articles: [
             {
               title: 'Verilog · Testbench仿真与调试',
@@ -162,6 +148,60 @@
               tags: ['Testbench', '仿真']
             }
           ]
+        },
+        {
+          id: 'timing',
+          title: '时序与约束',
+          desc: '时钟约束、IO 约束、跨时钟域和时序收敛相关内容后续补充。',
+          placeholders: ['时钟约束', 'IO约束', 'CDC', '时序收敛'],
+          articles: []
+        },
+        {
+          id: 'interfaces',
+          title: '接口与外设',
+          desc: 'ADC、SPI、IIC、UART、FIFO、RAM 和数据缓存传输相关内容后续补充。',
+          placeholders: ['ADC采集', 'SPI/IIC/UART', 'FIFO/RAM', '数据缓存'],
+          articles: []
+        },
+        {
+          id: 'xilinx',
+          title: 'Xilinx',
+          desc: 'Vivado、IP核、Block Design 和调试经验后续补充。',
+          placeholders: ['Vivado', 'IP核', 'Block Design'],
+          articles: []
+        },
+        {
+          id: 'anlogic',
+          title: '安路科技',
+          desc: '基于 Anlogic EF2L45LG144B 的 IIC、CRC、BRAM、TD 软件和板级验证实践。',
+          articles: [
+            {
+              title: 'AHT20 · IIC / CRC8 / Verilog',
+              desc: '基于 Anlogic EF2L45LG144B 实现 IIC 主机、AHT20 温湿度读取、CRC8 校验和数据滤波',
+              href: withVersion('articles/fpga/aht20-iic-verilog/aht20-iic-verilog.html'),
+              tags: ['AHT20', 'IIC', 'CRC8']
+            },
+            {
+              title: 'EF2L45 · Single Port RAM',
+              desc: '基于 Anlogic EF2L45LG144B 的 IP Generator 配置单口 BRAM，完成 8bit x 200 深度 RAM 的写入、读出和 Verilog 自检',
+              href: withVersion('articles/fpga/ef2-single-port-ram/ef2-single-port-ram.html'),
+              tags: ['EF2L45', 'BRAM']
+            }
+          ]
+        },
+        {
+          id: 'lattice',
+          title: 'Lattice',
+          desc: 'MachXO2、工具链和器件差异相关内容后续补充。',
+          placeholders: ['MachXO2', '工具链', '器件差异'],
+          articles: []
+        },
+        {
+          id: 'microchip',
+          title: 'Microchip FPGA',
+          desc: 'SmartFusion2、Libero 和器件资料相关内容后续补充。',
+          placeholders: ['SmartFusion2', 'Libero'],
+          articles: []
         }
       ]
     },
@@ -467,47 +507,6 @@
               desc: 'Linux 5.10 / SPI / spidev / Ubuntu Base 22 · 已整理 SPI 功能调试记录',
               href: withVersion('articles/soc/rk3568-spi-spidev/rk3568-spi-spidev.html'),
               tags: ['RK3568', 'SPI', 'spidev']
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'fpga',
-      title: 'FPGA',
-      shortTitle: 'FPGA',
-      desc: '按 FPGA 厂商和器件整理 HDL、IP、传感器接口和板级验证记录。',
-      children: [
-        {
-          id: 'microchip',
-          title: 'Microchip',
-          desc: 'SmartFusion2 相关资料暂未发布。',
-          placeholders: ['SmartFusion2'],
-          articles: []
-        },
-        {
-          id: 'lattice',
-          title: 'Lattice',
-          desc: 'MachXO2 相关资料暂未发布。',
-          placeholders: ['MachXO2'],
-          articles: []
-        },
-        {
-          id: 'anlogic',
-          title: '安路科技',
-          desc: '基于 Anlogic EF2L45LG144B 的 IIC、CRC 和 BRAM 实践。',
-          articles: [
-            {
-              title: 'AHT20 · IIC / CRC8 / Verilog',
-              desc: '基于 Anlogic EF2L45LG144B 实现 IIC 主机、AHT20 温湿度读取、CRC8 校验和数据滤波',
-              href: withVersion('articles/fpga/aht20-iic-verilog/aht20-iic-verilog.html'),
-              tags: ['AHT20', 'IIC', 'CRC8']
-            },
-            {
-              title: 'EF2L45 · Single Port RAM',
-              desc: '基于 Anlogic EF2L45LG144B 的 IP Generator 配置单口 BRAM，完成 8bit x 200 深度 RAM 的写入、读出和 Verilog 自检',
-              href: withVersion('articles/fpga/ef2-single-port-ram/ef2-single-port-ram.html'),
-              tags: ['EF2L45', 'BRAM']
             }
           ]
         }
