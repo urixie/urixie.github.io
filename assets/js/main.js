@@ -1,3 +1,15 @@
+function appendTagLinks(tagCloud, topic, tags) {
+  if (!tagCloud || tagCloud.querySelector(`[data-topic="${topic}"]`)) return;
+
+  tags.forEach(([text, href], index) => {
+    const link = document.createElement('a');
+    link.href = href;
+    link.textContent = text;
+    if (index === 0) link.dataset.topic = topic;
+    tagCloud.appendChild(link);
+  });
+}
+
 function injectLinuxTopic() {
   const nav = document.querySelector('.nav#site-nav');
   const stackList = document.querySelector('#hardware-stack .stack-list');
@@ -19,6 +31,9 @@ function injectLinuxTopic() {
       <a class="nav-sub" href="#linux-process">进程与内存</a>
       <a class="nav-sub" href="#linux-shell">Shell与服务</a>
       <a class="nav-sub" href="#linux-embedded">嵌入式调试</a>
+      <a class="nav-sub" href="#linux-uboot">U-Boot构建</a>
+      <a class="nav-sub" href="#linux-kernel-build">Kernel构建</a>
+      <a class="nav-sub" href="#linux-rootfs-build">文件系统构建</a>
     </div>
   `;
 
@@ -82,6 +97,45 @@ function injectLinuxTopic() {
         </div>
       </div>
     </article>
+
+    <article class="stack-card" id="linux-uboot">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>U-Boot组成与构建</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/uboot-structure-build/uboot-structure-build.html?v=bb7d9a57684e">
+            <strong>U-Boot · 组成与构建流程</strong>
+            <span>ROM Code / SPL / U-Boot proper / defconfig / bootcmd / bootargs / u-boot.bin · 梳理 Bootloader 构建和启动参数</span>
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <article class="stack-card" id="linux-kernel-build">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>Kernel组成与构建</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/kernel-structure-build/kernel-structure-build.html?v=bb7d9a57684e">
+            <strong>Linux Kernel · 组成与构建流程</strong>
+            <span>Kconfig / defconfig / Image / zImage / dtb / modules / System.map / vmlinux · 面向内核和驱动构建</span>
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <article class="stack-card" id="linux-rootfs-build">
+      <div class="post-meta">Linux专题</div>
+      <div class="platform-category">
+        <h4>文件系统组成与构建</h4>
+        <div class="platform-items">
+          <a class="platform-item" href="articles/linux/rootfs-structure-build/rootfs-structure-build.html?v=bb7d9a57684e">
+            <strong>RootFS · 根文件系统组成与构建</strong>
+            <span>BusyBox / Buildroot / Ubuntu Base / init / devtmpfs / rootfs.ext4 / squashfs · 梳理用户态文件系统构建</span>
+          </a>
+        </div>
+      </div>
+    </article>
   `;
 
   const freeRtosCard = document.querySelector('#freertos-basic');
@@ -94,32 +148,27 @@ function injectLinuxTopic() {
     stackList.prepend(linuxCards.content);
   }
 
-  if (tagCloud && !tagCloud.querySelector('[data-topic="linux"]')) {
-    const tags = [
-      ['Linux', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
-      ['文件系统', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
-      ['/proc', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
-      ['/sys', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
-      ['进程', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
-      ['线程', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
-      ['strace', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
-      ['systemd', 'articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e'],
-      ['Shell脚本', 'articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e'],
-      ['设备树', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
-      ['dmesg', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
-      ['gdbserver', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e']
-    ];
-
-    tags.forEach(([text, href], index) => {
-      const link = document.createElement('a');
-      link.href = href;
-      link.textContent = text;
-      if (index === 0) {
-        link.dataset.topic = 'linux';
-      }
-      tagCloud.appendChild(link);
-    });
-  }
+  appendTagLinks(tagCloud, 'linux', [
+    ['Linux', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+    ['文件系统', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+    ['/proc', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+    ['/sys', 'articles/linux/linux-basic-filesystem/linux-basic-filesystem.html?v=bb7d9a57684e'],
+    ['进程', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
+    ['线程', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
+    ['strace', 'articles/linux/linux-process-memory-thread/linux-process-memory-thread.html?v=bb7d9a57684e'],
+    ['systemd', 'articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e'],
+    ['Shell脚本', 'articles/linux/linux-shell-systemd/linux-shell-systemd.html?v=bb7d9a57684e'],
+    ['设备树', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
+    ['dmesg', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
+    ['gdbserver', 'articles/linux/linux-embedded-debug/linux-embedded-debug.html?v=bb7d9a57684e'],
+    ['U-Boot', 'articles/linux/uboot-structure-build/uboot-structure-build.html?v=bb7d9a57684e'],
+    ['SPL', 'articles/linux/uboot-structure-build/uboot-structure-build.html?v=bb7d9a57684e'],
+    ['Kernel构建', 'articles/linux/kernel-structure-build/kernel-structure-build.html?v=bb7d9a57684e'],
+    ['DTB', 'articles/linux/kernel-structure-build/kernel-structure-build.html?v=bb7d9a57684e'],
+    ['RootFS', 'articles/linux/rootfs-structure-build/rootfs-structure-build.html?v=bb7d9a57684e'],
+    ['Buildroot', 'articles/linux/rootfs-structure-build/rootfs-structure-build.html?v=bb7d9a57684e'],
+    ['BusyBox', 'articles/linux/rootfs-structure-build/rootfs-structure-build.html?v=bb7d9a57684e']
+  ]);
 }
 
 function injectFreeRtosTopic() {
@@ -215,30 +264,18 @@ function injectFreeRtosTopic() {
     stackList.prepend(freeRtosCards.content);
   }
 
-  if (tagCloud && !tagCloud.querySelector('[data-topic="freertos"]')) {
-    const tags = [
-      ['FreeRTOS', 'articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html?v=bb7d9a57684e'],
-      ['RTOS', 'articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html?v=bb7d9a57684e'],
-      ['任务调度', 'articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html?v=bb7d9a57684e'],
-      ['任务栈', 'articles/freertos/freertos-task-management/freertos-task-management.html?v=bb7d9a57684e'],
-      ['队列', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
-      ['信号量', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
-      ['互斥锁', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
-      ['任务通知', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
-      ['软件定时器', 'articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html?v=bb7d9a57684e'],
-      ['heap_4', 'articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html?v=bb7d9a57684e']
-    ];
-
-    tags.forEach(([text, href], index) => {
-      const link = document.createElement('a');
-      link.href = href;
-      link.textContent = text;
-      if (index === 0) {
-        link.dataset.topic = 'freertos';
-      }
-      tagCloud.appendChild(link);
-    });
-  }
+  appendTagLinks(tagCloud, 'freertos', [
+    ['FreeRTOS', 'articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html?v=bb7d9a57684e'],
+    ['RTOS', 'articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html?v=bb7d9a57684e'],
+    ['任务调度', 'articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html?v=bb7d9a57684e'],
+    ['任务栈', 'articles/freertos/freertos-task-management/freertos-task-management.html?v=bb7d9a57684e'],
+    ['队列', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
+    ['信号量', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
+    ['互斥锁', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
+    ['任务通知', 'articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?v=bb7d9a57684e'],
+    ['软件定时器', 'articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html?v=bb7d9a57684e'],
+    ['heap_4', 'articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html?v=bb7d9a57684e']
+  ]);
 }
 
 injectLinuxTopic();
@@ -320,19 +357,6 @@ if (sections.length > 0) {
   updateActiveNav();
 }
 
-/*
- * Article navigation
- * 自动为文章页生成目录。
- *
- * 文章页原本的 article-topbar 只作为数据源：
- * - 读取里面的“返回首页 / 返回分类”等链接
- * - 复制到文章导航卡片中
- * - 然后删除 article-topbar
- *
- * 最终效果：
- * 电脑端：左侧文章导航 + 右侧正文
- * 手机端：顶部文章导航 + 下方正文
- */
 function normalizeHeadingId(index) {
   return `article-section-${index + 1}`;
 }
