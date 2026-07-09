@@ -6,8 +6,8 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>嵌入式 C 关键语法与工程实践 - XYJ</title>
-  <meta name="description" content="整理嵌入式 C 中 volatile、static、const、宏定义、条件编译、中断共享变量、寄存器位操作和函数指针等关键实践。">
+  <title>嵌入式 C 关键语法与 GNU C 扩展实践 - XYJ</title>
+  <meta name="description" content="整理嵌入式 C 中 volatile、static、const、宏定义、条件编译、中断共享变量、寄存器位操作、函数指针和 GNU C 扩展语法。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
 </head>
 <body>
@@ -18,16 +18,16 @@
     </div>
 
     <article class="article card">
-      <div class="post-meta">C LANGUAGE · EMBEDDED · REGISTER · ISR</div>
+      <div class="post-meta">C LANGUAGE · EMBEDDED · REGISTER · ISR · GNU C</div>
 
-      <h1>嵌入式 C 关键语法与工程实践</h1>
+      <h1>嵌入式 C 关键语法与 GNU C 扩展实践</h1>
 
       <p>
-        本文整理嵌入式 C 中经常出现、但普通 C 语言教程讲得不够深入的关键点，包括 <code>volatile</code>、<code>static</code>、<code>const</code>、宏定义、条件编译、中断共享变量、寄存器位操作和函数指针等内容。
+        本文整理嵌入式 C 中经常出现、但普通 C 语言教程讲得不够深入的关键点，包括 <code>volatile</code>、<code>static</code>、<code>const</code>、宏定义、条件编译、中断共享变量、寄存器位操作、函数指针和 GNU C 扩展语法等内容。
       </p>
 
       <div class="article-note">
-        嵌入式 C 的重点是理解编译器优化、硬件寄存器副作用、中断并发和资源受限环境。很多 bug 不是语法错误，而是对硬件和编译器行为理解不足。
+        嵌入式 C 的重点是理解编译器优化、硬件寄存器副作用、中断并发和资源受限环境。GNU C 扩展语法很常见，但它不是标准 C，使用时要清楚可移植性边界。
       </div>
 
       <section>
@@ -40,6 +40,7 @@
           <li>中断可能在任意时刻修改共享变量。</li>
           <li>编译器优化可能删除看似“无意义”的重复读取。</li>
           <li>栈和堆空间有限，不能无限制创建大对象。</li>
+          <li>编译器扩展语法可能提升表达能力，但也可能降低可移植性。</li>
         </ul>
       </section>
 
@@ -185,7 +186,112 @@ void app_emit_event(uint8_t event)
       </section>
 
       <section>
-        <h2>九、嵌入式 C 编码检查清单</h2>
+        <h2>九、GNU C 扩展语法概览</h2>
+        <p>
+          嵌入式项目中经常使用 GCC、Clang、ESP-IDF、Linux 内核风格代码，因此会遇到 GNU C 扩展语法。它们能增强表达能力，但不是 ISO C 标准的一部分，迁移到其它编译器时要谨慎。
+        </p>
+        <ul>
+          <li><code>__attribute__</code>：给变量、函数、结构体增加编译器属性。</li>
+          <li><code>typeof</code>：在宏中获取表达式类型。</li>
+          <li>语句表达式：让宏内部可以写多条语句并返回一个值。</li>
+          <li><code>__builtin_*</code>：使用编译器内建函数。</li>
+          <li>弱符号、段放置、packed、aligned 等属性：常用于启动代码、驱动和链接脚本配合。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十、__attribute__ 常见用法</h2>
+        <p>
+          <code>__attribute__</code> 是 GNU C 中非常常见的扩展，用于声明对齐、紧凑布局、弱符号、指定段、废弃接口等属性。
+        </p>
+        <pre><code>typedef struct __attribute__((packed)) {
+    uint8_t header;
+    uint16_t length;
+    uint8_t cmd;
+} packed_frame_t;
+
+uint8_t dma_buffer[1024] __attribute__((aligned(4)));
+
+void user_hook(void) __attribute__((weak));
+
+void user_hook(void)
+{
+    // 默认弱实现，用户可以在其它文件中重写
+}</code></pre>
+        <p>
+          <code>packed</code> 可以减少结构体填充字节，但可能导致非对齐访问，部分 MCU 上会降低效率甚至触发异常。对外部协议建议优先手动序列化，不要盲目依赖 packed 结构体。
+        </p>
+      </section>
+
+      <section>
+        <h2>十一、section、used 与链接脚本配合</h2>
+        <p>
+          <code>section</code> 可以把函数或变量放到指定段，常用于启动代码、中断向量表、Bootloader、Flash 固定区域、保留参数区等场景。<code>used</code> 可以避免符号被优化删除。
+        </p>
+        <pre><code>const uint32_t app_magic __attribute__((section(".app_info"), used)) = 0xA55A1234U;
+
+void boot_entry(void) __attribute__((section(".boot_text")));
+
+void boot_entry(void)
+{
+    // Bootloader 入口代码
+}</code></pre>
+        <p>
+          使用 <code>section</code> 时必须检查链接脚本是否定义了对应段，否则符号可能没有放到预期位置。
+        </p>
+      </section>
+
+      <section>
+        <h2>十二、typeof 与语句表达式</h2>
+        <p>
+          GNU C 支持 <code>typeof</code> 和语句表达式，常用于写类型安全一些的宏。例如 Linux 内核风格的 <code>min</code>、<code>max</code>、<code>container_of</code> 等宏会用到类似能力。
+        </p>
+        <pre><code>#define MIN(a, b) ({          \
+    typeof(a) _a = (a);       \
+    typeof(b) _b = (b);       \
+    _a &lt; _b ? _a : _b;        \
+})
+
+uint16_t x = MIN(100U, 200U);</code></pre>
+        <p>
+          语句表达式可以让宏像函数一样返回值，但它是 GNU C 扩展。若项目要求严格标准 C 或需要支持非 GCC 兼容编译器，应避免使用。
+        </p>
+      </section>
+
+      <section>
+        <h2>十三、container_of 思想</h2>
+        <p>
+          <code>container_of</code> 的思想是：已知结构体中某个成员的地址，反推出整个结构体对象的地址。它常用于链表、事件节点、驱动对象封装等场景。
+        </p>
+        <pre><code>#define OFFSET_OF(type, member) ((size_t)&amp;(((type *)0)-&gt;member))
+
+#define CONTAINER_OF(ptr, type, member) \
+    ((type *)((char *)(ptr) - OFFSET_OF(type, member)))
+
+typedef struct {
+    uint8_t id;
+    uint16_t value;
+} item_t;</code></pre>
+        <p>
+          这类宏很强大，但也很容易写出难读代码。普通业务模块不建议过度使用，底层框架、链表和驱动抽象层中使用更合适。
+        </p>
+      </section>
+
+      <section>
+        <h2>十四、GNU C 扩展使用建议</h2>
+        <ul>
+          <li>能用标准 C 清晰表达时，优先使用标准 C。</li>
+          <li>必须使用扩展时，建议集中封装在公共头文件或底层模块中。</li>
+          <li>使用 <code>packed</code> 前确认平台是否允许非对齐访问。</li>
+          <li>使用 <code>section</code> 后检查 map 文件和链接脚本。</li>
+          <li>使用弱符号时，要确认重名强符号确实参与链接。</li>
+          <li>使用复杂宏时，注意参数是否会被重复求值。</li>
+          <li>如果代码需要跨编译器，提前评估 GNU C 扩展的替代方案。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>十五、嵌入式 C 编码检查清单</h2>
         <ul>
           <li>中断共享变量是否需要 <code>volatile</code>。</li>
           <li>文件内部变量和函数是否使用 <code>static</code> 限制可见性。</li>
@@ -194,6 +300,8 @@ void app_emit_event(uint8_t event)
           <li>中断函数中是否存在耗时操作。</li>
           <li>寄存器读改写是否可能影响其它 bit。</li>
           <li>回调函数是否判空，执行上下文是否清楚。</li>
+          <li>GNU C 扩展语法是否有明确使用理由。</li>
+          <li>使用 <code>section</code>、<code>aligned</code>、<code>packed</code> 后是否通过 map 文件或反汇编确认结果。</li>
         </ul>
       </section>
 
