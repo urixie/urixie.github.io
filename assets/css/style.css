@@ -50,11 +50,13 @@ a {
 
 .page-shell {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 280px;
+  grid-template-columns: 268px minmax(0, 960px) 240px;
   gap: 28px;
-  max-width: 1480px;
-  margin: 0 auto;
-  padding: 28px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 28px 28px 28px 0;
+  justify-content: start;
 }
 
 .sidebar,
@@ -70,7 +72,7 @@ a {
   justify-content: space-between;
   padding: 28px 24px;
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 0 24px 24px 0;
   background: rgba(17, 24, 34, 0.86);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
@@ -189,6 +191,19 @@ a {
   display: grid;
   gap: 8px;
   margin: 34px 0;
+  max-height: calc(100vh - 430px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.22);
 }
 
 .menu-toggle {
@@ -299,6 +314,8 @@ a:focus-visible {
 
 .content {
   min-width: 0;
+  width: 100%;
+  max-width: 960px;
 }
 
 .card,
@@ -827,9 +844,9 @@ a:focus-visible {
   scroll-margin-top: 28px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .page-shell {
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: 268px minmax(0, 960px);
   }
 
   .rightbar {
@@ -888,6 +905,7 @@ a:focus-visible {
     position: static;
     height: auto;
     margin-bottom: 18px;
+    border-radius: 24px;
   }
 
   .rightbar {
@@ -905,6 +923,9 @@ a:focus-visible {
     display: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin: 24px 0;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
 
   .nav.is-open {
