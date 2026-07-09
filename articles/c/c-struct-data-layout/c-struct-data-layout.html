@@ -18,7 +18,7 @@
     </div>
 
     <article class="article card">
-      <div class="post-meta">C LANGUAGE · STRUCT · DATA LAYOUT</div>
+      <div class="post-meta">C LANGUAGE · STRUCT · BIT FIELD · DATA LAYOUT</div>
 
       <h1>C语言结构体与数据组织整理</h1>
 
@@ -27,7 +27,7 @@
       </p>
 
       <div class="article-note">
-        结构体的价值不是把变量简单打包，而是把一组相关数据变成有边界、有含义、可传递、可维护的工程对象。
+        结构体的价值不是把变量简单打包，而是把一组相关数据变成有边界、有含义、可传递、可维护的工程对象。位域虽然写法直观，但它不适合直接作为跨平台协议格式。
       </div>
 
       <section>
@@ -115,9 +115,9 @@ static app_state_t s_state = APP_STATE_IDLE;</code></pre>
       </section>
 
       <section>
-        <h2>六、位域与寄存器映射</h2>
+        <h2>六、位域的基本语法</h2>
         <p>
-          位域可以把一个整数中的多个 bit 字段写成结构体形式，但其布局与编译器、字节序和 ABI 有关。对于寄存器配置或通信协议，位域要谨慎使用。
+          位域可以把一个整数中的多个 bit 字段写成结构体形式。它适合表达“某几个 bit 表示某个状态”的含义，代码阅读起来比纯位运算更直观。
         </p>
         <pre><code>typedef struct {
     uint8_t enable : 1;
@@ -126,12 +126,70 @@ static app_state_t s_state = APP_STATE_IDLE;</code></pre>
     uint8_t unused : 4;
 } status_bits_t;</code></pre>
         <p>
-          如果要求跨平台稳定，优先使用掩码和位移操作。位域更适合内部状态描述，不适合直接作为外部协议或存储格式。
+          上述结构中，<code>enable</code> 占 1bit，<code>mode</code> 占 2bit，<code>fault</code> 占 1bit，剩余 4bit 作为保留位。位域的宽度不能超过其底层类型可表示的 bit 数。
         </p>
       </section>
 
       <section>
-        <h2>七、结构体对齐与 sizeof</h2>
+        <h2>七、位域在嵌入式中的适用场景</h2>
+        <p>
+          位域适合用于内部状态表达、调试视图和临时解释某个状态字。例如某个状态字只有在本工程内部使用，且不会跨编译器、跨平台、跨协议长期保存，这时位域可以提升可读性。
+        </p>
+        <pre><code>typedef union {
+    uint8_t value;
+    struct {
+        uint8_t power_on  : 1;
+        uint8_t calibrated: 1;
+        uint8_t over_volt : 1;
+        uint8_t over_temp : 1;
+        uint8_t reserved  : 4;
+    } bits;
+} device_status_t;
+
+device_status_t status = {0};
+status.bits.power_on = 1U;
+status.bits.over_temp = 1U;</code></pre>
+        <p>
+          使用 union 加位域时，可以同时按整体字节访问和按 bit 字段访问。但这类写法依赖编译器对位域布局的实现，不能直接作为外部通信协议的唯一依据。
+        </p>
+      </section>
+
+      <section>
+        <h2>八、位域的风险与限制</h2>
+        <p>
+          位域看起来很像寄存器手册中的 bit 描述，但 C 标准并不保证不同编译器、不同平台对位域的排列顺序完全一致。位域涉及的风险主要包括：bit 顺序、字节序、对齐填充、底层类型大小和读改写行为。
+        </p>
+        <ul>
+          <li>不同编译器可能采用不同的 bit 分配方向。</li>
+          <li>结构体中可能存在填充位，<code>sizeof</code> 结果不一定符合直觉。</li>
+          <li>访问位域时，编译器可能生成读改写指令，操作硬件寄存器时可能触发副作用。</li>
+          <li>位域成员不能直接取地址，因为它可能不是独立可寻址对象。</li>
+          <li>跨上位机、下位机、文件格式和通信协议时，不应依赖位域内存布局。</li>
+        </ul>
+        <div class="article-warning">
+          如果某个数据要写入 Flash、生成 bin 文件、通过串口/CAN/SPI 发送，或者需要和上位机保持二进制一致，优先使用掩码和移位手动打包，不要直接发送位域结构体。
+        </div>
+      </section>
+
+      <section>
+        <h2>九、寄存器位操作推荐写法</h2>
+        <p>
+          对硬件寄存器来说，更推荐用掩码和位移描述 bit 字段。这样虽然代码略长，但行为更明确，也更容易和芯片手册对应。
+        </p>
+        <pre><code>#define REG_ENABLE_Pos      0U
+#define REG_ENABLE_Msk      (1U &lt;&lt; REG_ENABLE_Pos)
+#define REG_MODE_Pos        4U
+#define REG_MODE_Msk        (0x03U &lt;&lt; REG_MODE_Pos)
+
+reg |= REG_ENABLE_Msk;
+reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
+        <p>
+          如果寄存器存在“写 1 清零”“读后清除”“写保护”等特殊行为，应严格按照芯片手册推荐流程操作，避免普通读改写误清标志。
+        </p>
+      </section>
+
+      <section>
+        <h2>十、结构体对齐与 sizeof</h2>
         <p>
           编译器可能为了提升访问效率，在结构体字段之间插入填充字节。因此 <code>sizeof(struct)</code> 不一定等于所有字段大小之和。
         </p>
@@ -148,7 +206,7 @@ static app_state_t s_state = APP_STATE_IDLE;</code></pre>
       </section>
 
       <section>
-        <h2>八、协议帧和参数表设计示例</h2>
+        <h2>十一、协议帧和参数表设计示例</h2>
         <p>
           一个相对清晰的协议帧通常包含帧头、命令、长度、数据和校验。不要把裸结构体直接发送出去，建议通过函数进行打包。
         </p>
@@ -166,11 +224,13 @@ static app_state_t s_state = APP_STATE_IDLE;</code></pre>
       </section>
 
       <section>
-        <h2>九、结构体设计检查清单</h2>
+        <h2>十二、结构体与位域设计检查清单</h2>
         <ul>
           <li>字段名是否带有单位和含义。</li>
           <li>是否显式指定了协议或存储字段的类型宽度。</li>
           <li>枚举值是否需要固定数值。</li>
+          <li>位域是否只用于内部状态，而不是外部协议或文件格式。</li>
+          <li>寄存器操作是否优先使用掩码和位移。</li>
           <li>结构体是否会被直接写入 Flash 或发送到上位机。</li>
           <li>是否考虑了结构体对齐和版本兼容。</li>
           <li>是否需要添加 magic、version、length、crc 等保护字段。</li>
