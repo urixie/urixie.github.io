@@ -26,17 +26,12 @@
     };
   }
 
-  function extractWrappedSections(children) {
+  function extractDirectSectionBlocks(children) {
     const sections = [];
 
     children.forEach(node => {
       if (isSkippableArticleNode(node)) return;
       if (node.matches?.('section') && node.querySelector('h2')) {
-        sections.push(createSectionFromContainer(node, sections.length));
-        return;
-      }
-
-      if (!node.matches?.('section') && node.querySelector?.('h2')) {
         sections.push(createSectionFromContainer(node, sections.length));
       }
     });
@@ -73,9 +68,11 @@
     const sections = [];
     const headings = Array.from(articleRoot.querySelectorAll('h2'));
 
-    headings.forEach((heading, index) => {
+    headings.forEach(heading => {
       const container = heading.closest('section') || heading.parentElement || heading;
-      if (!container || sections.some(section => section.source === container)) return;
+      if (!container || isSkippableArticleNode(container)) return;
+      if (sections.some(section => section.source === container)) return;
+
       const section = createSectionFromContainer(container, sections.length);
       section.source = container;
       sections.push(section);
@@ -96,8 +93,8 @@
   window.extractArticleSections = function extractArticleSections(articleRoot) {
     const children = Array.from(articleRoot.children).filter(node => !isSkippableArticleNode(node));
 
-    const wrappedSections = extractWrappedSections(children);
-    if (wrappedSections.length > 0) return wrappedSections;
+    const directSectionBlocks = extractDirectSectionBlocks(children);
+    if (directSectionBlocks.length > 0) return directSectionBlocks;
 
     const siblingSections = extractSiblingSections(children);
     if (siblingSections.length > 0) return siblingSections;
