@@ -44,7 +44,21 @@
       </section>
 
       <section>
-        <h2>二、制作优启通U盘启动盘</h2>
+        <h2>二、原版Windows镜像下载入口</h2>
+        <p>
+          Windows 镜像建议优先从微软官方下载。第三方网盘、论坛整合版或所谓“精简版”可能被修改过，适合学习研究时也要谨慎使用，不建议作为正式装机来源。
+        </p>
+        <ul>
+          <li><a href="https://www.microsoft.com/software-download/windows11" target="_blank" rel="noopener noreferrer">微软官方 Windows 11 下载页面</a>：可下载 Windows 11 安装助手、媒体创建工具和 Windows 11 ISO。</li>
+          <li><a href="https://www.microsoft.com/software-download/windows10" target="_blank" rel="noopener noreferrer">微软官方 Windows 10 下载页面</a>：可下载 Windows 10 媒体创建工具，并通过工具创建 ISO 或 U 盘安装介质。</li>
+        </ul>
+        <div class="article-warning">
+          下载 ISO 后建议校验文件完整性，并确认文件名、版本、语言和架构是否符合目标电脑。Windows 11 普通电脑通常选择 x64；ARM 设备需要选择 ARM64 版本。
+        </div>
+      </section>
+
+      <section>
+        <h2>三、制作优启通U盘启动盘</h2>
         <p>
           制作启动盘会改写 U 盘分区和启动结构，U 盘内原有数据可能被清空。制作前先把 U 盘里的文件拷贝出来。
         </p>
@@ -72,7 +86,7 @@
       </section>
 
       <section>
-        <h2>三、设置从U盘启动</h2>
+        <h2>四、设置从U盘启动</h2>
         <p>
           常用方式有两种：开机按启动快捷键选择 U 盘，或者进入 BIOS/UEFI 把 U 盘设为第一启动项。推荐优先使用快捷启动菜单，因为它不会永久改变启动顺序。
         </p>
@@ -84,7 +98,7 @@
       </section>
 
       <section>
-        <h2>四、进入PE后的安装思路</h2>
+        <h2>五、进入PE后的安装思路</h2>
         <p>
           进入优启通 PE 后，通常可以通过系统安装工具加载 Windows ISO，选择目标系统分区并开始安装。安装前一定要确认目标磁盘和分区。
         </p>
@@ -100,7 +114,7 @@
       </section>
 
       <section>
-        <h2>五、分区与启动模式</h2>
+        <h2>六、分区与启动模式</h2>
         <p>
           新电脑一般使用 UEFI + GPT；老电脑可能使用 Legacy BIOS + MBR。两者不要混用，否则容易出现装完系统无法启动。
         </p>
@@ -116,7 +130,7 @@
       </section>
 
       <section>
-        <h2>六、安装完成后的驱动处理</h2>
+        <h2>七、安装完成后的驱动处理</h2>
         <p>
           Windows 安装完成后，优先检查设备管理器中是否有黄色感叹号。特别关注网卡、芯片组、显卡、声卡、触控板、无线网卡、蓝牙等设备。</p>
         <ul>
@@ -128,7 +142,7 @@
       </section>
 
       <section>
-        <h2>七、常见问题排查</h2>
+        <h2>八、常见问题排查</h2>
         <table>
           <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
           <tbody>
@@ -142,10 +156,10 @@
       </section>
 
       <section>
-        <h2>八、工程检查清单</h2>
+        <h2>九、工程检查清单</h2>
         <ul>
           <li>数据是否已经备份。</li>
-          <li>Windows ISO 来源是否可靠。</li>
+          <li>Windows ISO 是否来自微软官方下载页面。</li>
           <li>U 盘制作工具是否来自官网。</li>
           <li>目标磁盘和分区是否确认无误。</li>
           <li>UEFI/GPT 或 Legacy/MBR 是否匹配。</li>
