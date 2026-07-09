@@ -7,14 +7,14 @@
 
   const siteMap = [
     {
-      id: 'c',
-      title: 'C语言专题',
-      shortTitle: 'C',
-      desc: '面向嵌入式工程的 C 语言基础、内存、结构体和调试经验。',
+      id: 'foundation',
+      title: '嵌入式基础',
+      shortTitle: 'Base',
+      desc: '沉淀跨平台、跨芯片通用的 C 语言、内存模型、数据组织、编译调试和工程规范。',
       children: [
         {
-          id: 'basic',
-          title: '基础语法',
+          id: 'c-basic',
+          title: 'C语言基础',
           desc: '变量、类型、运算符、流程控制和函数的工程化整理。',
           articles: [
             {
@@ -26,36 +26,22 @@
           ]
         },
         {
-          id: 'pointer',
+          id: 'pointer-memory',
           title: '指针与内存',
-          desc: '梳理 C 语言中最容易出错的指针、数组、栈和堆问题。',
+          desc: '梳理 C 语言中最容易出错的指针、数组、栈、堆和数据存储问题。',
           articles: [
             {
               title: 'C语言 · 指针与内存模型',
               desc: '数组与指针 / 指针函数 / 函数指针 / 栈 / 堆 / 越界访问 · 梳理 C 语言最容易出错的内存问题',
               href: withVersion('articles/c/c-pointer-memory/c-pointer-memory.html'),
               tags: ['指针', '内存模型']
-            }
-          ]
-        },
-        {
-          id: 'data-storage',
-          title: '数据存储与指针',
-          desc: '围绕数据表示、对齐、大小端和指针关系建立底层视角。',
-          articles: [
+            },
             {
               title: 'C语言 · 数据存储与指针',
               desc: '大小端 / 有符号与无符号 / 数据对齐 / size_t / typedef / enum / 数组与指针 / 二维指针 / void',
               href: withVersion('articles/c/c-data-storage-pointer/c-data-storage-pointer.html'),
               tags: ['数据存储', '数据对齐']
-            }
-          ]
-        },
-        {
-          id: 'stack-heap',
-          title: '内存堆栈管理',
-          desc: '面向嵌入式 Linux 和 C 工程排错的内存管理整理。',
-          articles: [
+            },
             {
               title: 'C语言 · 内存堆栈管理',
               desc: '进程 / 栈 / 堆 / mmap / 内存泄漏 / core dump / mprotect / Valgrind · 面向嵌入式 Linux 和 C 工程排错',
@@ -65,7 +51,7 @@
           ]
         },
         {
-          id: 'struct',
+          id: 'data-structure',
           title: '结构体与数据组织',
           desc: '适合参数配置、寄存器映射和通信协议设计的数据组织方式。',
           articles: [
@@ -78,8 +64,8 @@
           ]
         },
         {
-          id: 'embedded',
-          title: '嵌入式 C',
+          id: 'embedded-c',
+          title: '嵌入式C实践',
           desc: '贴近 STM32、ESP32 和驱动开发场景的 C 语言实践。',
           articles: [
             {
@@ -91,7 +77,7 @@
           ]
         },
         {
-          id: 'debug',
+          id: 'debug-engineering',
           title: '调试与工程实践',
           desc: '沉淀编译、日志、异常和工程规范相关的排错经验。',
           articles: [
@@ -102,6 +88,86 @@
               tags: ['调试', 'HardFault']
             }
           ]
+        }
+      ]
+    },
+    {
+      id: 'mcu',
+      title: 'MCU开发',
+      shortTitle: 'MCU',
+      desc: '按单片机通用外设、厂商系列、调试接口和量产烧写流程整理 MCU 工程经验。',
+      children: [
+        {
+          id: 'common',
+          title: '通用基础',
+          desc: 'GPIO、Timer、ADC、UART、SPI、IIC、Flash 和 Bootloader 相关内容后续补充。',
+          placeholders: ['GPIO', 'Timer', 'ADC', 'UART/SPI/IIC', 'Flash', 'Bootloader'],
+          articles: []
+        },
+        {
+          id: 'st',
+          title: 'ST',
+          desc: 'STM32F103、STM32F407 相关资料暂未发布。',
+          placeholders: ['STM32F103', 'STM32F407'],
+          articles: []
+        },
+        {
+          id: 'wh',
+          title: '武汉芯源半导体',
+          desc: 'CW32 外设采样、PWM 和控制类项目记录。',
+          articles: [
+            {
+              title: 'CW32L011K8U6 · NTC 热敏电阻采集与 PWM 频率输出',
+              desc: 'ARM Cortex-M0+ · ADC 多通道采样 / NTC 阻值换算 / GTIM2 PWM 输出',
+              href: withVersion('articles/mcu/cw32l011-ntc-adc-pwm/cw32l011-ntc-adc-pwm.html'),
+              tags: ['CW32L011', 'ADC', 'PWM']
+            }
+          ]
+        },
+        {
+          id: 'microchip',
+          title: 'Microchip',
+          desc: 'PIC16 数据手册、ICSP 和存储器编程规范整理。',
+          articles: [
+            {
+              title: 'PIC16F18854 · 数据手册资料整理',
+              desc: 'Microchip PIC16 · 中断 / PPS / PWM / Timer / CCP / CLC · 已整理模块资料',
+              href: withVersion('articles/mcu/pic16f18854-datasheet-notes/pic16f18854-datasheet-notes.html'),
+              tags: ['PIC16F18854', '数据手册']
+            },
+            {
+              title: 'PIC16(L)F188XX · ICSP 存储器编程',
+              desc: 'Microchip PIC16 · ICSP / SPI / NVM / EEPROM · 已整理存储器编程规范',
+              href: withVersion('articles/mcu/pic16f188xx-memory-programming/pic16f188xx-memory-programming.html'),
+              tags: ['PIC16', 'ICSP', 'NVM']
+            }
+          ]
+        },
+        {
+          id: 'silicon-labs',
+          title: 'Silicon Labs',
+          desc: 'EFM8 开发笔记和 C2 接口烧写流程整理。',
+          articles: [
+            {
+              title: 'EFM8BB10F8I-A-QFN20 · 开发笔记',
+              desc: 'Silicon Labs 8051 / CIP-51 · C2 调试 / I/O / PCA / Timer / ADC · 已整理开发笔记',
+              href: withVersion('articles/mcu/efm8bb10f8i-qfn20-development-notes/efm8bb10f8i-qfn20-development-notes.html'),
+              tags: ['EFM8', '8051', 'C2 Debug']
+            },
+            {
+              title: 'ESP32 · C2 接口模拟烧写 EFM8 Flash',
+              desc: 'ESP32-S3 GPIO Bit-Bang · C2CK / C2D 时序 · 擦除 / 写入 / 读回校验',
+              href: withVersion('articles/mcu/esp32-c2-efm8-flash-programming/esp32-c2-efm8-flash-programming.html'),
+              tags: ['ESP32-S3', 'C2', 'Flash']
+            }
+          ]
+        },
+        {
+          id: 'espressif',
+          title: 'Espressif',
+          desc: 'ESP32、ESP32-S3、ESP32-P4 相关资料暂未发布。',
+          placeholders: ['ESP32', 'ESP32-S3', 'ESP32-P4'],
+          articles: []
         }
       ]
     },
@@ -206,76 +272,28 @@
       ]
     },
     {
-      id: 'windows',
-      title: 'Windows装机专题',
-      shortTitle: 'Win',
-      desc: '围绕 U 盘、PXE、镜像、驱动和引导修复的装机记录。',
+      id: 'soc-linux',
+      title: 'SOC/Linux开发',
+      shortTitle: 'SoC',
+      desc: '把 Linux 基础、Bootloader、Kernel、RootFS、驱动调试和具体 SoC 平台放在同一条板级系统链路下整理。',
       children: [
         {
-          id: 'uqitong',
-          title: '优启通U盘装机',
-          desc: '手动重装 Win10 / Win11 的 U 盘启动盘和 PE 流程。',
-          articles: [
-            {
-              title: '优启通 · U盘启动盘与Windows重装教程',
-              desc: 'U盘启动盘 / 进入PE / 原版ISO / 分区 / 引导修复 / 驱动处理 · 适合手动重装 Win10 / Win11',
-              href: withVersion('articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html'),
-              tags: ['优启通', 'U盘启动盘']
-            }
-          ]
-        },
-        {
-          id: 'iventoy',
-          title: 'iVentoy PXE装机',
-          desc: 'PXE 启动安装 Windows 时的镜像和网卡驱动处理。',
-          articles: [
-            {
-              title: 'iVentoy · PXE安装Windows与网卡驱动处理',
-              desc: 'PXE启动 / 原版ISO / boot.wim / install.wim / USB转网口 / 注入网卡驱动 · 解决安装环境没网问题',
-              href: withVersion('articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html'),
-              tags: ['iVentoy', 'PXE装机']
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'linux',
-      title: 'Linux专题',
-      shortTitle: 'Linux',
-      desc: '覆盖 Linux 基础、进程内存、服务部署、板级调试和系统构建。',
-      children: [
-        {
-          id: 'basic',
-          title: '基础与文件系统',
-          desc: '建立嵌入式 Linux 调试常用命令和目录结构基础。',
+          id: 'linux-basic',
+          title: 'Linux基础',
+          desc: '建立嵌入式 Linux 调试常用命令、目录结构、进程内存和服务部署基础。',
           articles: [
             {
               title: 'Linux · 基础命令与文件系统',
               desc: '目录结构 / 权限 / grep / find / tar / scp / /proc / /sys · 建立嵌入式 Linux 调试基础',
               href: withVersion('articles/linux/linux-basic-filesystem/linux-basic-filesystem.html'),
               tags: ['Linux', '文件系统']
-            }
-          ]
-        },
-        {
-          id: 'process',
-          title: '进程与内存',
-          desc: '面向用户态程序排错的进程、线程和内存工具整理。',
-          articles: [
+            },
             {
               title: 'Linux · 进程、线程与内存管理',
               desc: 'process / thread / maps / fd / signal / strace / core dump / gdb · 面向用户态程序排错',
               href: withVersion('articles/linux/linux-process-memory-thread/linux-process-memory-thread.html'),
               tags: ['process', 'strace']
-            }
-          ]
-        },
-        {
-          id: 'shell',
-          title: 'Shell与服务',
-          desc: '适合部署、日志和开机自启的 Shell 与 systemd 记录。',
-          articles: [
+            },
             {
               title: 'Linux · Shell 脚本与 systemd 服务',
               desc: 'Shell / 变量 / 重定向 / 日志 / crontab / systemd / journalctl · 适合部署和开机自启',
@@ -285,9 +303,34 @@
           ]
         },
         {
-          id: 'embedded',
-          title: '嵌入式调试',
-          desc: '面向板级调试的设备树、内核模块和远程调试整理。',
+          id: 'boot-kernel-rootfs',
+          title: '启动链路与系统构建',
+          desc: '从 U-Boot、Kernel 到 RootFS 的构建流程和镜像组成。',
+          articles: [
+            {
+              title: 'U-Boot · 组成与构建流程',
+              desc: 'ROM Code / SPL / U-Boot proper / defconfig / bootcmd / bootargs / u-boot.bin · 梳理 Bootloader 构建和启动参数',
+              href: withVersion('articles/linux/uboot-structure-build/uboot-structure-build.html'),
+              tags: ['U-Boot', 'Bootloader']
+            },
+            {
+              title: 'Linux Kernel · 组成与构建流程',
+              desc: 'Kconfig / defconfig / Image / zImage / dtb / modules / System.map / vmlinux · 面向内核和驱动构建',
+              href: withVersion('articles/linux/kernel-structure-build/kernel-structure-build.html'),
+              tags: ['Kernel', 'Kconfig']
+            },
+            {
+              title: 'RootFS · 根文件系统组成与构建',
+              desc: 'BusyBox / Buildroot / Ubuntu Base / init / devtmpfs / rootfs.ext4 / squashfs · 梳理用户态文件系统构建',
+              href: withVersion('articles/linux/rootfs-structure-build/rootfs-structure-build.html'),
+              tags: ['RootFS', 'Buildroot']
+            }
+          ]
+        },
+        {
+          id: 'driver-debug',
+          title: '驱动与系统调试',
+          desc: '设备树、dmesg、sysfs、procfs、内核模块、交叉编译和远程调试。',
           articles: [
             {
               title: '嵌入式 Linux · 驱动与系统调试',
@@ -298,202 +341,8 @@
           ]
         },
         {
-          id: 'uboot',
-          title: 'U-Boot构建',
-          desc: '梳理 Bootloader 构建、启动参数和镜像组成。',
-          articles: [
-            {
-              title: 'U-Boot · 组成与构建流程',
-              desc: 'ROM Code / SPL / U-Boot proper / defconfig / bootcmd / bootargs / u-boot.bin · 梳理 Bootloader 构建和启动参数',
-              href: withVersion('articles/linux/uboot-structure-build/uboot-structure-build.html'),
-              tags: ['U-Boot', 'Bootloader']
-            }
-          ]
-        },
-        {
-          id: 'kernel',
-          title: 'Kernel构建',
-          desc: '面向内核和驱动构建的 Kconfig、镜像和模块记录。',
-          articles: [
-            {
-              title: 'Linux Kernel · 组成与构建流程',
-              desc: 'Kconfig / defconfig / Image / zImage / dtb / modules / System.map / vmlinux · 面向内核和驱动构建',
-              href: withVersion('articles/linux/kernel-structure-build/kernel-structure-build.html'),
-              tags: ['Kernel', 'Kconfig']
-            }
-          ]
-        },
-        {
-          id: 'rootfs',
-          title: '文件系统构建',
-          desc: '梳理 BusyBox、Buildroot、Ubuntu Base 和 rootfs 镜像。',
-          articles: [
-            {
-              title: 'RootFS · 根文件系统组成与构建',
-              desc: 'BusyBox / Buildroot / Ubuntu Base / init / devtmpfs / rootfs.ext4 / squashfs · 梳理用户态文件系统构建',
-              href: withVersion('articles/linux/rootfs-structure-build/rootfs-structure-build.html'),
-              tags: ['RootFS', 'Buildroot']
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'freertos',
-      title: 'FreeRTOS专题',
-      shortTitle: 'RTOS',
-      desc: '整理任务调度、任务管理、队列同步、定时器和调试经验。',
-      children: [
-        {
-          id: 'scheduler',
-          title: '调度基础',
-          desc: '建立 FreeRTOS 任务状态、抢占式调度和 Tick 基础认知。',
-          articles: [
-            {
-              title: 'FreeRTOS · 基础概念与调度机制',
-              desc: 'RTOS / 任务状态 / 抢占式调度 / 时间片 / Tick / 中断优先级 · 建立 FreeRTOS 整体认知',
-              href: withVersion('articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html'),
-              tags: ['FreeRTOS', '调度']
-            }
-          ]
-        },
-        {
-          id: 'task',
-          title: '任务管理',
-          desc: '适合嵌入式任务拆分设计的任务创建和栈空间记录。',
-          articles: [
-            {
-              title: 'FreeRTOS · 任务管理与栈空间',
-              desc: 'xTaskCreate / 任务优先级 / vTaskDelayUntil / 任务栈 / 栈水位检测 · 适合嵌入式任务拆分设计',
-              href: withVersion('articles/freertos/freertos-task-management/freertos-task-management.html'),
-              tags: ['任务管理', '任务栈']
-            }
-          ]
-        },
-        {
-          id: 'ipc',
-          title: '队列与同步',
-          desc: '梳理任务间通信和共享资源保护。',
-          articles: [
-            {
-              title: 'FreeRTOS · 队列、信号量与互斥锁',
-              desc: 'Queue / Semaphore / Mutex / FromISR / 任务通知 / 优先级继承 · 梳理任务间通信和共享资源保护',
-              href: withVersion('articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html'),
-              tags: ['队列', '互斥锁']
-            }
-          ]
-        },
-        {
-          id: 'timer',
-          title: '定时器与调试',
-          desc: '围绕软件定时器、内存、栈溢出检测和运行统计排错。',
-          articles: [
-            {
-              title: 'FreeRTOS · 软件定时器、内存与调试',
-              desc: 'Software Timer / heap_4 / 静态创建 / 栈溢出检测 / vTaskList / 运行统计 · 面向工程排错',
-              href: withVersion('articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html'),
-              tags: ['软件定时器', '调试']
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'mcu',
-      title: 'MCU',
-      shortTitle: 'MCU',
-      desc: '按厂商和芯片系列整理单片机资料、调试接口和工程笔记。',
-      children: [
-        {
-          id: 'st',
-          title: 'ST',
-          desc: 'STM32F103、STM32F407 相关资料暂未发布。',
-          placeholders: ['STM32F103', 'STM32F407'],
-          articles: []
-        },
-        {
-          id: 'wh',
-          title: '武汉芯源半导体',
-          desc: 'CW32 外设采样、PWM 和控制类项目记录。',
-          articles: [
-            {
-              title: 'CW32L011K8U6 · NTC 热敏电阻采集与 PWM 频率输出',
-              desc: 'ARM Cortex-M0+ · ADC 多通道采样 / NTC 阻值换算 / GTIM2 PWM 输出',
-              href: withVersion('articles/mcu/cw32l011-ntc-adc-pwm/cw32l011-ntc-adc-pwm.html'),
-              tags: ['CW32L011', 'ADC', 'PWM']
-            }
-          ]
-        },
-        {
-          id: 'microchip',
-          title: 'Microchip',
-          desc: 'PIC16 数据手册、ICSP 和存储器编程规范整理。',
-          articles: [
-            {
-              title: 'PIC16F18854 · 数据手册资料整理',
-              desc: 'Microchip PIC16 · 中断 / PPS / PWM / Timer / CCP / CLC · 已整理模块资料',
-              href: withVersion('articles/mcu/pic16f18854-datasheet-notes/pic16f18854-datasheet-notes.html'),
-              tags: ['PIC16F18854', '数据手册']
-            },
-            {
-              title: 'PIC16(L)F188XX · ICSP 存储器编程',
-              desc: 'Microchip PIC16 · ICSP / SPI / NVM / EEPROM · 已整理存储器编程规范',
-              href: withVersion('articles/mcu/pic16f188xx-memory-programming/pic16f188xx-memory-programming.html'),
-              tags: ['PIC16', 'ICSP', 'NVM']
-            }
-          ]
-        },
-        {
-          id: 'silicon-labs',
-          title: 'Silicon Labs',
-          desc: 'EFM8 开发笔记和 C2 接口烧写流程整理。',
-          articles: [
-            {
-              title: 'EFM8BB10F8I-A-QFN20 · 开发笔记',
-              desc: 'Silicon Labs 8051 / CIP-51 · C2 调试 / I/O / PCA / Timer / ADC · 已整理开发笔记',
-              href: withVersion('articles/mcu/efm8bb10f8i-qfn20-development-notes/efm8bb10f8i-qfn20-development-notes.html'),
-              tags: ['EFM8', '8051', 'C2 Debug']
-            },
-            {
-              title: 'ESP32 · C2 接口模拟烧写 EFM8 Flash',
-              desc: 'ESP32-S3 GPIO Bit-Bang · C2CK / C2D 时序 · 擦除 / 写入 / 读回校验',
-              href: withVersion('articles/mcu/esp32-c2-efm8-flash-programming/esp32-c2-efm8-flash-programming.html'),
-              tags: ['ESP32-S3', 'C2', 'Flash']
-            }
-          ]
-        },
-        {
-          id: 'espressif',
-          title: 'Espressif',
-          desc: 'ESP32、ESP32-S3、ESP32-P4 相关资料暂未发布。',
-          placeholders: ['ESP32', 'ESP32-S3', 'ESP32-P4'],
-          articles: []
-        },
-        {
-          id: 'xilinx',
-          title: 'Xilinx',
-          desc: 'MicroBlaze 相关资料暂未发布。',
-          placeholders: ['MicroBlaze'],
-          articles: []
-        }
-      ]
-    },
-    {
-      id: 'soc',
-      title: 'SOC',
-      shortTitle: 'SOC',
-      desc: '按 SoC 平台整理板级 Linux、驱动接口和系统集成记录。',
-      children: [
-        {
-          id: 'orbit',
-          title: '欧比特宇航科技',
-          desc: '玉龙810A 相关资料暂未发布。',
-          placeholders: ['玉龙810A'],
-          articles: []
-        },
-        {
           id: 'rockchip',
-          title: '瑞芯微电子',
+          title: 'Rockchip',
           desc: 'RK3568 平台 USB Gadget、SPI 和 spidev 调试记录。',
           articles: [
             {
@@ -509,18 +358,92 @@
               tags: ['RK3568', 'SPI', 'spidev']
             }
           ]
+        },
+        {
+          id: 'other-soc',
+          title: '其它SOC平台',
+          desc: '欧比特玉龙810A、NXP、全志等平台内容后续补充。',
+          placeholders: ['玉龙810A', 'NXP', '全志'],
+          articles: []
+        }
+      ]
+    },
+    {
+      id: 'realtime',
+      title: '实时系统',
+      shortTitle: 'RTOS',
+      desc: '以实时系统为一级入口，当前集中整理 FreeRTOS，后续可扩展 RT-Thread、Zephyr 等系统。',
+      children: [
+        {
+          id: 'freertos-basic',
+          title: 'FreeRTOS基础',
+          desc: '建立 FreeRTOS 任务状态、抢占式调度和 Tick 基础认知。',
+          articles: [
+            {
+              title: 'FreeRTOS · 基础概念与调度机制',
+              desc: 'RTOS / 任务状态 / 抢占式调度 / 时间片 / Tick / 中断优先级 · 建立 FreeRTOS 整体认知',
+              href: withVersion('articles/freertos/freertos-basic-scheduler/freertos-basic-scheduler.html'),
+              tags: ['FreeRTOS', '调度']
+            }
+          ]
+        },
+        {
+          id: 'task-management',
+          title: '任务管理',
+          desc: '适合嵌入式任务拆分设计的任务创建和栈空间记录。',
+          articles: [
+            {
+              title: 'FreeRTOS · 任务管理与栈空间',
+              desc: 'xTaskCreate / 任务优先级 / vTaskDelayUntil / 任务栈 / 栈水位检测 · 适合嵌入式任务拆分设计',
+              href: withVersion('articles/freertos/freertos-task-management/freertos-task-management.html'),
+              tags: ['任务管理', '任务栈']
+            }
+          ]
+        },
+        {
+          id: 'ipc-sync',
+          title: '队列与同步',
+          desc: '梳理任务间通信和共享资源保护。',
+          articles: [
+            {
+              title: 'FreeRTOS · 队列、信号量与互斥锁',
+              desc: 'Queue / Semaphore / Mutex / FromISR / 任务通知 / 优先级继承 · 梳理任务间通信和共享资源保护',
+              href: withVersion('articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html'),
+              tags: ['队列', '互斥锁']
+            }
+          ]
+        },
+        {
+          id: 'timer-memory-debug',
+          title: '定时器与调试',
+          desc: '围绕软件定时器、内存、栈溢出检测和运行统计排错。',
+          articles: [
+            {
+              title: 'FreeRTOS · 软件定时器、内存与调试',
+              desc: 'Software Timer / heap_4 / 静态创建 / 栈溢出检测 / vTaskList / 运行统计 · 面向工程排错',
+              href: withVersion('articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html'),
+              tags: ['软件定时器', '调试']
+            }
+          ]
         }
       ]
     },
     {
       id: 'gui',
-      title: 'GUI',
+      title: '嵌入式GUI',
       shortTitle: 'GUI',
-      desc: '面向嵌入式图形界面工具、屏幕模组和交互开发的资料入口。',
+      desc: '面向嵌入式图形界面工具、屏幕模组、LVGL、GUI Guider 和串口屏交互开发的资料入口。',
       children: [
         {
+          id: 'lvgl',
+          title: 'LVGL',
+          desc: 'LVGL 控件、布局、主题和屏幕交互相关内容后续补充。',
+          placeholders: ['LVGL控件', '主题配色', '屏幕交互'],
+          articles: []
+        },
+        {
           id: 'nxp',
-          title: 'NXP',
+          title: 'NXP GUI Guider',
           desc: 'GUI Guider 相关资料暂未发布。',
           placeholders: ['GUI Guider'],
           articles: []
@@ -535,20 +458,27 @@
       ]
     },
     {
-      id: 'host',
-      title: '上位机',
+      id: 'host-tools',
+      title: '上位机与工具',
       shortTitle: 'Host',
-      desc: '整理无线通信客户端、调试配置工具和远程开发链路。',
+      desc: '整理上位机技术栈、调试配置工具、数据查看、设备控制和远程开发链路。',
       children: [
         {
-          id: 'wireless',
+          id: 'tauri-rust',
+          title: 'Rust/Tauri',
+          desc: 'Rust/Tauri 上位机、文件解析、加密配置和设备通信内容后续补充。',
+          placeholders: ['Rust/Tauri', '文件解析', '加密配置'],
+          articles: []
+        },
+        {
+          id: 'wireless-client',
           title: '无线通信客户端',
           desc: '无线通信客户端资料暂未发布。',
           placeholders: ['无线通信客户端'],
           articles: []
         },
         {
-          id: 'debug',
+          id: 'debug-config',
           title: '调试与配置工具',
           desc: '参数配置、数据查看、设备控制和远程调试工具记录。',
           articles: [
@@ -559,6 +489,47 @@
               tags: ['VS Code', '远程调试']
             }
           ]
+        }
+      ]
+    },
+    {
+      id: 'dev-tools',
+      title: '开发环境与工具',
+      shortTitle: 'Tools',
+      desc: 'Windows 装机、PXE、U盘启动、开发环境搭建、Git/Codex/Claude Code 等工具经验。',
+      children: [
+        {
+          id: 'windows-install',
+          title: 'Windows装机',
+          desc: '手动重装 Win10 / Win11 的 U 盘启动盘、PE、分区和引导修复流程。',
+          articles: [
+            {
+              title: '优启通 · U盘启动盘与Windows重装教程',
+              desc: 'U盘启动盘 / 进入PE / 原版ISO / 分区 / 引导修复 / 驱动处理 · 适合手动重装 Win10 / Win11',
+              href: withVersion('articles/windows/uqitong-usb-win-install/uqitong-usb-win-install.html'),
+              tags: ['优启通', 'U盘启动盘']
+            }
+          ]
+        },
+        {
+          id: 'pxe-iventoy',
+          title: 'PXE/iVentoy',
+          desc: 'PXE 启动安装 Windows 时的镜像和网卡驱动处理。',
+          articles: [
+            {
+              title: 'iVentoy · PXE安装Windows与网卡驱动处理',
+              desc: 'PXE启动 / 原版ISO / boot.wim / install.wim / USB转网口 / 注入网卡驱动 · 解决安装环境没网问题',
+              href: withVersion('articles/windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html'),
+              tags: ['iVentoy', 'PXE装机']
+            }
+          ]
+        },
+        {
+          id: 'coding-agent',
+          title: 'AI与代码工具',
+          desc: 'Git、Codex、Claude Code、远程开发和自动化工具相关内容后续补充。',
+          placeholders: ['Git', 'Codex', 'Claude Code', '远程开发'],
+          articles: []
         }
       ]
     },
