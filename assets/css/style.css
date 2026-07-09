@@ -646,12 +646,15 @@ a:focus-visible {
 }
 
 .article-page-shell {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 28px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 28px 28px 28px 0;
 }
 
 .article {
+  width: 100%;
+  max-width: 960px;
   padding: 38px;
   border-radius: 28px;
 }
@@ -777,7 +780,7 @@ a:focus-visible {
 
 .article-nav-card {
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 0 24px 24px 0;
   background: rgba(17, 24, 34, 0.86);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
@@ -857,9 +860,10 @@ a:focus-visible {
 @media (min-width: 1080px) {
   .article-page-shell {
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 268px minmax(0, 960px);
     gap: 28px;
     align-items: start;
+    justify-content: start;
   }
 
   .article-sidebar {
@@ -879,6 +883,8 @@ a:focus-visible {
   .article-page-shell {
     display: block;
     max-width: 980px;
+    margin: 0 auto;
+    padding: 28px;
   }
 
   .article-sidebar {
