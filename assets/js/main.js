@@ -38,30 +38,63 @@ function injectTopic(config) {
     nav.appendChild(navGroup);
   }
 
-  const cardsTemplate = document.createElement('template');
-  cardsTemplate.innerHTML = config.cards.map(card => `
-    <article class="stack-card" id="${card.id}">
-      <div class="post-meta">${config.title}</div>
-      <div class="platform-category">
-        <h4>${card.category}</h4>
-        <div class="platform-items">
-          <a class="platform-item" href="${card.href}">
-            <strong>${card.strong}</strong>
-            <span>${card.desc}</span>
-          </a>
-        </div>
+  const topicCard = document.createElement('article');
+  topicCard.className = 'stack-card';
+  topicCard.id = config.topicCardId || `${config.tagTopic}-topic`;
+  topicCard.innerHTML = `<div class="post-meta">${config.title}</div>`;
+
+  config.cards.forEach(card => {
+    const category = document.createElement('div');
+    category.className = 'platform-category';
+    category.id = card.id;
+    category.innerHTML = `
+      <h4>${card.category}</h4>
+      <div class="platform-items">
+        <a class="platform-item" href="${card.href}">
+          <strong>${card.strong}</strong>
+          <span>${card.desc}</span>
+        </a>
       </div>
-    </article>
-  `).join('');
+    `;
+    topicCard.appendChild(category);
+  });
 
   const cardAnchor = document.querySelector('#c-struct') || document.querySelector('#mcu-st');
   if (cardAnchor) {
-    cardAnchor.before(cardsTemplate.content);
+    cardAnchor.before(topicCard);
   } else {
-    stackList.prepend(cardsTemplate.content);
+    stackList.prepend(topicCard);
   }
 
   appendTagLinks(tagCloud, config.tagTopic, config.tags);
+}
+
+function consolidateStaticTopicCards(config) {
+  const cards = config.cardIds
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+
+  if (cards.length <= 1 || document.getElementById(config.topicCardId)) return;
+
+  const topicCard = document.createElement('article');
+  topicCard.className = 'stack-card';
+  topicCard.id = config.topicCardId;
+  topicCard.innerHTML = `<div class="post-meta">${config.title}</div>`;
+
+  cards[0].before(topicCard);
+
+  cards.forEach(card => {
+    const originalId = card.id;
+    const category = card.querySelector('.platform-category');
+
+    if (category) {
+      card.removeAttribute('id');
+      category.id = originalId;
+      topicCard.appendChild(category);
+    }
+
+    card.remove();
+  });
 }
 
 const cacheVer = 'v=bb7d9a57684e';
@@ -70,6 +103,7 @@ injectTopic({
   title: 'Verilog专题',
   groupId: 'verilog-group',
   firstCardId: 'verilog-basic',
+  topicCardId: 'verilog-topic-card',
   tagTopic: 'verilog',
   navItems: [
     { id: 'verilog-basic', text: '基础语法' },
@@ -125,6 +159,7 @@ injectTopic({
   title: 'Windows装机专题',
   groupId: 'windows-group',
   firstCardId: 'windows-uqitong',
+  topicCardId: 'windows-topic-card',
   tagTopic: 'windows-install',
   navItems: [
     { id: 'windows-uqitong', text: '优启通U盘装机' },
@@ -162,6 +197,7 @@ injectTopic({
   title: 'Linux专题',
   groupId: 'linux-group',
   firstCardId: 'linux-basic',
+  topicCardId: 'linux-topic-card',
   tagTopic: 'linux',
   navItems: [
     { id: 'linux-basic', text: '基础与文件系统' },
@@ -241,6 +277,7 @@ injectTopic({
   title: 'FreeRTOS专题',
   groupId: 'freertos-group',
   firstCardId: 'freertos-basic',
+  topicCardId: 'freertos-topic-card',
   tagTopic: 'freertos',
   navItems: [
     { id: 'freertos-basic', text: '基础与调度' },
@@ -287,6 +324,20 @@ injectTopic({
     ['信号量', `articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?${cacheVer}`],
     ['互斥锁', `articles/freertos/freertos-ipc-sync/freertos-ipc-sync.html?${cacheVer}`],
     ['软件定时器', `articles/freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html?${cacheVer}`]
+  ]
+});
+
+consolidateStaticTopicCards({
+  title: 'C语言专题',
+  topicCardId: 'c-language-topic-card',
+  cardIds: [
+    'c-basic',
+    'c-pointer',
+    'c-data-storage',
+    'c-stack-heap',
+    'c-struct',
+    'c-embedded',
+    'c-debug'
   ]
 });
 
