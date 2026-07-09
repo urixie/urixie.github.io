@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>C语言内存堆栈管理整理 - XYJ</title>
+  <meta name="description" content="整理 C 语言与嵌入式 Linux 中的内存堆栈管理，包括进程、Linux 内存管理、栈初始化、函数调用、参数传递、堆管理、mmap、内存泄漏、core dump、mprotect 和 Valgrind。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#c-stack-heap">返回 C语言专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">C LANGUAGE · STACK · HEAP · MMAP · MEMORY DEBUG</div>
+
+      <h1>C语言内存堆栈管理整理</h1>
+
+      <p>
+        本文整理 C 语言、裸机、RTOS 和 Linux 环境中的内存堆栈管理知识。重点覆盖程序运行时的进程模型、Linux 内存管理、栈的初始化与函数调用、参数传递、形参与实参、作用域、栈溢出、堆内存管理、<code>mmap</code> 映射、内存泄漏防范，以及 core dump、<code>mprotect</code>、Valgrind 等常见内存错误检测方法。
+      </p>
+
+      <div class="article-note">
+        C 语言没有自动内存安全保护。栈、堆、全局区、mmap 区和共享库映射区一旦理解不清，就容易出现野指针、越界、栈溢出、内存泄漏、重复释放和段错误。嵌入式项目中，这些问题往往表现为随机死机、重启、通信异常或长时间运行后崩溃。
+      </div>
+
+      <section>
+        <h2>一、程序运行的“马甲”：进程</h2>
+        <p>
+          源代码编译后得到可执行文件。可执行文件只是磁盘上的静态文件，真正运行起来后，操作系统会为它创建进程。进程可以理解为程序运行时的“马甲”：同一个程序可以启动多个进程，每个进程都有独立的虚拟地址空间、寄存器上下文、文件描述符表和资源信息。
+        </p>
+        <ul>
+          <li>程序：磁盘上的可执行文件或脚本，是静态概念。</li>
+          <li>进程：程序运行后的实例，是动态概念。</li>
+          <li>线程：进程内部的执行流，共享进程地址空间。</li>
+          <li>地址空间：进程看到的一整套虚拟内存布局。</li>
+        </ul>
+        <p>
+          在 Linux 中，一个普通进程的虚拟地址空间通常包含代码段、只读数据段、数据段、BSS 段、堆、mmap 映射区、栈、共享库映射区和内核空间映射。C 语言中的指针本质上保存的是当前进程虚拟地址空间中的地址。
+        </p>
+      </section>
+
+      <section>
+        <h2>二、Linux 环境下的内存管理</h2>
+        <p>
+          Linux 使用虚拟内存机制。进程看到的是连续的虚拟地址，实际物理内存由 MMU 和内核页表映射。这样可以实现进程隔离、按需分配、内存保护、共享库加载、文件映射和页面换入换出。
+        </p>
+        <ul>
+          <li>虚拟地址：程序指针中看到的地址。</li>
+          <li>物理地址：真实内存芯片上的地址。</li>
+          <li>页表：记录虚拟地址到物理地址的映射关系。</li>
+          <li>页：内存管理的基本单位，常见大小为 4KB。</li>
+          <li>权限：页面可以有可读、可写、可执行等权限。</li>
+        </ul>
+        <p>
+          进程访问未映射地址、没有权限的地址、已经释放的堆内存，或者向只读页面写入数据，都可能触发段错误。嵌入式 Linux 调试中，<code>/proc/&lt;pid&gt;/maps</code>、core dump 和 gdb 是分析内存问题的重要工具。
+        </p>
+        <pre><code>cat /proc/1234/maps
+ulimit -c unlimited
+gdb ./app core</code></pre>
+      </section>
+
+      <section>
+        <h2>三、栈的管理</h2>
+        <p>
+          栈用于保存函数调用过程中的临时数据，包括返回地址、保存寄存器、局部变量、部分参数和栈帧信息。栈通常由系统或启动代码初始化，函数调用时自动增长和回收。
+        </p>
+
+        <h3>3.1 栈的初始化</h3>
+        <p>
+          在 Linux 进程中，栈由内核在创建进程时准备；在裸机 MCU 中，栈顶地址通常由启动文件和链接脚本指定，复位后 CPU 从中断向量表或启动代码加载初始栈指针。
+        </p>
+        <pre><code>/* 裸机链接脚本中常见的栈顶符号 */
+_estack = ORIGIN(RAM) + LENGTH(RAM);</code></pre>
+        <p>
+          如果裸机项目栈太小，函数嵌套、局部大数组、中断嵌套都可能导致栈溢出。栈溢出后可能破坏全局变量、堆、任务控制块或其它内存区域，问题表现往往很随机。
+        </p>
+
+        <h3>3.2 函数调用</h3>
+        <p>
+          函数调用时，CPU 会跳转到目标函数执行，并需要保存返回地址和必要上下文。不同架构、ABI 和优化等级下，参数可能通过寄存器传递，也可能通过栈传递。
+        </p>
+        <pre><code>int add(int a, int b)
+{
+    int sum = a + b;
+    return sum;
+}
+
+int value = add(1, 2);</code></pre>
+        <p>
+          这段简单代码背后包含参数传递、栈帧建立、局部变量存储、返回值传递和栈帧销毁等过程。开启优化后，编译器可能把局部变量放到寄存器中，甚至直接内联函数。
+        </p>
+
+        <h3>3.3 参数传递</h3>
+        <p>
+          C 语言函数参数是值传递。把变量传给函数时，函数拿到的是一份拷贝；如果要让函数修改调用者的数据，需要传入地址，也就是使用指针。
+        </p>
+        <pre><code>void set_value_bad(uint16_t value)
+{
+    value = 100;
+}
+
+void set_value_good(uint16_t *value)
+{
+    if (value != NULL) {
+        *value = 100;
+    }
+}</code></pre>
+
+        <h3>3.4 形参与实参</h3>
+        <p>
+          实参是调用函数时传入的实际表达式，形参是函数定义中接收数据的变量。形参本质上是函数内部的局部变量，生命周期只在函数调用期间有效。
+        </p>
+        <pre><code>void uart_send(const uint8_t *data, uint16_t len);
+
+uint8_t frame[8];
+uart_send(frame, sizeof(frame));</code></pre>
+        <p>
+          上面 <code>frame</code> 和 <code>sizeof(frame)</code> 是实参；<code>data</code> 和 <code>len</code> 是形参。函数内部不能通过 <code>sizeof(data)</code> 得到原始数组长度，因为数组作为参数会退化为指针。
+        </p>
+
+        <h3>3.5 栈与作用域</h3>
+        <p>
+          局部变量通常位于栈上，离开作用域后就失效。返回局部变量地址是典型错误，因为函数返回后这块栈空间可能被后续函数调用覆盖。
+        </p>
+        <pre><code>char *get_name_bad(void)
+{
+    char name[16] = "device";
+    return name; // 错误：返回局部数组地址
+}</code></pre>
+        <p>
+          如果需要返回长期有效的数据，可以使用调用者传入的缓冲区、静态缓冲区、堆分配内存或全局对象，但每种方式都要明确生命周期和所有权。
+        </p>
+
+        <h3>3.6 栈溢出攻击原理</h3>
+        <p>
+          栈溢出攻击通常利用局部数组越界写入，覆盖返回地址、保存寄存器或相邻变量，从而改变程序控制流。现代系统通常使用栈保护、地址随机化、不可执行栈等机制降低攻击成功率。
+        </p>
+        <pre><code>void unsafe_copy(const char *src)
+{
+    char buf[16];
+    strcpy(buf, src); // 危险：没有长度检查
+}</code></pre>
+        <p>
+          工程代码中应避免 <code>strcpy</code>、<code>sprintf</code> 等无边界函数，优先使用带长度限制的接口，并在协议解析中严格检查长度。
+        </p>
+      </section>
+
+      <section>
+        <h2>四、堆内存管理</h2>
+        <p>
+          堆用于动态申请和释放内存。C 标准库中常用 <code>malloc</code>、<code>calloc</code>、<code>realloc</code>、<code>free</code> 管理堆。堆比栈灵活，但也更容易产生碎片、泄漏、重复释放和悬空指针。
+        </p>
+
+        <h3>4.1 裸机环境下的堆内存管理</h3>
+        <p>
+          裸机项目中是否支持堆，取决于启动文件、链接脚本和 C 库移植。小资源 MCU 中通常不建议大量使用动态内存，因为内存有限且碎片不可控。
+        </p>
+        <ul>
+          <li>启动阶段可以静态分配固定缓冲区。</li>
+          <li>长期运行任务尽量避免频繁 malloc/free。</li>
+          <li>驱动层优先使用调用者传入的缓冲区。</li>
+          <li>必要时使用固定块内存池代替通用堆。</li>
+        </ul>
+
+        <h3>4.2 uC/OS 的堆内存管理</h3>
+        <p>
+          RTOS 环境中常见做法是使用内存分区、固定大小块、消息池或对象池。固定块内存池分配速度稳定，不容易产生碎片，适合实时系统。
+        </p>
+        <pre><code>// 思路示例：固定块内存池
+#define BLOCK_SIZE   64
+#define BLOCK_COUNT  16
+
+static uint8_t g_pool[BLOCK_COUNT][BLOCK_SIZE];
+static uint8_t g_used[BLOCK_COUNT];</code></pre>
+        <p>
+          这种方式牺牲了一些灵活性，但换来了确定性。实时系统往往更重视可预测性，而不是最大化内存利用率。
+        </p>
+
+        <h3>4.3 Linux 堆内存管理</h3>
+        <p>
+          Linux 用户态的 <code>malloc</code> 通常由 C 运行库实现。小块内存可能来自进程堆，大块内存可能通过 <code>mmap</code> 直接映射。调用 <code>free</code> 后，内存不一定立即还给操作系统，可能被分配器缓存复用。
+        </p>
+        <pre><code>uint8_t *buf = malloc(1024);
+if (buf == NULL) {
+    return -1;
+}
+
+/* 使用 buf */
+
+free(buf);
+buf = NULL;</code></pre>
+
+        <h3>4.4 堆内存测试程序</h3>
+        <p>
+          可以通过循环申请释放、记录剩余堆空间、统计最大连续块、模拟不同大小分配，评估堆碎片和稳定性。
+        </p>
+        <pre><code>for (int i = 0; i &lt; 1000; i++) {
+    void *p = malloc(128);
+    if (p == NULL) {
+        break;
+    }
+    memset(p, 0xA5, 128);
+    free(p);
+}</code></pre>
+        <p>
+          在 MCU 中，还可以在堆区域填充特定字节，运行一段时间后扫描水位线，估算最大堆使用量。
+        </p>
+
+        <h3>4.5 实现自己的堆管理器</h3>
+        <p>
+          自定义堆管理器的核心是维护一片内存区域和一组块描述信息。最简单的方式是空闲链表：分配时查找足够大的空闲块，释放时把块重新挂回链表，并尝试合并相邻空闲块。
+        </p>
+        <pre><code>typedef struct mem_block {
+    size_t size;
+    uint8_t used;
+    struct mem_block *next;
+} mem_block_t;</code></pre>
+        <p>
+          真正可用的堆管理器还要处理对齐、最小块大小、碎片合并、越界检测、重复释放检测和线程安全。嵌入式中如果只是固定大小对象，固定块内存池通常比通用堆更简单可靠。
+        </p>
+      </section>
+
+      <section>
+        <h2>五、mmap 映射区域探秘</h2>
+        <p>
+          <code>mmap</code> 可以把文件、设备或匿名内存映射到进程虚拟地址空间。映射后，程序可以像访问普通内存一样访问文件或设备区域。
+        </p>
+
+        <h3>5.1 将文件映射到内存</h3>
+        <pre><code>int fd = open("data.bin", O_RDONLY);
+void *addr = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+if (addr != MAP_FAILED) {
+    const uint8_t *data = (const uint8_t *)addr;
+    /* 直接访问 data */
+    munmap(addr, file_size);
+}
+close(fd);</code></pre>
+        <p>
+          文件映射适合读取大文件、共享数据、加载资源和减少显式 read/write 逻辑。需要注意映射长度、页对齐、权限和文件生命周期。
+        </p>
+
+        <h3>5.2 mmap 映射实现机制分析</h3>
+        <p>
+          <code>mmap</code> 建立的是虚拟地址到文件或物理页的映射关系。真正读取文件内容可能在第一次访问该页面时发生，也就是缺页异常触发后由内核加载数据。
+        </p>
+        <ul>
+          <li><code>MAP_PRIVATE</code>：私有映射，写入时通常触发写时复制。</li>
+          <li><code>MAP_SHARED</code>：共享映射，写入可能同步到文件或被其它进程看到。</li>
+          <li><code>PROT_READ</code>：可读。</li>
+          <li><code>PROT_WRITE</code>：可写。</li>
+          <li><code>PROT_EXEC</code>：可执行。</li>
+        </ul>
+
+        <h3>5.3 把设备映射到内存</h3>
+        <p>
+          在嵌入式 Linux 中，驱动可以把设备寄存器或 DMA 缓冲区映射到用户空间。用户程序通过 <code>mmap</code> 得到虚拟地址后，可以访问设备内存。
+        </p>
+        <p>
+          这类操作必须非常谨慎：寄存器访问顺序、Cache 一致性、内存屏障、权限控制都可能影响稳定性。用户态直接操作设备寄存器通常只适合调试工具或特定高性能场景。
+        </p>
+
+        <h3>5.4 多进程共享动态库</h3>
+        <p>
+          Linux 中动态库的代码段可以被多个进程共享映射，从而减少物理内存占用。每个进程有自己的虚拟地址空间，但只读代码页可以映射到同一批物理页。
+        </p>
+        <p>
+          这也是虚拟内存的重要价值之一：不同进程看到的是各自独立的地址空间，内核可以在底层复用相同的物理页面。
+        </p>
+      </section>
+
+      <section>
+        <h2>六、内存泄漏与防范</h2>
+        <p>
+          内存泄漏是指程序申请了内存，但后续失去了释放它的机会。短时间运行可能看不出问题，长时间运行的嵌入式服务、上位机工具、Linux 守护进程会逐渐占用更多内存，最终崩溃或被系统杀掉。
+        </p>
+
+        <h3>6.1 一个内存泄漏的例子</h3>
+        <pre><code>int load_config(void)
+{
+    char *buf = malloc(1024);
+    if (buf == NULL) {
+        return -1;
+    }
+
+    if (read_config(buf) != 0) {
+        return -2; // 错误：这里忘记 free(buf)
+    }
+
+    free(buf);
+    return 0;
+}</code></pre>
+        <p>
+          错误路径最容易泄漏。只要函数中有多个 return，就要检查每条路径是否释放了已经申请的资源。
+        </p>
+
+        <h3>6.2 预防内存泄漏</h3>
+        <ul>
+          <li>谁申请，谁释放；或者明确转移所有权。</li>
+          <li>错误路径统一跳转到清理标签。</li>
+          <li>释放后把指针置为 <code>NULL</code>，降低悬空指针风险。</li>
+          <li>模块退出时释放所有长期对象。</li>
+          <li>嵌入式中尽量使用对象池或静态缓冲区。</li>
+        </ul>
+        <pre><code>int load_config_safe(void)
+{
+    int ret = -1;
+    char *buf = malloc(1024);
+    if (buf == NULL) {
+        return -1;
+    }
+
+    if (read_config(buf) != 0) {
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    free(buf);
+    return ret;
+}</code></pre>
+
+        <h3>6.3 内存泄漏检测：MTrace</h3>
+        <p>
+          glibc 提供 <code>mtrace</code> 机制，可以记录 <code>malloc</code> 和 <code>free</code> 调用，用于定位内存泄漏。使用时通常需要设置环境变量并在程序中调用 <code>mtrace()</code>。
+        </p>
+        <pre><code>#include &lt;mcheck.h&gt;
+
+int main(void)
+{
+    mtrace();
+    /* 程序逻辑 */
+    muntrace();
+    return 0;
+}</code></pre>
+        <p>
+          这种方式适合 Linux 用户态程序，不适合所有嵌入式环境。交叉编译和裁剪 libc 时，需要确认运行库是否支持。
+        </p>
+
+        <h3>6.4 C++ 场景下的内存泄漏</h3>
+        <p>
+          C++ 中除了 <code>malloc/free</code>，还会遇到 <code>new/delete</code>、构造析构、智能指针、异常路径等问题。混用 <code>malloc/free</code> 和 <code>new/delete</code> 是常见错误。
+        </p>
+        <ul>
+          <li><code>new</code> 申请的对象必须用 <code>delete</code> 释放。</li>
+          <li><code>new[]</code> 申请的数组必须用 <code>delete[]</code> 释放。</li>
+          <li>优先使用 RAII 和智能指针管理资源。</li>
+          <li>异常路径也必须保证资源释放。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>七、常见的内存错误及检测</h2>
+        <p>
+          C 语言内存错误通常不会在编译期暴露，很多问题只有运行到特定路径才出现。常见错误包括数组越界、栈溢出、重复释放、释放后继续使用、未初始化读取、空指针解引用和写只读内存。
+        </p>
+
+        <h3>7.1 总有一个 Bug，让你泪流满面</h3>
+        <p>
+          内存 bug 的特点是现象和根因可能相距很远。一次越界写可能破坏另一个模块的数据，最终在完全无关的位置崩溃。排查时不要只盯着崩溃点，要回看最近的内存写入、协议解析、数组下标和指针生命周期。
+        </p>
+
+        <h3>7.2 使用 core dump 调试段错误</h3>
+        <p>
+          Linux 程序崩溃时，可以生成 core dump。core 文件保存了进程崩溃瞬间的内存、寄存器和调用栈信息，适合用 gdb 分析段错误。
+        </p>
+        <pre><code>ulimit -c unlimited
+./app
+
+gdb ./app core
+(gdb) bt
+(gdb) frame 0
+(gdb) info locals</code></pre>
+        <p>
+          如果程序被 systemd 启动，也可能需要通过 <code>coredumpctl</code> 查看 core 信息。嵌入式 Linux 系统中，还要确认文件系统空间和 core pattern 配置。
+        </p>
+
+        <h3>7.3 什么是内存踩踏</h3>
+        <p>
+          内存踩踏是指程序写越界或写错地址，破坏了本不属于自己的内存区域。典型原因包括数组越界、长度字段错误、memcpy 长度错误、结构体大小误判和使用已经释放的指针。
+        </p>
+        <pre><code>uint8_t buf[16];
+memcpy(buf, rx_data, rx_len); // 如果 rx_len &gt; 16，就会踩踏内存</code></pre>
+        <p>
+          对所有外部输入数据，都要先检查长度，再拷贝。协议解析函数应始终接收 <code>data + len</code>，而不是只接收裸指针。
+        </p>
+
+        <h3>7.4 内存踩踏监测：mprotect</h3>
+        <p>
+          <code>mprotect</code> 可以修改页面访问权限。调试时可以在目标缓冲区附近设置不可访问保护页，一旦越界访问保护页，程序会立即触发段错误，从而更早定位问题。
+        </p>
+        <pre><code>void *page = mmap(NULL, page_size * 2,
+                  PROT_READ | PROT_WRITE,
+                  MAP_PRIVATE | MAP_ANONYMOUS,
+                  -1, 0);
+
+mprotect((uint8_t *)page + page_size, page_size, PROT_NONE);</code></pre>
+        <p>
+          这种方法适合 Linux 用户态调试。它利用页权限把“悄悄写坏内存”变成“立即崩溃”，从而缩小排查范围。
+        </p>
+
+        <h3>7.5 内存检测神器：Valgrind</h3>
+        <p>
+          Valgrind 可以检测内存泄漏、越界访问、未初始化读取、重复释放、释放后使用等问题。它适合 Linux 用户态程序，但运行速度会明显变慢，通常用于测试阶段。
+        </p>
+        <pre><code>valgrind --leak-check=full --show-leak-kinds=all ./app</code></pre>
+        <p>
+          对交叉编译的嵌入式程序，如果目标板资源有限，可以在同架构 Linux 环境或主机模拟环境中先做基础内存检查。对于 MCU 裸机项目，可以借鉴其思想，使用哨兵字节、内存池统计、栈水位检测和断言机制做轻量检测。
+        </p>
+      </section>
+
+      <section>
+        <h2>八、工程检查清单</h2>
+        <ul>
+          <li>裸机项目是否在链接脚本中明确栈大小和堆大小。</li>
+          <li>局部变量中是否存在大数组。</li>
+          <li>函数是否返回了局部变量地址。</li>
+          <li>所有动态申请内存的错误路径是否都有释放逻辑。</li>
+          <li>释放后的指针是否继续被使用。</li>
+          <li>协议拷贝前是否检查目标缓冲区长度。</li>
+          <li>长期运行程序是否做过内存泄漏测试。</li>
+          <li>Linux 段错误是否保留 core dump 并用 gdb 分析。</li>
+          <li>复杂内存问题是否尝试使用 Valgrind、mprotect 或自定义哨兵检测。</li>
+          <li>RTOS 项目是否监控任务栈水位和堆碎片。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#c-stack-heap">返回 C语言专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
