@@ -206,13 +206,13 @@ function extractArticleSourceFromRoute(html, routeHref) {
   return resolveRelativeUrl(routeBase, source);
 }
 
-function rewriteInlineArticleHtml(html, sourceHref) {
+function getCleanArticleRoot(html, sourceHref) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const sourceBase = getDirectoryPath(sourceHref);
 
   doc.querySelectorAll('script').forEach(script => script.remove());
   doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
-  doc.querySelectorAll('.topbar, .article-topbar').forEach(nav => nav.remove());
+  doc.querySelectorAll('.topbar, .article-topbar, #articleToc, .article-toc, .article-toc-panel').forEach(nav => nav.remove());
 
   doc.querySelectorAll('[src]').forEach(node => {
     const value = node.getAttribute('src');
@@ -227,11 +227,10 @@ function rewriteInlineArticleHtml(html, sourceHref) {
     if (nextValue) node.setAttribute('href', nextValue);
   });
 
-  const article = doc.querySelector('article') || doc.querySelector('main') || doc.body;
-  return article.innerHTML;
+  return doc.querySelector('article') || doc.querySelector('main') || doc.body;
 }
 
-async function fetchInlineArticleHtml(article) {
+async function fetchInlineArticleRoot(article) {
   const routeHref = article.href;
   const routeResponse = await fetch(routeHref, { cache: 'no-cache' });
   if (!routeResponse.ok) {
@@ -245,7 +244,104 @@ async function fetchInlineArticleHtml(article) {
     throw new Error(`无法读取文章源文件：${sourceHref}`);
   }
 
-  return rewriteInlineArticleHtml(await sourceResponse.text(), sourceHref);
+  return getCleanArticleRoot(await sourceResponse.text(), sourceHref);
+}
+
+function hasMeaningfulContent(nodes) {
+  return nodes.some(node => node.textContent.trim() || node.querySelector?.('img, video, table, pre, code, iframe'));
+}
+
+function extractArticleSections(articleRoot) {
+  const nodes = Array.from(articleRoot.children);
+  const sections = [];
+  let current = null;
+  let preludeNodes = [];
+
+  nodes.forEach(node => {
+    if (node.matches('h2')) {
+      if (preludeNodes.length && hasMeaningfulContent(preludeNodes)) {
+        sections.push({
+          id: 'article-overview',
+          title: '文章概览',
+          nodes: preludeNodes.map(item => item.cloneNode(true))
+        });
+        preludeNodes = [];
+      }
+
+      current = {
+        id: node.id || `article-section-${sections.length + 1}`,
+        title: node.textContent.trim() || `章节 ${sections.length + 1}`,
+        nodes: [node.cloneNode(true)]
+      };
+      sections.push(current);
+      return;
+    }
+
+    if (current) {
+      current.nodes.push(node.cloneNode(true));
+    } else {
+      preludeNodes.push(node.cloneNode(true));
+    }
+  });
+
+  if (sections.length === 0) {
+    return [{
+      id: 'article-full',
+      title: '全文',
+      nodes: nodes.map(node => node.cloneNode(true))
+    }];
+  }
+
+  return sections;
+}
+
+function renderSectionInto(content, section) {
+  content.replaceChildren();
+  section.nodes.forEach(node => content.appendChild(node.cloneNode(true)));
+  initCopyButtons(content);
+  enhanceArticleTables(content);
+}
+
+function createSectionedArticleReader(articleRoot) {
+  const sections = extractArticleSections(articleRoot);
+  const reader = document.createElement('div');
+  reader.className = 'inline-article-reader card';
+
+  const nav = document.createElement('aside');
+  nav.className = 'inline-section-nav';
+
+  const navTitle = document.createElement('div');
+  navTitle.className = 'inline-section-nav-title';
+  navTitle.textContent = '文章目录';
+  nav.appendChild(navTitle);
+
+  const navList = document.createElement('div');
+  navList.className = 'inline-section-list';
+  nav.appendChild(navList);
+
+  const content = document.createElement('article');
+  content.className = 'inline-section-content article';
+
+  const buttons = sections.map((section, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'inline-section-button';
+    button.textContent = section.title;
+    button.dataset.sectionId = section.id;
+    button.addEventListener('click', () => {
+      buttons.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      renderSectionInto(content, section);
+    });
+    navList.appendChild(button);
+    return button;
+  });
+
+  if (buttons[0]) buttons[0].classList.add('active');
+  renderSectionInto(content, sections[0]);
+
+  reader.append(nav, content);
+  return reader;
 }
 
 async function renderInlineArticle(topic, category, article, options = {}) {
@@ -273,15 +369,8 @@ async function renderInlineArticle(topic, category, article, options = {}) {
   updateHomeHash(topic, category, article, options);
 
   try {
-    const html = await fetchInlineArticleHtml(article);
-    const articleShell = document.createElement('article');
-    articleShell.className = 'inline-article article card';
-    articleShell.innerHTML = html;
-    articleList.replaceChildren(articleShell);
-
-    if (window.initArticlePage) {
-      window.initArticlePage(articleShell);
-    }
+    const articleRoot = await fetchInlineArticleRoot(article);
+    articleList.replaceChildren(createSectionedArticleReader(articleRoot));
   } catch (error) {
     articleList.replaceChildren(createErrorCard(error.message));
   }
@@ -388,16 +477,8 @@ function renderSecondaryNav(topic) {
         link.href = article.href;
         link.dataset.articleSlug = slug;
         link.setAttribute('aria-current', selected ? 'page' : 'false');
+        link.textContent = article.title;
 
-        const linkTitle = document.createElement('span');
-        linkTitle.className = 'secondary-article-title';
-        linkTitle.textContent = article.title;
-
-        const linkDesc = document.createElement('span');
-        linkDesc.className = 'secondary-article-desc';
-        linkDesc.textContent = article.desc || '';
-
-        link.append(linkTitle, linkDesc);
         link.addEventListener('click', event => {
           event.preventDefault();
           selectArticle(topic.id, category.id, slug);
