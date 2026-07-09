@@ -364,6 +364,200 @@ function normalizeHeadingId(index) {
   return `article-section-${index + 1}`;
 }
 
+function getMainScriptUrl() {
+  const scripts = Array.from(document.scripts);
+  const currentScript = document.currentScript || scripts.find(script => /\/assets\/js\/main\.js(?:\?|$)/.test(script.src));
+  return currentScript?.src || new URL('/assets/js/main.js', window.location.origin).href;
+}
+
+function getSiteRootUrl() {
+  return new URL('../../index.html', getMainScriptUrl()).href;
+}
+
+function getAssetUrl(relativePath) {
+  return new URL(relativePath, getMainScriptUrl()).href;
+}
+
+function loadStylesheetOnce(id, href) {
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+function loadScriptOnce(id, src) {
+  if (document.getElementById(id)) {
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
+  });
+}
+
+function ensureHomeData() {
+  if (getHomeTopics().length > 0) {
+    return Promise.resolve(getHomeTopics());
+  }
+
+  if (!window.__homeDataLoading) {
+    window.__homeDataLoading = loadScriptOnce(
+      'home-data-dynamic',
+      getAssetUrl('home-data.js?v=704b803539b3')
+    ).then(() => getHomeTopics());
+  }
+
+  return window.__homeDataLoading;
+}
+
+function normalizePathname(pathname) {
+  return decodeURIComponent(pathname || '')
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/\/$/, '');
+}
+
+function getArticlePathFromHref(href) {
+  try {
+    return normalizePathname(new URL(href, getSiteRootUrl()).pathname);
+  } catch (error) {
+    return '';
+  }
+}
+
+function findArticleContextByPath() {
+  const currentPath = normalizePathname(window.location.pathname);
+  let matched = null;
+
+  getHomeTopics().forEach(topic => {
+    (topic.children || []).forEach(category => {
+      (category.articles || []).forEach(article => {
+        if (matched || !article?.href) return;
+        const articlePath = getArticlePathFromHref(article.href);
+        if (articlePath && articlePath === currentPath) {
+          matched = { topic, category, article };
+        }
+      });
+    });
+  });
+
+  return matched;
+}
+
+function findArticleContextByTopbar(articleTopbar) {
+  if (!articleTopbar) return null;
+
+  const links = Array.from(articleTopbar.querySelectorAll('a'));
+  for (const link of links) {
+    const href = link.getAttribute('href') || '';
+    const hash = href.includes('#') ? href.split('#').pop() : '';
+    if (!hash) continue;
+
+    const [topicId, categoryId] = legacyHomeHashMap[hash] || hash.split('/').filter(Boolean);
+    const topic = findTopic(topicId);
+    const category = findCategory(topic, categoryId);
+    if (topic) return { topic, category, article: null };
+  }
+
+  return null;
+}
+
+function getCurrentArticleContext(articleTopbar) {
+  return findArticleContextByPath() || findArticleContextByTopbar(articleTopbar) || {
+    topic: findTopic('c') || getHomeTopics()[0] || null,
+    category: null,
+    article: null
+  };
+}
+
+function buildTopicHomeHref(topic) {
+  const category = findCategory(topic, null);
+  return `${getSiteRootUrl()}${buildHomeHash(topic, category)}`;
+}
+
+function createProfileBlock() {
+  const profile = document.createElement('div');
+  profile.className = 'profile-compact';
+  profile.innerHTML = `
+    <div class="profile-compact-top">
+      <div class="profile-compact-avatar">
+        <img src="${getAssetUrl('../img/avatar-surf.jpg?v=704b803539b3')}" alt="XYJ 网站头像">
+      </div>
+      <div class="profile-identity">
+        <h1>XYJ</h1>
+        <p class="profile-summary">嵌入式软件工程师，${getWorkExperience(2022, 1)}经验。</p>
+      </div>
+    </div>
+    <a class="profile-email" href="mailto:xyj.work@qq.com" aria-label="发送邮件到 xyj.work@qq.com">
+      <svg class="profile-email-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h16c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2Zm0 2v.4l8 5.1 8-5.1V7H4Zm0 2.7V17h16V9.7l-7.46 4.76a1 1 0 0 1-1.08 0L4 9.7Z"/>
+      </svg>
+      <span>xyj.work@qq.com</span>
+    </a>
+  `;
+  return profile;
+}
+
+function buildArticlePrimarySidebar() {
+  const articleShell = document.querySelector('.article-page-shell');
+  if (!articleShell || articleShell.querySelector('.article-primary-sidebar')) return;
+
+  const context = getCurrentArticleContext(document.querySelector('.article-topbar'));
+  const activeTopicId = context.topic?.id || '';
+  const topics = getHomeTopics();
+  if (topics.length === 0) return;
+
+  const sidebar = document.createElement('aside');
+  sidebar.className = 'article-primary-sidebar';
+  sidebar.setAttribute('aria-label', '站点一级导航');
+
+  const top = document.createElement('div');
+  const primaryNav = document.createElement('nav');
+  primaryNav.className = 'primary-nav';
+  primaryNav.setAttribute('aria-label', '一级目录');
+
+  topics.forEach((topic, index) => {
+    const link = document.createElement('a');
+    const active = topic.id === activeTopicId;
+    link.className = 'primary-nav-button';
+    link.href = buildTopicHomeHref(topic);
+    link.title = topic.title;
+    link.classList.toggle('active', active);
+    link.setAttribute('aria-current', active ? 'page' : 'false');
+
+    const code = document.createElement('span');
+    code.className = 'primary-nav-code';
+    code.textContent = topic.shortTitle || String(index + 1).padStart(2, '0');
+
+    const title = document.createElement('span');
+    title.className = 'primary-nav-title';
+    title.textContent = topic.title;
+
+    const count = document.createElement('span');
+    count.className = 'primary-nav-count';
+    count.textContent = topic.id === 'about' ? 'INFO' : createCountLabel(getTopicArticleCount(topic));
+
+    link.append(code, title, count);
+    primaryNav.appendChild(link);
+  });
+
+  top.append(createProfileBlock(), primaryNav);
+
+  const footer = document.createElement('div');
+  footer.className = 'sidebar-footer';
+  footer.innerHTML = `<span>© ${new Date().getFullYear()} XYJ。</span>`;
+
+  sidebar.append(top, footer);
+  articleShell.insertBefore(sidebar, articleShell.firstElementChild);
+}
+
 function buildArticleNav() {
   const articleShell = document.querySelector('.article-page-shell');
   const article = document.querySelector('.article');
@@ -391,6 +585,9 @@ function buildArticleNav() {
       }))
     : [];
 
+  const articleTitle = article.querySelector('h1')?.textContent.trim() || document.title.replace(/\s*-\s*XYJ\s*$/, '');
+  const articleMeta = article.querySelector('.post-meta')?.textContent.trim() || '';
+
   articleTopbar?.remove();
 
   const articleSidebar = document.createElement('aside');
@@ -399,6 +596,22 @@ function buildArticleNav() {
 
   const articleNavCard = document.createElement('div');
   articleNavCard.className = 'article-nav-card';
+
+  const contextBlock = document.createElement('div');
+  contextBlock.className = 'article-nav-context';
+
+  const contextEyebrow = document.createElement('span');
+  contextEyebrow.textContent = '当前文章';
+
+  const contextTitle = document.createElement('h2');
+  contextTitle.textContent = articleTitle;
+
+  contextBlock.append(contextEyebrow, contextTitle);
+  if (articleMeta) {
+    const contextMeta = document.createElement('p');
+    contextMeta.textContent = articleMeta;
+    contextBlock.appendChild(contextMeta);
+  }
 
   const quickLinks = document.createElement('div');
   quickLinks.className = 'article-nav-actions';
@@ -434,6 +647,8 @@ function buildArticleNav() {
     articleNav.appendChild(link);
   });
 
+  articleNavCard.appendChild(contextBlock);
+
   if (quickLinks.children.length > 0) {
     articleNavCard.appendChild(quickLinks);
   }
@@ -442,7 +657,7 @@ function buildArticleNav() {
   articleNavCard.appendChild(articleNav);
   articleSidebar.appendChild(articleNavCard);
 
-  articleShell.insertBefore(articleSidebar, articleShell.firstElementChild);
+  articleShell.insertBefore(articleSidebar, article);
 
   const articleNavLinks = Array.from(articleNav.querySelectorAll('a'));
   const articleSections = headings
@@ -473,5 +688,20 @@ function buildArticleNav() {
   updateActiveArticleNav();
 }
 
+async function initArticlePage() {
+  const articleShell = document.querySelector('.article-page-shell');
+  if (!articleShell) return;
+
+  articleShell.classList.add('article-layout-shell');
+  loadStylesheetOnce(
+    'article-layout-tuning',
+    getAssetUrl('../css/article-layout-tuning.css?v=20260709-article1')
+  );
+
+  await ensureHomeData();
+  buildArticlePrimarySidebar();
+  buildArticleNav();
+}
+
 initHome();
-buildArticleNav();
+initArticlePage();
