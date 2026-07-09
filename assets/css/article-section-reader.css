@@ -1,0 +1,118 @@
+/* 文章章节阅读模式：中间目录负责切换章节，右侧只滚动当前章节内容。 */
+body.article-reader-page {
+  overflow: hidden;
+}
+
+.article-page-shell.article-layout-shell {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.article-page-shell.article-layout-shell .article.article-section-mode {
+  display: flex;
+  height: calc(100dvh - 48px);
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.article-section-mode > .post-meta,
+.article-section-mode > h1,
+.article-section-mode > p,
+.article-section-mode > .article-note,
+.article-section-mode > .article-warning {
+  flex: 0 0 auto;
+}
+
+.article-section-viewer {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 24px;
+  padding: 22px 14px 22px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.article-section-inner {
+  min-height: 100%;
+}
+
+.article-section-inner > section[hidden] {
+  display: none !important;
+}
+
+.article-section-inner > section {
+  display: block;
+  animation: article-section-fade 0.18s ease-out;
+}
+
+.article-section-inner > section > h2:first-child {
+  margin-top: 0;
+}
+
+.article-section-viewer::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.article-section-viewer::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.24);
+}
+
+.article-section-viewer::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+}
+
+.article-nav a[aria-current="page"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+@keyframes article-section-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1079px) {
+  body.article-reader-page {
+    overflow: auto;
+  }
+
+  .article-page-shell.article-layout-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .article-page-shell.article-layout-shell .article.article-section-mode {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .article-section-viewer {
+    max-height: 72dvh;
+    margin-top: 20px;
+    padding: 18px 10px 18px 0;
+    border-top-color: rgba(255, 255, 255, 0.07);
+  }
+}
+
+@media (max-width: 640px) {
+  .article-section-viewer {
+    max-height: 68dvh;
+    padding-right: 4px;
+  }
+}
