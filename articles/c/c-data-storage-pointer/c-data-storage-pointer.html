@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>C语言数据存储与指针整理 - XYJ</title>
+  <meta name="description" content="整理 C 语言数据存储与指针，包括大小端、有符号无符号、溢出、类型转换、数据对齐、size_t、typedef、enum、常量变量、数组与指针、多级指针、函数指针和 void。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bb7d9a57684e">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=bb7d9a57684e">← 返回首页</a>
+      <a href="../../../index.html?v=bb7d9a57684e#c-data-storage">返回 C语言专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">C LANGUAGE · DATA STORAGE · POINTER · TYPE SYSTEM</div>
+
+      <h1>C语言数据存储与指针整理</h1>
+
+      <p>
+        本文系统整理 C 语言中的数据存储与指针知识。内容覆盖数据类型与存储、大小端、有符号和无符号、数据溢出、类型转换、数据对齐、<code>size_t</code>、<code>typedef</code>、枚举、常量和变量、数组与指针、多级指针、函数指针以及 <code>void</code> 的工程用法。
+      </p>
+
+      <div class="article-note">
+        嵌入式 C 的很多疑难问题，本质上都和“数据在内存中如何存储、指针如何解释这段内存、编译器如何对齐和转换类型”有关。理解这些内容后，协议解析、Flash 存储、寄存器访问、上位机/下位机二进制交互都会更稳定。
+      </div>
+
+      <section>
+        <h2>一、数据类型与存储</h2>
+        <p>
+          C 语言中的数据类型决定了数据占用多少字节、如何解释二进制位、能表示什么范围以及参与运算时如何转换。嵌入式工程中，不能只关心“数值是多少”，还要关心“它在内存里占几字节、按什么顺序存、是否有符号”。
+        </p>
+
+        <h3>1.1 大端模式与小端模式</h3>
+        <p>
+          多字节数据在内存中有两种常见存储顺序：大端和小端。大端模式把高字节放在低地址，小端模式把低字节放在低地址。很多 MCU 使用小端模式，但通信协议和文件格式未必如此。
+        </p>
+        <pre><code>uint32_t value = 0x12345678;
+
+// 小端内存顺序：78 56 34 12
+// 大端内存顺序：12 34 56 78</code></pre>
+        <p>
+          协议解析时不要直接把字节数组强转为 <code>uint16_t *</code> 或 <code>uint32_t *</code>，更稳妥的方式是显式按协议规定组合字节。
+        </p>
+        <pre><code>uint16_t read_be16(const uint8_t *buf)
+{
+    return ((uint16_t)buf[0] &lt;&lt; 8) | buf[1];
+}
+
+uint16_t read_le16(const uint8_t *buf)
+{
+    return ((uint16_t)buf[1] &lt;&lt; 8) | buf[0];
+}</code></pre>
+
+        <h3>1.2 有符号数和无符号数</h3>
+        <p>
+          有符号数可以表示负数，无符号数只表示非负数。二者混合运算和比较时，C 语言会进行整数提升和类型转换，容易产生看起来“反直觉”的结果。
+        </p>
+        <pre><code>int16_t  a = -1;
+uint16_t b = 1;
+
+// a 和 b 比较时，可能发生无符号转换
+// 工程中应避免直接混合比较</code></pre>
+        <p>
+          协议字段、寄存器位、长度、地址、计数值通常使用无符号类型；温度偏移、误差、差值等可能出现负数的量使用有符号类型。
+        </p>
+
+        <h3>1.3 数据溢出</h3>
+        <p>
+          无符号整数溢出按模回绕，有符号整数溢出在 C 标准中属于未定义行为。嵌入式中计数器回绕很常见，但必须明确这是设计的一部分，而不是无意中的 bug。
+        </p>
+        <pre><code>uint8_t x = 255;
+x = x + 1; // 结果回绕为 0
+
+int8_t y = 127;
+y = y + 1; // 有符号溢出，行为不应依赖</code></pre>
+        <p>
+          对计时差值可以利用无符号回绕特性，但要保证写法正确。
+        </p>
+        <pre><code>uint32_t now = get_tick_ms();
+if ((uint32_t)(now - start_tick) &gt;= timeout_ms) {
+    // 超时
+}</code></pre>
+
+        <h3>1.4 数据类型转换</h3>
+        <p>
+          类型转换分为隐式转换和显式转换。嵌入式代码中，涉及移位、拼接、长度计算、寄存器值转换时，建议显式转换，让编译器和读代码的人都明确你的意图。
+        </p>
+        <pre><code>uint8_t high = 0x12;
+uint8_t low  = 0x34;
+
+uint16_t value = ((uint16_t)high &lt;&lt; 8) | low;</code></pre>
+        <p>
+          如果不把 <code>high</code> 先转换为 <code>uint16_t</code>，在某些表达式中可能受到整数提升、符号扩展或移位宽度影响，导致结果不符合预期。
+        </p>
+      </section>
+
+      <section>
+        <h2>二、数据对齐</h2>
+        <p>
+          数据对齐是指变量地址按照一定边界存放。例如 32 位变量通常希望放在 4 字节对齐地址上，这样 CPU 访问更高效，有些架构甚至要求必须对齐。
+        </p>
+
+        <h3>2.1 为什么要数据对齐</h3>
+        <p>
+          CPU 访问内存通常按字、半字、字节等粒度进行。对齐访问可以减少总线周期，提高访问效率。非对齐访问在某些平台上可用但效率较低，在某些 MCU 上会直接触发异常。
+        </p>
+        <ul>
+          <li>提升 CPU 访问效率。</li>
+          <li>满足硬件总线访问要求。</li>
+          <li>满足 DMA、Cache、Flash 写入等硬件模块的对齐要求。</li>
+          <li>避免结构体在不同平台上的二进制布局误判。</li>
+        </ul>
+
+        <h3>2.2 结构体对齐</h3>
+        <p>
+          编译器可能在结构体成员之间插入填充字节，使每个成员按照自身对齐要求存放。因此结构体大小不一定等于所有成员大小之和。
+        </p>
+        <pre><code>typedef struct {
+    uint8_t  a;
+    uint32_t b;
+    uint16_t c;
+} sample_t;
+
+// sizeof(sample_t) 可能不是 1 + 4 + 2</code></pre>
+        <p>
+          如果结构体要落盘、写 Flash、生成 bin 文件或与上位机共享，就不能只看字段列表，还要确认实际对齐、填充和字节序。
+        </p>
+
+        <h3>2.3 联合体对齐</h3>
+        <p>
+          联合体所有成员共享同一段内存，联合体大小通常由最大成员和对齐要求决定。联合体适合内部多视图解释数据，但不适合直接作为跨平台协议格式。
+        </p>
+        <pre><code>typedef union {
+    uint32_t value;
+    uint8_t bytes[4];
+} u32_bytes_t;</code></pre>
+        <p>
+          使用联合体查看字节顺序时，要记住它观察的是当前 CPU 的实际内存布局，不一定等于协议规定的传输顺序。
+        </p>
+      </section>
+
+      <section>
+        <h2>三、数据的可移植性</h2>
+        <p>
+          可移植性是指代码在不同编译器、不同 CPU、不同操作系统或不同 SDK 中仍然保持一致行为。嵌入式代码常见的可移植性风险包括类型宽度、字节序、对齐、位域布局、枚举大小和编译器扩展。
+        </p>
+        <ul>
+          <li>跨平台数据字段优先使用 <code>stdint.h</code> 中的固定宽度类型。</li>
+          <li>跨设备通信时显式指定大小端。</li>
+          <li>不要直接发送结构体内存，优先手动序列化。</li>
+          <li>不要依赖位域在不同编译器下的排列方式。</li>
+          <li>使用 GNU C 扩展时，明确项目是否绑定 GCC/Clang。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>四、Linux 内核中的 size_t 类型</h2>
+        <p>
+          <code>size_t</code> 是 C 语言中用于表示对象大小、数组长度、内存长度的无符号整数类型。它的具体宽度与平台有关：32 位平台通常是 32 位，64 位平台通常是 64 位。
+        </p>
+        <pre><code>void *memcpy(void *dest, const void *src, size_t n);
+size_t len = sizeof(buffer);</code></pre>
+        <p>
+          在 Linux 内核、C 标准库和嵌入式 SDK 中，<code>size_t</code> 常用于表达内存大小和对象长度。它不适合表达可能为负的差值；指针差值通常使用 <code>ptrdiff_t</code>。
+        </p>
+        <div class="article-warning">
+          打印 <code>size_t</code> 时应使用 <code>%zu</code>。在不支持 <code>%zu</code> 的老旧环境中，需要按平台转换后打印，但要避免直接用 <code>%d</code> 误打。
+        </div>
+      </section>
+
+      <section>
+        <h2>五、为什么很多人编程时喜欢用 typedef</h2>
+        <p>
+          <code>typedef</code> 可以为已有类型创建别名。它常用于简化结构体、函数指针、平台相关类型和业务类型，让接口更清楚。
+        </p>
+
+        <h3>5.1 typedef 的基本用法</h3>
+        <pre><code>typedef unsigned char  u8;
+typedef unsigned short u16;
+typedef unsigned int   u32;
+
+typedef struct {
+    uint8_t id;
+    uint16_t value;
+} param_t;</code></pre>
+        <p>
+          在现代 C 项目中，更推荐直接使用 <code>uint8_t</code>、<code>uint16_t</code>、<code>uint32_t</code> 这类标准定长类型，除非项目已有统一类型规范。
+        </p>
+
+        <h3>5.2 使用 typedef 的优势</h3>
+        <ul>
+          <li>隐藏复杂类型声明，例如函数指针。</li>
+          <li>统一平台差异，例如不同芯片上的句柄类型。</li>
+          <li>让业务含义更明确，例如 <code>adc_raw_t</code>、<code>tick_ms_t</code>。</li>
+          <li>简化结构体类型使用。</li>
+        </ul>
+
+        <h3>5.3 使用 typedef 需要注意的地方</h3>
+        <p>
+          <code>typedef</code> 不能滥用。如果所有基础类型都被重新命名，反而会让读代码的人不知道真实宽度和含义。对于指针类型也要谨慎隐藏，避免误以为是普通值类型。
+        </p>
+        <pre><code>typedef uint8_t *buffer_ptr_t;
+
+buffer_ptr_t a, b; // a 和 b 都是指针，但这种写法容易降低可读性</code></pre>
+
+        <h3>5.4 typedef 的作用域</h3>
+        <p>
+          <code>typedef</code> 遵循 C 语言作用域规则。定义在头文件中的类型会暴露给所有包含者；定义在源文件中的类型只服务当前模块。内部实现细节不建议放到公共头文件中。
+        </p>
+
+        <h3>5.5 如何避免 typedef 被大量滥用</h3>
+        <ul>
+          <li>公共 API 中使用 typedef 要稳定，不要频繁变化。</li>
+          <li>能直接看出宽度的类型不要重复起别名。</li>
+          <li>指针类型别名慎用，避免隐藏指针属性。</li>
+          <li>业务类型别名要体现单位、范围或用途。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>六、枚举类型</h2>
+        <p>
+          枚举用于定义一组命名整数常量，适合表示状态、事件、模式、错误码和命令类型。它能让代码比裸数字更清楚。
+        </p>
+
+        <h3>6.1 使用枚举的三种方法</h3>
+        <pre><code>enum app_state {
+    APP_STATE_IDLE = 0,
+    APP_STATE_RUN,
+    APP_STATE_ERROR,
+};
+
+typedef enum {
+    APP_ERR_OK = 0,
+    APP_ERR_PARAM = -1,
+    APP_ERR_TIMEOUT = -2,
+} app_err_t;
+
+enum {
+    BUFFER_SIZE = 128,
+    FRAME_HEAD = 0xAA,
+};</code></pre>
+        <p>
+          第一种保留枚举标签，第二种配合 <code>typedef</code> 更方便声明变量，第三种匿名枚举常用于定义整型常量。
+        </p>
+
+        <h3>6.2 枚举的本质</h3>
+        <p>
+          枚举本质上是一组整数常量。C 编译器通常用 <code>int</code> 或足够容纳枚举值的类型表示枚举变量，但具体大小可能与编译选项和编译器实现有关。
+        </p>
+
+        <h3>6.3 Linux 内核中的枚举类型</h3>
+        <p>
+          Linux 内核和驱动代码中经常使用枚举表达状态、设备类型、事件类型和错误路径。枚举值通常显式赋值，便于调试、日志输出和 ABI 稳定。
+        </p>
+
+        <h3>6.4 使用枚举需要注意的地方</h3>
+        <ul>
+          <li>参与通信协议或文件格式时，枚举值必须显式指定。</li>
+          <li>不要依赖枚举变量的内存大小作为外部二进制格式。</li>
+          <li>错误码枚举建议保持稳定，避免后续插入导致含义变化。</li>
+          <li>状态枚举建议增加非法状态或最大值，便于边界检查。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>七、常量和变量</h2>
+        <p>
+          变量表示运行过程中可能变化的数据，常量表示不应该被修改的数据。嵌入式中常量表、字符串、寄存器掩码、默认参数和查表数据都应尽量声明为 <code>const</code>。
+        </p>
+
+        <h3>7.1 变量的本质</h3>
+        <p>
+          变量本质上是一段带类型解释的内存。变量名只是编译期符号，程序运行时真正访问的是地址和地址中的数据。
+        </p>
+        <pre><code>uint16_t adc_value = 2048;
+
+// adc_value 对应一段内存
+// &amp;adc_value 是这段内存的起始地址</code></pre>
+
+        <h3>7.2 常量存储</h3>
+        <p>
+          <code>const</code> 对象通常可以放到只读区域。对于 MCU，常量数据可能位于 Flash；对于普通程序，常量数据通常位于只读数据段。
+        </p>
+        <pre><code>static const uint16_t ntc_table[] = {
+    4095, 3980, 3860, 3720,
+};</code></pre>
+
+        <h3>7.3 常量折叠</h3>
+        <p>
+          编译器会在编译阶段计算一些常量表达式，减少运行时计算。例如数组大小、宏常量表达式、枚举常量等都可能在编译期完成。
+        </p>
+        <pre><code>#define ADC_MAX_VALUE   4095U
+#define ADC_HALF_VALUE  (ADC_MAX_VALUE / 2U)</code></pre>
+        <p>
+          使用常量折叠可以提升效率，但宏表达式必须加括号，避免优先级问题。
+        </p>
+      </section>
+
+      <section>
+        <h2>八、从变量到指针</h2>
+        <p>
+          指针保存地址。理解指针的第一步，是把变量看成一段内存，把指针看成指向这段内存的变量。
+        </p>
+
+        <h3>8.1 指针的本质</h3>
+        <pre><code>uint16_t value = 100;
+uint16_t *p = &amp;value;
+
+*p = 200; // 通过地址修改 value</code></pre>
+        <p>
+          指针类型决定了解引用时读取多少字节，也决定了指针加减时步进多少字节。
+        </p>
+
+        <h3>8.2 一些复杂的指针声明</h3>
+        <pre><code>int *p;                  // p 是指向 int 的指针
+int *arr[4];             // arr 是数组，元素是 int 指针
+int (*p_arr)[4];         // p_arr 是指针，指向含 4 个 int 的数组
+int (*func)(int, int);   // func 是函数指针
+int *func2(int);         // func2 是返回 int 指针的函数</code></pre>
+        <p>
+          判断复杂声明时，可以从变量名开始，结合括号优先级向外读。数组下标和函数调用优先级高于 <code>*</code>，所以括号经常用于改变含义。
+        </p>
+
+        <h3>8.3 指针类型与运算</h3>
+        <p>
+          指针加减的单位不是字节，而是它指向的类型大小。<code>uint32_t *</code> 加一会跳过 4 字节；<code>uint8_t *</code> 加一才是移动 1 字节。
+        </p>
+      </section>
+
+      <section>
+        <h2>九、指针与数组的“暧昧”关系</h2>
+        <p>
+          数组名在大多数表达式中会退化为指向首元素的指针，但数组不是指针。数组有自己的存储空间，指针只是一个保存地址的变量。
+        </p>
+
+        <h3>9.1 下标运算符 []</h3>
+        <pre><code>uint8_t buf[4] = {1, 2, 3, 4};
+
+buf[2];     // 等价于 *(buf + 2)
+2[buf];     // 语法上也成立，但不建议这样写</code></pre>
+        <p>
+          下标访问本质上是指针偏移加解引用。工程中仍建议使用正常下标写法，提高可读性。
+        </p>
+
+        <h3>9.2 数组名的本质</h3>
+        <p>
+          数组名通常代表数组首元素地址，但在 <code>sizeof</code> 和取地址 <code>&amp;</code> 等场景下不会退化。
+        </p>
+        <pre><code>uint8_t buf[8];
+
+sizeof(buf);  // 8，整个数组大小
+sizeof(&amp;buf); // 指针大小，&amp;buf 类型是 uint8_t (*)[8]</code></pre>
+
+        <h3>9.3 指针数组与数组指针</h3>
+        <pre><code>int *p_array[4];     // 指针数组：数组里有 4 个 int 指针
+int (*array_p)[4];   // 数组指针：指向含 4 个 int 的数组</code></pre>
+        <p>
+          指针数组常用于字符串表、函数表、对象指针表；数组指针常用于二维数组传参。
+        </p>
+      </section>
+
+      <section>
+        <h2>十、指针与结构体</h2>
+        <p>
+          结构体指针是嵌入式项目中最常见的接口形式之一。驱动对象、设备上下文、参数表、链表节点和协议对象都经常通过结构体指针传递。
+        </p>
+        <pre><code>typedef struct {
+    uint8_t id;
+    uint16_t value;
+} item_t;
+
+void item_set_value(item_t *item, uint16_t value)
+{
+    if (item == NULL) {
+        return;
+    }
+
+    item-&gt;value = value;
+}</code></pre>
+        <p>
+          <code>item-&gt;value</code> 等价于 <code>(*item).value</code>。使用结构体指针前必须判空，尤其是驱动初始化、回调和动态分配场景。
+        </p>
+      </section>
+
+      <section>
+        <h2>十一、二维指针</h2>
+        <p>
+          二维指针常见于修改调用者指针、字符串表、动态二维数组和指针数组。它和二维数组不是一回事。
+        </p>
+
+        <h3>11.1 修改指针变量的值</h3>
+        <pre><code>int alloc_buffer(uint8_t **out_buf, size_t len)
+{
+    if (out_buf == NULL) {
+        return -1;
+    }
+
+    *out_buf = malloc(len);
+    return *out_buf == NULL ? -2 : 0;
+}</code></pre>
+        <p>
+          如果函数需要修改调用者持有的指针，就需要传入指针的地址，也就是二级指针。
+        </p>
+
+        <h3>11.2 二维指针和指针数组</h3>
+        <pre><code>const char *names[] = {
+    "idle",
+    "run",
+    "error",
+};
+
+const char **p = names;</code></pre>
+        <p>
+          这里 <code>names</code> 是指针数组，数组元素是 <code>const char *</code>。在表达式中它可以退化为 <code>const char **</code>。
+        </p>
+
+        <h3>11.3 二级指针和二维数组</h3>
+        <p>
+          二级指针不是二维数组。二维数组是一整块连续内存，而二级指针通常指向一组指针，每个指针再指向一段内存。
+        </p>
+        <pre><code>int matrix[2][3];
+int (*p_matrix)[3] = matrix; // 正确：指向含 3 个 int 的数组
+
+// int **p = matrix; // 错误理解：二维数组不能直接当成 int **</code></pre>
+      </section>
+
+      <section>
+        <h2>十二、函数指针</h2>
+        <p>
+          函数指针保存函数入口地址，常用于回调、命令分发、状态机、驱动抽象层和插件式接口。
+        </p>
+        <pre><code>typedef int (*cmd_handler_t)(const uint8_t *data, uint16_t len);
+
+typedef struct {
+    uint8_t cmd;
+    cmd_handler_t handler;
+} cmd_item_t;</code></pre>
+        <p>
+          函数指针让“数据”和“行为”可以放在同一张表中，这种写法在驱动框架、协议栈和事件系统中非常常见。
+        </p>
+      </section>
+
+      <section>
+        <h2>十三、重新认识 void</h2>
+        <p>
+          <code>void</code> 表示“无类型”或“不返回值”。它在 C 语言中有几个重要用法：函数无返回值、函数无参数、通用指针 <code>void *</code>、忽略返回值或参数。
+        </p>
+        <pre><code>void delay_ms(uint32_t ms);       // 无返回值
+int app_init(void);              // 无参数
+void *memcpy(void *dst, const void *src, size_t n);</code></pre>
+        <p>
+          <code>void *</code> 可以保存任意对象指针，但不能直接解引用，必须先转换成具体类型。它常用于内存操作、通用容器、RTOS 任务参数和回调上下文。
+        </p>
+        <pre><code>void task_entry(void *arg)
+{
+    app_context_t *ctx = (app_context_t *)arg;
+    // 使用 ctx 前应确认其来源和生命周期
+}</code></pre>
+        <p>
+          <code>(void)unused;</code> 常用于显式标记某个参数暂未使用，避免编译告警。
+        </p>
+      </section>
+
+      <section>
+        <h2>十四、工程检查清单</h2>
+        <ul>
+          <li>跨设备数据是否使用固定宽度类型。</li>
+          <li>协议解析是否明确大小端。</li>
+          <li>有符号和无符号是否混合比较。</li>
+          <li>长度、地址、数组下标是否使用合适的无符号类型。</li>
+          <li>结构体是否会被直接写入 Flash 或发送出去。</li>
+          <li>结构体对齐、填充和大小端是否经过验证。</li>
+          <li><code>typedef</code> 是否隐藏了不该隐藏的指针属性。</li>
+          <li>枚举值是否需要固定以保持协议兼容。</li>
+          <li>函数参数中的数组是否同时传入长度。</li>
+          <li>二维数组是否被误当成二级指针。</li>
+          <li><code>void *</code> 转换前是否确认真实类型和生命周期。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=bb7d9a57684e#c-data-storage">返回 C语言专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../assets/js/main.js?v=bb7d9a57684e"></script>
+</body>
+</html>
