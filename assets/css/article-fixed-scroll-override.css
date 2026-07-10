@@ -32,6 +32,8 @@
   .secondary-sidebar {
     top: 8px !important;
     align-self: start !important;
+    display: flex !important;
+    flex-direction: column !important;
     height: calc(100dvh - 16px) !important;
     max-height: calc(100dvh - 16px) !important;
     min-height: 0 !important;
@@ -41,9 +43,14 @@
   }
 
   .secondary-nav {
-    height: 100% !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
     max-height: none !important;
+    align-content: start !important;
+    grid-auto-rows: max-content !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   .content.home-content {
