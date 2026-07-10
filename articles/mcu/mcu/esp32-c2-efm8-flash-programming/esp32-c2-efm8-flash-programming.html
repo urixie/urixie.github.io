@@ -261,7 +261,7 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
       </section>
 
       <section>
-        <h2>十1.ESP32 软件模拟时的注意点</h2>
+        <h2>11.ESP32 软件模拟时的注意点</h2>
 
         <p>
           C2 协议本身不复杂，但用通用 MCU GPIO 模拟时很容易踩在边界条件上。ESP32-S3 侧尤其要关注中断.GPIO 方向切换.目标供电和外部电路对 C2D 的影响。如果 C2D 被目标应用电路强拉，或者 ESP32 在 WAIT 阶段没有释放 C2D，读状态就会长期异常。
@@ -278,7 +278,7 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
       </section>
 
       <section>
-        <h2>十2.当前实现可复查的细节</h2>
+        <h2>12.当前实现可复查的细节</h2>
 
         <p>
           结合 AN127 与参考程序，当前实现有几个后续调试时值得优先复查的点。它们不一定是错误，但都属于“如果硬件上出现偶发失败，应先确认”的位置。
@@ -294,7 +294,7 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
       </section>
 
       <section>
-        <h2>十3.总结</h2>
+        <h2>13.总结</h2>
 
         <p>
           ESP32 模拟 C2 烧写 EFM8 的程序可以分成三层理解：最底层是 C2CK/C2D 的 bit-bang 时序，中间层是 Address/Data 四种 C2 帧和 InBusy/OutReady 握手，最上层才是 FPDAT 命令组成的擦除.写入.读取和校验流程。只要这三层边界清晰，后续无论是调整固件包格式.增加日志.支持更多 EFM8 型号，还是改进超时策略，都不会破坏底层协议。

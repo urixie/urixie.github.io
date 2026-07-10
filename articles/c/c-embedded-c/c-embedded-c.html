@@ -286,7 +286,7 @@ if (pkt != NULL) {
       </section>
 
       <section>
-        <h2>十1.属性声明：section</h2>
+        <h2>11.属性声明：section</h2>
         <p>
           <code>section</code> 属性可以把变量或函数放到指定段中，常用于启动代码.中断向量表.Bootloader.固件信息.校验字段.Flash 固定地址数据等场景。
         </p>
@@ -321,7 +321,7 @@ const app_info_t g_app_info __attribute__((section(&quot;.app_info&quot;), used)
       </section>
 
       <section>
-        <h2>十2.属性声明：aligned 与 packed</h2>
+        <h2>12.属性声明：aligned 与 packed</h2>
         <p>
           <code>aligned</code> 用于指定对象对齐方式，常用于 DMA 缓冲区.Cache 行对齐.Flash 写入对齐.加密数据块对齐等场景。<code>packed</code> 用于减少结构体填充字节，让结构体布局更紧凑。
         </p>
@@ -349,7 +349,7 @@ typedef struct __attribute__((packed)) {
       </section>
 
       <section>
-        <h2>十3.属性声明：format</h2>
+        <h2>13.属性声明：format</h2>
         <p>
           <code>format</code> 属性可以让编译器像检查 <code>printf</code> 一样检查自定义日志函数的格式字符串和参数类型，适合嵌入式日志模块。
         </p>
@@ -368,7 +368,7 @@ void app_log(const char *fmt, ...)
       </section>
 
       <section>
-        <h2>十4.属性声明：weak 与 alias</h2>
+        <h2>14.属性声明：weak 与 alias</h2>
         <p>
           <code>weak</code> 声明弱符号。链接时，如果同时存在强符号和弱符号，强符号会覆盖弱符号。它常用于默认钩子函数.中断默认处理函数.板级弱实现和可选扩展接口。
         </p>
@@ -394,7 +394,7 @@ void timer_irq_handler(void) __attribute__((weak, alias(&quot;default_handler&qu
       </section>
 
       <section>
-        <h2>十5.内联函数.noinline 与头文件</h2>
+        <h2>15.内联函数.noinline 与头文件</h2>
         <p>
           <code>inline</code> 建议编译器把函数体展开到调用处，减少函数调用开销。它适合短小.频繁调用.逻辑简单的函数。<code>noinline</code> 则明确要求不要内联，常用于调试.性能分析.异常路径和需要保留调用栈的场景。
         </p>
@@ -415,7 +415,7 @@ void fault_dump(void)
       </section>
 
       <section>
-        <h2>十6.内建函数</h2>
+        <h2>16.内建函数</h2>
         <p>
           GCC 提供很多 <code>__builtin_*</code> 内建函数，用于位操作.溢出检测.分支预测.常量判断.内存屏障等。它们由编译器直接识别，通常比普通函数更接近底层优化。
         </p>
@@ -431,7 +431,7 @@ if (__builtin_expect(error_code != 0, 0)) {
       </section>
 
       <section>
-        <h2>十7.可变参数宏</h2>
+        <h2>17.可变参数宏</h2>
         <p>
           可变参数宏常用于日志系统.断言.调试输出和错误检查。GNU C 支持 <code>##__VA_ARGS__</code> 写法，用于在没有额外参数时去掉多余逗号。
         </p>
@@ -450,7 +450,7 @@ if (__builtin_expect(error_code != 0, 0)) {
       </section>
 
       <section>
-        <h2>十8.GNU C 扩展使用检查清单</h2>
+        <h2>18.GNU C 扩展使用检查清单</h2>
         <ul>
           <li>是否明确知道当前项目使用的是 <code>-std=c*</code> 还是 <code>-std=gnu*</code>。</li>
           <li>指定初始化是否能替代容易错位的顺序初始化。</li>

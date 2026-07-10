@@ -206,7 +206,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
       </section>
 
       <section>
-        <h2>十1.协议帧和参数表设计示例</h2>
+        <h2>11.协议帧和参数表设计示例</h2>
         <p>
           一个相对清晰的协议帧通常包含帧头.命令.长度.数据和校验。不要把裸结构体直接发送出去，建议通过函数进行打包。
         </p>
@@ -224,7 +224,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
       </section>
 
       <section>
-        <h2>十2.结构体与位域设计检查清单</h2>
+        <h2>12.结构体与位域设计检查清单</h2>
         <ul>
           <li>字段名是否带有单位和含义。</li>
           <li>是否显式指定了协议或存储字段的类型宽度。</li>

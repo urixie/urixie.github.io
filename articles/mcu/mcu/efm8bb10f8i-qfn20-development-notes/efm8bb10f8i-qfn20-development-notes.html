@@ -464,7 +464,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十1.通信与数字外设</h2>
+        <h2>11.通信与数字外设</h2>
 
         <p>
           EFM8BB1 集成 UART.SPI.SMBus/I2C 和 CRC 单元。UART 适合串口调试和简单通信，SPI 适合外接 Flash.ADC.显示屏或其他高速外设，SMBus/I2C 适合连接传感器和配置类芯片，CRC 可用于数据校验或 Flash 校验。
@@ -479,7 +479,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十2.ADC 与模拟外设</h2>
+        <h2>12.ADC 与模拟外设</h2>
 
         <p>
           EFM8BB1 的 ADC 支持外部引脚.片上温度传感器.内部稳压电源.VDD 和 GND 等输入源。ADC 输入通道通过 ADC0MX 选择，转换启动可由软件.定时器或其他触发源控制。
@@ -504,7 +504,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十3.复位源.调试和引导加载程序</h2>
+        <h2>13.复位源.调试和引导加载程序</h2>
 
         <p>
           EFM8BB1 集成多种复位源，包括上电复位.欠压复位.外部复位.看门狗复位和软件相关复位。C2 接口用于在线调试和编程，通常由 C2CK/RSTB 与 C2D 两根信号组成。
@@ -536,7 +536,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十4.参考代码与示例工程</h2>
+        <h2>14.参考代码与示例工程</h2>
 
         <p>
           EFM8BB1 的参考代码覆盖 ADC.GPIO.外部中断.PCA.定时器.振荡器和串口输出等常见功能。建议先跑通 Blinky.PortIO.UART 和 Timer 示例，再逐步加入 ADC.PCA 和外部通信功能。
@@ -560,7 +560,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十5.工程开发建议</h2>
+        <h2>15.工程开发建议</h2>
 
         <p>
           开发 EFM8BB10F8I-A-QFN20 时，建议先建立一套固定的初始化模板：系统时钟.交叉开关.GPIO.UART.定时器和调试接口优先配置稳定。然后再根据项目需要逐步打开 ADC.PCA.SPI.SMBus 和外部中断。
@@ -576,7 +576,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十6.总结</h2>
+        <h2>16.总结</h2>
 
         <p>
           EFM8BB10F8I-A-QFN20 虽然属于 8 位 MCU，但片上外设较完整，I/O 复用也比较灵活。实际开发中，最容易出问题的部分通常不是单个外设本身，而是端口模式.交叉开关分配.C2 调试引脚共享.PCA 输出路由和 ADC 引脚模拟配置。因此，工程模板中应优先固化这些基础配置，再逐步扩展业务逻辑。
