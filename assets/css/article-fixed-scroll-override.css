@@ -81,3 +81,17 @@
     -webkit-overflow-scrolling: touch !important;
   }
 }
+
+/* 桌面端让文章目录紧贴二级导航；目录与正文之间仍保持独立列间距。 */
+@media (min-width: 981px) {
+  .content.home-content,
+  .home-content {
+    margin-left: 0 !important;
+  }
+
+  .inline-article-reader {
+    padding-left: 0 !important;
+    padding-right: clamp(18px, 2.8vw, 36px) !important;
+    column-gap: clamp(18px, 2.4vw, 32px) !important;
+  }
+}
