@@ -21,21 +21,23 @@
   display: block;
   padding-bottom: 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  text-align: center;
+  text-align: left;
 }
 
 .profile-compact-top {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
   min-width: 0;
 }
 
 .profile-compact-avatar {
+  flex: 0 0 auto;
   position: relative;
   width: 96px;
   height: 96px;
-  margin: 0 0 14px;
+  margin: 0;
   padding: 3px;
   border: 1px solid rgba(0, 230, 118, 0.48);
   border-radius: 28px;
@@ -65,7 +67,9 @@
 }
 
 .profile-identity {
+  flex: 1 1 auto;
   min-width: 0;
+  text-align: left;
 }
 
 .profile-compact h1 {
@@ -73,14 +77,17 @@
   font-size: 22px;
   line-height: 1.25;
   letter-spacing: -0.02em;
+  text-align: left;
 }
 
 .profile-compact .profile-summary {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: #aeb8c5;
   font-size: 13px;
   line-height: 1.65;
-  text-align: center;
+  text-align: left;
+  text-indent: 0;
+  overflow-wrap: break-word;
 }
 
 .profile-compact .profile-email {
@@ -287,7 +294,7 @@
     margin-top: 6px;
     font-size: 12px;
     line-height: 1.45;
-    text-align: center;
+    text-align: left;
   }
 
   .profile-compact .profile-email {
