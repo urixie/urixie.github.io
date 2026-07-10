@@ -29,6 +29,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 14px;
+  margin-left: -4px;
   min-width: 0;
 }
 
@@ -83,8 +84,8 @@
 .profile-compact .profile-summary {
   margin: 6px 0 0;
   color: #aeb8c5;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 9.6px;
+  line-height: 1.55;
   text-align: left;
   text-indent: 0;
   overflow-wrap: break-word;
@@ -140,7 +141,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  min-height: 54px;
+  width: 100%;
+  min-height: 48.6px;
   padding: 10px 12px 10px 16px;
   border-radius: 16px;
   text-align: left;
@@ -159,7 +161,7 @@
 .primary-nav-title {
   min-width: 0;
   color: var(--text);
-  font-size: 14px;
+  font-size: 12.6px;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.01em;
@@ -187,7 +189,7 @@
 }
 
 .secondary-nav-button {
-  min-height: 50px;
+  min-height: 45px;
 }
 
 .home-content,
@@ -292,8 +294,8 @@
 
   .profile-compact .profile-summary {
     margin-top: 6px;
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: 8.8px;
+    line-height: 1.4;
     text-align: left;
   }
 
@@ -312,7 +314,7 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
     min-width: 172px;
-    min-height: 62px;
+    min-height: 55.8px;
     text-align: left;
   }
 
