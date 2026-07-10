@@ -1,3 +1,10 @@
+/* 首页：二级导航目录整体上移，删除 secondary-head 占用的间距。 */
+@media (min-width: 901px) {
+  .secondary-nav {
+    margin-top: 0 !important;
+  }
+}
+
 /* 强制右侧文章阅读区只让当前章节正文滚动，标题栏和目录固定。 */
 @media (min-width: 981px) {
   html,
@@ -40,7 +47,7 @@
     position: relative !important;
     z-index: 2 !important;
     margin-bottom: 0 !important;
-    padding-bottom: 16px !important;
+    padding-bottom: 8px !important;
     flex: 0 0 auto !important;
   }
 
@@ -60,15 +67,7 @@
     display: grid !important;
     grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) !important;
     align-items: stretch !important;
-    padding-top: 14px !important;
-  }
-
-  .inline-section-nav {
-    position: static !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
+    padding-top: 4px !important;
   }
 
   .inline-section-content {
@@ -79,6 +78,20 @@
     overflow-x: hidden !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
+    padding-top: 16px !important;
+  }
+
+  .inline-section-content.article > h2:first-child,
+  .inline-section-content.article > section:first-child > h2:first-child {
+    margin-top: 0 !important;
+  }
+
+  .inline-section-nav {
+    position: static !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 }
 

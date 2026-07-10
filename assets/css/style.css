@@ -218,33 +218,6 @@ button {
   background: var(--accent);
 }
 
-.secondary-head {
-  padding-bottom: 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  text-align: center;
-}
-
-.secondary-head span {
-  color: var(--accent);
-  font-family: Consolas, "JetBrains Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-}
-
-.secondary-head h2 {
-  margin: 8px 0 8px;
-  font-size: 24px;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
-}
-
-.secondary-head p {
-  margin: 0;
-  color: #aeb8c5;
-  font-size: 13px;
-  line-height: 1.65;
-}
-
 .secondary-nav {
   display: grid;
   gap: 9px;

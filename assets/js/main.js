@@ -473,9 +473,6 @@ function renderPrimaryNav() {
 function renderSecondaryNav(topic) {
   const homeShell = document.querySelector('.home-shell');
   const secondarySidebar = document.querySelector('.secondary-sidebar');
-  const secondaryEyebrow = document.querySelector('#secondaryEyebrow');
-  const secondaryTitle = document.querySelector('#secondaryTitle');
-  const secondaryDesc = document.querySelector('#secondaryDesc');
   const secondaryNav = document.querySelector('#secondaryNav');
 
   if (!topic || !homeShell || !secondarySidebar || !secondaryNav) return;
@@ -483,9 +480,6 @@ function renderSecondaryNav(topic) {
   const hasChildren = Array.isArray(topic.children) && topic.children.length > 0;
   homeShell.classList.toggle('is-about', !hasChildren);
   secondarySidebar.hidden = !hasChildren;
-
-  if (secondaryEyebrow) secondaryEyebrow.textContent = hasChildren ? '当前专题' : '专题说明';
-  if (secondaryTitle) secondaryTitle.textContent = topic.title;
 
   secondaryNav.replaceChildren();
   if (!hasChildren) return;
