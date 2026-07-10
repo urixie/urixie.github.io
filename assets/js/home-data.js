@@ -102,7 +102,14 @@
           title: '通用基础',
           desc: 'GPIO、Timer、ADC、UART、SPI、IIC、Flash 和 Bootloader 相关内容后续补充。',
           placeholders: ['GPIO', 'Timer', 'ADC', 'UART/SPI/IIC', 'Flash', 'Bootloader'],
-          articles: []
+          articles: [
+            {
+              title: 'ARM Cortex-M3 与 Cortex-M4 架构详解',
+              desc: 'ARMv7-M · 寄存器模型 · 运行模式 · 存储映射 · NVIC 中断 · DSP/FPU · MPU · 调试组件',
+              href: withVersion('articles/mcu/mcu/arm-cortex-m3-m4/arm-cortex-m3-m4.html'),
+              tags: ['ARM', 'Cortex-M3', 'Cortex-M4', '架构']
+            }
+          ]
         },
         {
           id: 'st',
