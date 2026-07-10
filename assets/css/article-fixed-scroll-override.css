@@ -32,7 +32,7 @@
   .secondary-sidebar {
     top: 8px !important;
     align-self: start !important;
-    height: auto !important;
+    height: calc(100dvh - 16px) !important;
     max-height: calc(100dvh - 16px) !important;
     min-height: 0 !important;
     padding-top: 14px !important;
