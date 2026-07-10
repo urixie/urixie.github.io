@@ -8,13 +8,13 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>ESP32 模拟 C2 接口烧写 EFM8 Flash 程序 - XYJ</title>
   <meta name="description" content="整理 ESP32-S3 通过 GPIO 软件模拟 Silicon Labs C2 接口，对 EFM8 目标芯片执行复位、FPCTL 解锁、整片擦除、块写入、块读取和校验的时序与程序结构。">
-  <link rel="stylesheet" href="../../../assets/css/style.css?v=704b803539b3">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../../index.html?v=704b803539b3">← 返回首页</a>
-      <a href="../../../index.html?v=704b803539b3#mcu-sl">返回 Silicon Labs / EFM8</a>
+      <a href="../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../index.html?v=ef7caca13ac7#mcu-sl">返回 Silicon Labs / EFM8</a>
     </div>
 
     <article class="article card">
@@ -38,13 +38,13 @@
         </p>
 
         <ul>
-          <li>参考时序文档：<a href="docs/AN127.pdf?v=704b803539b3">AN127: Flash Programming via the C2 Interface</a>。</li>
+          <li>参考时序文档：<a href="docs/AN127.pdf?v=ef7caca13ac7">AN127: Flash Programming via the C2 Interface</a>。</li>
           <li>目标芯片类型：EFM8 系列，典型 FPDAT 地址为 <code>0xB4</code>，FPCTL 地址为 <code>0x02</code>。</li>
           <li>实现目标：ESP32 通过软件模拟 C2 接口，完成连接检测、整片擦除、分块写入和读回校验。</li>
         </ul>
 
         <figure>
-          <img src="images/01-c2-connection.png?v=704b803539b3" alt="ESP32-S3 与 EFM8 C2 接口连接关系">
+          <img src="images/01-c2-connection.png?v=ef7caca13ac7" alt="ESP32-S3 与 EFM8 C2 接口连接关系">
           <figcaption>图 1：ESP32-S3 通过 C2CK 与 C2D 两根线模拟 C2 主机。</figcaption>
         </figure>
       </section>
@@ -68,7 +68,7 @@
 }</code></pre>
 
         <figure>
-          <img src="images/03-c2-timing-boundary.png?v=704b803539b3" alt="C2CK 普通时钟与复位时序边界">
+          <img src="images/03-c2-timing-boundary.png?v=ef7caca13ac7" alt="C2CK 普通时钟与复位时序边界">
           <figcaption>图 2：C2CK 低电平宽度需要避开复位判定区间。</figcaption>
         </figure>
       </section>
@@ -81,7 +81,7 @@
         </p>
 
         <figure>
-          <img src="images/02-c2-frame-format.png?v=704b803539b3" alt="C2 四种基本帧格式">
+          <img src="images/02-c2-frame-format.png?v=ef7caca13ac7" alt="C2 四种基本帧格式">
           <figcaption>图 3：四种 C2 帧格式，阴影阶段对应目标芯片驱动或等待阶段。</figcaption>
         </figure>
 
@@ -222,7 +222,7 @@ Poll_OutReady();</code></pre>
         </p>
 
         <figure>
-          <img src="images/04-efm8-program-flow.png?v=704b803539b3" alt="EFM8 Flash 烧写流程">
+          <img src="images/04-efm8-program-flow.png?v=ef7caca13ac7" alt="EFM8 Flash 烧写流程">
           <figcaption>图 4：参考程序中的 EFM8 Flash 烧写、读回和校验主流程。</figcaption>
         </figure>
       </section>
@@ -307,6 +307,6 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
     </article>
   </main>
 
-  <script src="../../../assets/js/main.js?v=704b803539b3"></script>
+  <script src="../../../assets/js/main.js?v=ef7caca13ac7"></script>
 </body>
 </html>
