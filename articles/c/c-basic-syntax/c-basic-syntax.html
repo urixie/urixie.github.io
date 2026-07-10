@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言基础语法整理 - XYJ</title>
-  <meta name="description" content="面向嵌入式工程实践整理 C 语言基础语法，包括变量、类型、运算符、流程控制、函数和源文件组织方式。">
+  <meta name="description" content="面向嵌入式工程实践整理 C 语言基础语法，包括变量.类型.运算符.流程控制.函数和源文件组织方式。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -23,30 +23,30 @@
       <h1>C语言基础语法整理</h1>
 
       <p>
-        本文从嵌入式工程实践角度整理 C 语言基础语法。重点不是重复教材概念，而是把变量、类型、表达式、流程控制、函数和文件组织这些基础内容，放到单片机、驱动、通信协议和参数配置的场景中理解。
+        本文从嵌入式工程实践角度整理 C 语言基础语法。重点不是重复教材概念，而是把变量.类型.表达式.流程控制.函数和文件组织这些基础内容，放到单片机.驱动.通信协议和参数配置的场景中理解。
       </p>
 
       <div class="article-note">
-        写嵌入式 C 时，基础语法的目标不是“能跑”，而是让数据宽度明确、执行路径清楚、接口边界稳定、代码后续可维护。
+        写嵌入式 C 时，基础语法的目标不是“能跑”，而是让数据宽度明确.执行路径清楚.接口边界稳定.代码后续可维护。
       </div>
 
       <section>
-        <h2>1、C 语言在嵌入式中的作用</h2>
+        <h2>1.C 语言在嵌入式中的作用</h2>
         <p>
-          嵌入式项目中，C 语言通常直接面对寄存器、外设、Flash、RAM、通信数据和中断。相比应用层开发，嵌入式 C 更关注数据宽度、内存位置、执行时序和硬件副作用。
+          嵌入式项目中，C 语言通常直接面对寄存器.外设.Flash.RAM.通信数据和中断。相比应用层开发，嵌入式 C 更关注数据宽度.内存位置.执行时序和硬件副作用。
         </p>
         <ul>
-          <li>驱动层：读写寄存器、配置 GPIO、Timer、ADC、SPI、IIC、UART 等外设。</li>
-          <li>协议层：组织帧头、命令字、长度、校验和数据区。</li>
-          <li>业务层：实现参数管理、状态机、错误处理和设备控制逻辑。</li>
-          <li>存储层：管理 Flash、EEPROM、NVS、文件系统或自定义 bin 配置。</li>
+          <li>驱动层：读写寄存器.配置 GPIO.Timer.ADC.SPI.IIC.UART 等外设。</li>
+          <li>协议层：组织帧头.命令字.长度.校验和数据区。</li>
+          <li>业务层：实现参数管理.状态机.错误处理和设备控制逻辑。</li>
+          <li>存储层：管理 Flash.EEPROM.NVS.文件系统或自定义 bin 配置。</li>
         </ul>
       </section>
 
       <section>
-        <h2>2、变量、常量与基本数据类型</h2>
+        <h2>2.变量.常量与基本数据类型</h2>
         <p>
-          嵌入式项目中不建议长期依赖 <code>int</code>、<code>long</code> 这类宽度可能随平台变化的类型。对于协议、寄存器、Flash 存储和跨平台数据，优先使用 <code>stdint.h</code> 提供的定长类型。
+          嵌入式项目中不建议长期依赖 <code>int</code>.<code>long</code> 这类宽度可能随平台变化的类型。对于协议.寄存器.Flash 存储和跨平台数据，优先使用 <code>stdint.h</code> 提供的定长类型。
         </p>
         <pre><code>#include &lt;stdint.h&gt;
 #include &lt;stdbool.h&gt;
@@ -56,12 +56,12 @@ uint16_t adc_value;   // 16bit ADC 或寄存器值
 uint32_t tick_ms;     // 32bit 系统计数
 bool     enabled;     // 布尔状态</code></pre>
         <p>
-          如果变量表示硬件寄存器值、协议字段、文件格式字段，类型宽度必须固定。否则上位机、下位机、不同编译器之间可能出现解析不一致。
+          如果变量表示硬件寄存器值.协议字段.文件格式字段，类型宽度必须固定。否则上位机.下位机.不同编译器之间可能出现解析不一致。
         </p>
       </section>
 
       <section>
-        <h2>3、整型、浮点型与 char 的常见坑</h2>
+        <h2>3.整型.浮点型与 char 的常见坑</h2>
         <p>
           C 语言中的整数运算可能发生溢出，且有符号和无符号混合比较时容易出现意外结果。嵌入式协议解析中，原始字节建议统一使用 <code>uint8_t</code>，不要直接使用 <code>char</code> 表示二进制数据。
         </p>
@@ -76,9 +76,9 @@ char raw = (char)0xFF;</code></pre>
       </section>
 
       <section>
-        <h2>4、运算符与表达式</h2>
+        <h2>4.运算符与表达式</h2>
         <p>
-          位运算是嵌入式 C 的核心能力。寄存器配置、状态标志、协议字段打包和权限标记都经常依赖按位与、按位或、按位取反、左移和右移。
+          位运算是嵌入式 C 的核心能力。寄存器配置.状态标志.协议字段打包和权限标记都经常依赖按位与.按位或.按位取反.左移和右移。
         </p>
         <pre><code>#define BIT(n)             (1U &lt;&lt; (n))
 #define REG_ENABLE_BIT     BIT(3)
@@ -88,14 +88,14 @@ reg |= REG_ENABLE_BIT;             // 置位
 reg &amp;= ~REG_ENABLE_BIT;            // 清位
 reg = (reg &amp; ~REG_MODE_MASK) | (2U &lt;&lt; 4);</code></pre>
         <p>
-          对表达式加括号可以减少误读，尤其是宏定义、位移、比较和逻辑组合表达式。工程代码优先保证清晰，而不是追求一行写完。
+          对表达式加括号可以减少误读，尤其是宏定义.位移.比较和逻辑组合表达式。工程代码优先保证清晰，而不是追求一行写完。
         </p>
       </section>
 
       <section>
-        <h2>5、流程控制的工程写法</h2>
+        <h2>5.流程控制的工程写法</h2>
         <p>
-          <code>if</code>、<code>switch</code>、<code>for</code>、<code>while</code> 都很基础，但在工程中应当保持入口条件明确、退出条件明确、错误路径明确。循环中如果等待硬件状态，必须考虑超时退出。
+          <code>if</code>.<code>switch</code>.<code>for</code>.<code>while</code> 都很基础，但在工程中应当保持入口条件明确.退出条件明确.错误路径明确。循环中如果等待硬件状态，必须考虑超时退出。
         </p>
         <pre><code>uint32_t timeout = 100000U;
 while ((REG_STATUS &amp; BUSY_FLAG) != 0U) {
@@ -109,9 +109,9 @@ while ((REG_STATUS &amp; BUSY_FLAG) != 0U) {
       </section>
 
       <section>
-        <h2>6、函数、参数传递与返回值</h2>
+        <h2>6.函数.参数传递与返回值</h2>
         <p>
-          函数是工程代码的基本组织单元。嵌入式函数应尽量做到职责单1、输入输出清楚、错误码明确。不要让函数既初始化硬件、又处理协议、又刷新界面。
+          函数是工程代码的基本组织单元。嵌入式函数应尽量做到职责单1.输入输出清楚.错误码明确。不要让函数既初始化硬件.又处理协议.又刷新界面。
         </p>
         <pre><code>typedef enum {
     APP_OK = 0,
@@ -136,7 +136,7 @@ app_err_t adc_read_channel(uint8_t channel, uint16_t *out_value)
       </section>
 
       <section>
-        <h2>7、头文件与源文件组织</h2>
+        <h2>7.头文件与源文件组织</h2>
         <p>
           头文件用于声明对外接口，源文件用于实现内部逻辑。头文件不应该暴露过多内部变量和内部函数，否则模块边界会越来越混乱。
         </p>
@@ -157,9 +157,9 @@ app_err_t app_adc_read(uint8_t channel, uint16_t *out_value);
       </section>
 
       <section>
-        <h2>8、基础语法检查清单</h2>
+        <h2>8.基础语法检查清单</h2>
         <ul>
-          <li>协议、寄存器、Flash 数据是否使用了固定宽度类型。</li>
+          <li>协议.寄存器.Flash 数据是否使用了固定宽度类型。</li>
           <li>有符号和无符号变量是否混合比较。</li>
           <li>移位前是否确认了变量宽度，必要时是否强制类型转换。</li>
           <li>等待硬件状态的循环是否有超时退出。</li>

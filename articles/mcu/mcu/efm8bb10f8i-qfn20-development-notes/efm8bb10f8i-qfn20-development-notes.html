@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>EFM8BB10F8I-A-QFN20 开发笔记 - XYJ</title>
-  <meta name="description" content="整理 EFM8BB10F8I-A-QFN20 的内核、存储器、I/O、交叉开关、中断、PCA、定时器、ADC、C2 调试和参考代码。">
+  <meta name="description" content="整理 EFM8BB10F8I-A-QFN20 的内核.存储器.I/O.交叉开关.中断.PCA.定时器.ADC.C2 调试和参考代码。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -23,37 +23,37 @@
       <h1>EFM8BB10F8I-A-QFN20 开发笔记</h1>
 
       <p>
-        本文整理 EFM8BB10F8I-A-QFN20 的开发要点，覆盖 Busy Bee 1 系列 MCU 的内核、存储器、电源、I/O、交叉开关、中断、PCA、定时器、ADC、C2 调试接口和常用参考代码，适合作为后续工程移植、外设初始化和调试排错的速查笔记。
+        本文整理 EFM8BB10F8I-A-QFN20 的开发要点，覆盖 Busy Bee 1 系列 MCU 的内核.存储器.电源.I/O.交叉开关.中断.PCA.定时器.ADC.C2 调试接口和常用参考代码，适合作为后续工程移植.外设初始化和调试排错的速查笔记。
       </p>
 
       <div class="article-note">
-        EFM8BB1 采用流水线 CIP-51 内核，与标准 8051 指令集兼容，最高运行频率 25MHz，片上集成 Flash、RAM、XRAM、ADC、比较器、UART、SPI、SMBus/I2C、PCA、定时器、看门狗和 C2 调试接口。
+        EFM8BB1 采用流水线 CIP-51 内核，与标准 8051 指令集兼容，最高运行频率 25MHz，片上集成 Flash.RAM.XRAM.ADC.比较器.UART.SPI.SMBus/I2C.PCA.定时器.看门狗和 C2 调试接口。
       </div>
 
       <section>
-        <h2>1、器件特性概览</h2>
+        <h2>1.器件特性概览</h2>
 
         <p>
-          EFM8BB1 是 Silicon Labs Busy Bee 1 系列 8 位 MCU，定位为小封装、低成本、外设较完整的 8051 兼容控制器。EFM8BB10F8I-A-QFN20 属于 8KB Flash、QFN20 封装、工业级温度范围的型号，适合小型控制、传感器采集、简单通信和低成本嵌入式控制场景。
+          EFM8BB1 是 Silicon Labs Busy Bee 1 系列 8 位 MCU，定位为小封装.低成本.外设较完整的 8051 兼容控制器。EFM8BB10F8I-A-QFN20 属于 8KB Flash.QFN20 封装.工业级温度范围的型号，适合小型控制.传感器采集.简单通信和低成本嵌入式控制场景。
         </p>
 
         <ul>
           <li>内核：流水线 CIP-51 内核，兼容标准 8051 指令集，最高 25MHz。</li>
           <li>存储器：最高 8KB 片上 Flash，支持在系统重新编程；片上 512 字节 RAM，其中包含标准 8051 RAM 和 XRAM。</li>
-          <li>电源：内部 LDO、上电复位、欠压检测和多种低功耗模式。</li>
+          <li>电源：内部 LDO.上电复位.欠压检测和多种低功耗模式。</li>
           <li>I/O：多达 18 个多功能 I/O，引脚可承受 5V 偏置，支持交叉开关外设路由。</li>
-          <li>时钟：24.5MHz 内部振荡器、80kHz 低频振荡器和外部 CMOS 时钟输入。</li>
-          <li>通信：UART、SPI、SMBus/I2C。</li>
-          <li>模拟：12 位 ADC、温度传感器、内部参考和 2 个比较器。</li>
-          <li>调试：C2 调试接口，支持全速在线调试、断点和寄存器检查。</li>
+          <li>时钟：24.5MHz 内部振荡器.80kHz 低频振荡器和外部 CMOS 时钟输入。</li>
+          <li>通信：UART.SPI.SMBus/I2C。</li>
+          <li>模拟：12 位 ADC.温度传感器.内部参考和 2 个比较器。</li>
+          <li>调试：C2 调试接口，支持全速在线调试.断点和寄存器检查。</li>
         </ul>
       </section>
 
       <section>
-        <h2>2、部件编号与选型</h2>
+        <h2>2.部件编号与选型</h2>
 
         <p>
-          EFM8BB1 的部件编号包含产品线、系列、Flash 容量、温度等级、封装和包装方式等信息。以 EFM8BB10F8G-A-QSOP24R 为例，EFM8 表示 EFM8 产品线，BB1 表示 Busy Bee 1 系列，F8 表示 Flash 容量为 8KB，后续字段表示温度等级、版本、封装和编带包装。
+          EFM8BB1 的部件编号包含产品线.系列.Flash 容量.温度等级.封装和包装方式等信息。以 EFM8BB10F8G-A-QSOP24R 为例，EFM8 表示 EFM8 产品线，BB1 表示 Busy Bee 1 系列，F8 表示 Flash 容量为 8KB，后续字段表示温度等级.版本.封装和编带包装。
         </p>
 
         <figure>
@@ -62,7 +62,7 @@
         </figure>
 
         <p>
-          选型时需要关注 Flash 容量、封装引脚数量、温度等级、可用外设和引脚复用情况。QFN20 封装尺寸较小，但部分 P1、P2 引脚数量少于 QSOP24，因此在分配 UART、SPI、SMBus、PCA、ADC 和调试接口时要提前确认引脚资源。
+          选型时需要关注 Flash 容量.封装引脚数量.温度等级.可用外设和引脚复用情况。QFN20 封装尺寸较小，但部分 P1.P2 引脚数量少于 QSOP24，因此在分配 UART.SPI.SMBus.PCA.ADC 和调试接口时要提前确认引脚资源。
         </p>
 
         <figure>
@@ -72,10 +72,10 @@
       </section>
 
       <section>
-        <h2>3、系统框图与内部资源</h2>
+        <h2>3.系统框图与内部资源</h2>
 
         <p>
-          EFM8BB1 内部由 CIP-51 内核、Flash、SRAM、XRAM、调试编程硬件、电源管理、时钟系统、数字外设、模拟外设和端口 I/O 组成。C2CK/RSTB 和 C2D 用于调试和编程，端口引脚通过交叉开关连接 UART、SPI、SMBus、PCA 和定时器等外设。
+          EFM8BB1 内部由 CIP-51 内核.Flash.SRAM.XRAM.调试编程硬件.电源管理.时钟系统.数字外设.模拟外设和端口 I/O 组成。C2CK/RSTB 和 C2D 用于调试和编程，端口引脚通过交叉开关连接 UART.SPI.SMBus.PCA 和定时器等外设。
         </p>
 
         <figure>
@@ -86,15 +86,15 @@
         <ul>
           <li>CIP-51 Core：8051 兼容内核。</li>
           <li>Debug / Programming Hardware：C2 调试与编程硬件。</li>
-          <li>System Clock Configuration：内部高频、低频和外部 CMOS 时钟配置。</li>
+          <li>System Clock Configuration：内部高频.低频和外部 CMOS 时钟配置。</li>
           <li>Crossbar Control：外设到端口的交叉开关路由。</li>
-          <li>Analog：ADC、温度传感器、内部参考和比较器。</li>
-          <li>Digital：UART、SPI、SMBus、PCA、CRC 和定时器。</li>
+          <li>Analog：ADC.温度传感器.内部参考和比较器。</li>
+          <li>Digital：UART.SPI.SMBus.PCA.CRC 和定时器。</li>
         </ul>
       </section>
 
       <section>
-        <h2>4、中断系统</h2>
+        <h2>4.中断系统</h2>
 
         <p>
           CIP-51 内核包含扩展中断系统，支持多个中断源和优先级。中断源的待处理标志位于相关外设的 SFR 中，当外设或外部引脚满足中断条件时，对应标志会置位。若全局中断和单独中断使能均打开，CPU 会在当前指令执行完成后跳转到对应中断向量执行 ISR。
@@ -130,10 +130,10 @@ EX0   外部中断 0 使能</code></pre>
       </section>
 
       <section>
-        <h2>5、电源模式</h2>
+        <h2>5.电源模式</h2>
 
         <p>
-          EFM8BB1 内部电路由 VDD 供电，内部核心电压由片上 LDO 产生。固件可以通过关闭不用的外设、停止数字外设时钟和进入低功耗模式来降低功耗。常见电源模式包括 Normal、Idle、Stop 和 Shutdown。
+          EFM8BB1 内部电路由 VDD 供电，内部核心电压由片上 LDO 产生。固件可以通过关闭不用的外设.停止数字外设时钟和进入低功耗模式来降低功耗。常见电源模式包括 Normal.Idle.Stop 和 Shutdown。
         </p>
 
         <ul>
@@ -145,10 +145,10 @@ EX0   外部中断 0 使能</code></pre>
       </section>
 
       <section>
-        <h2>6、I/O 与交叉开关</h2>
+        <h2>6.I/O 与交叉开关</h2>
 
         <p>
-          EFM8BB1 的多功能 I/O 可配置为 GPIO、数字外设引脚或模拟输入。P0.0 至 P1.7 可作为通用 I/O 并通过交叉开关分配给外设，P2.0 和 P2.1 也可作为 GPIO，其中 P2.0 与 C2D 调试数据信号复用。
+          EFM8BB1 的多功能 I/O 可配置为 GPIO.数字外设引脚或模拟输入。P0.0 至 P1.7 可作为通用 I/O 并通过交叉开关分配给外设，P2.0 和 P2.1 也可作为 GPIO，其中 P2.0 与 C2D 调试数据信号复用。
         </p>
 
         <figure>
@@ -162,7 +162,7 @@ EX0   外部中断 0 使能</code></pre>
           <li>使用 PnMDIN 选择模拟输入或数字输入。</li>
           <li>使用 PnMDOUT 选择开漏输出或推挽输出。</li>
           <li>使用 PnSKIP 决定交叉开关是否跳过该引脚。</li>
-          <li>通过 XBR0、XBR1 选择需要路由的数字外设。</li>
+          <li>通过 XBR0.XBR1 选择需要路由的数字外设。</li>
           <li>设置 XBR2.XBARE 使能交叉开关。</li>
         </ol>
 
@@ -174,7 +174,7 @@ EX0   外部中断 0 使能</code></pre>
         <h3>6.2 模拟输入配置</h3>
 
         <p>
-          用作 ADC 或比较器输入的引脚应配置为模拟模式。模拟模式会关闭弱上拉、数字驱动器和数字接收器，从而降低功耗并减少模拟噪声。
+          用作 ADC 或比较器输入的引脚应配置为模拟模式。模拟模式会关闭弱上拉.数字驱动器和数字接收器，从而降低功耗并减少模拟噪声。
         </p>
 
         <pre><code>模拟输入配置思路：
@@ -196,7 +196,7 @@ PnMDOUT.n = 1</code></pre>
         <h3>6.4 交叉开关分配规则</h3>
 
         <p>
-          交叉开关按外设优先级顺序为外设分配未占用的最低有效端口引脚。UART0 优先级较高且 TX/RX 通常固定到 P0.4 和 P0.5。SPI0、SMBus、PCA、定时器等外设会继续分配到未跳过、未占用的引脚。
+          交叉开关按外设优先级顺序为外设分配未占用的最低有效端口引脚。UART0 优先级较高且 TX/RX 通常固定到 P0.4 和 P0.5。SPI0.SMBus.PCA.定时器等外设会继续分配到未跳过.未占用的引脚。
         </p>
 
         <figure>
@@ -212,8 +212,8 @@ PnMDOUT.n = 1</code></pre>
         <h3>6.5 交叉开关相关寄存器</h3>
 
         <ul>
-          <li>XBR0：控制 UART0、SPI0、SMBus、比较器输出和 SYSCLK 输出。</li>
-          <li>XBR1：控制 Timer0、Timer1、Timer2、PCA ECI 和 PCA 通道输出。</li>
+          <li>XBR0：控制 UART0.SPI0.SMBus.比较器输出和 SYSCLK 输出。</li>
+          <li>XBR1：控制 Timer0.Timer1.Timer2.PCA ECI 和 PCA 通道输出。</li>
           <li>XBR2：控制弱上拉和交叉开关总使能。</li>
           <li>PRTDRV：按端口设置驱动强度。</li>
           <li>P0SKIP / P1SKIP：控制端口引脚是否被交叉开关跳过。</li>
@@ -225,7 +225,7 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>7、INT0、INT1 与端口匹配</h2>
+        <h2>7.INT0.INT1 与端口匹配</h2>
 
         <p>
           EFM8BB1 提供两个直接引脚数字中断源 INT0 和 INT1，可连接到端口 0 引脚。它们可配置为高电平或低电平有效，也可配置为边沿触发或电平触发。引脚分配由 IT01CF 寄存器控制，触发方式由 TCON 中的 IT0 和 IT1 控制。
@@ -237,10 +237,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>8、时钟系统</h2>
+        <h2>8.时钟系统</h2>
 
         <p>
-          EFM8BB1 支持 24.5MHz 内部高频振荡器、80kHz 低频振荡器和外部 CMOS 时钟输入。实际工程中，如果对 UART 波特率、定时器精度或 PWM 频率要求较高，应优先明确系统时钟来源和分频设置。
+          EFM8BB1 支持 24.5MHz 内部高频振荡器.80kHz 低频振荡器和外部 CMOS 时钟输入。实际工程中，如果对 UART 波特率.定时器精度或 PWM 频率要求较高，应优先明确系统时钟来源和分频设置。
         </p>
 
         <ul>
@@ -251,10 +251,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>9、PCA 可编程计数器阵列</h2>
+        <h2>9.PCA 可编程计数器阵列</h2>
 
         <p>
-          PCA0 是 3 通道可编程计数器阵列，每个捕获 / 比较模块都可以独立配置为边沿捕获、软件定时器、高速输出、频率输出或 PWM 输出。PCA 是 EFM8BB1 中非常重要的定时、测频和 PWM 资源。
+          PCA0 是 3 通道可编程计数器阵列，每个捕获 / 比较模块都可以独立配置为边沿捕获.软件定时器.高速输出.频率输出或 PWM 输出。PCA 是 EFM8BB1 中非常重要的定时.测频和 PWM 资源。
         </p>
 
         <figure>
@@ -352,10 +352,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>10、定时器资源</h2>
+        <h2>10.定时器资源</h2>
 
         <p>
-          EFM8BB1 提供 Timer0、Timer1、Timer2 和 Timer3。Timer0 和 Timer1 兼容 8051 传统定时器模式，可配置为 13 位、16 位、8 位自动重装载或拆分模式。Timer2 和 Timer3 更适合 16 位自动重装载、8 位拆分和捕获测量等场景。
+          EFM8BB1 提供 Timer0.Timer1.Timer2 和 Timer3。Timer0 和 Timer1 兼容 8051 传统定时器模式，可配置为 13 位.16 位.8 位自动重装载或拆分模式。Timer2 和 Timer3 更适合 16 位自动重装载.8 位拆分和捕获测量等场景。
         </p>
 
         <h3>10.1 Timer0 / Timer1</h3>
@@ -403,7 +403,7 @@ XBARE    交叉开关使能</code></pre>
         <h3>10.2 Timer2 / Timer3</h3>
 
         <p>
-          Timer2 和 Timer3 可以使用系统时钟、系统时钟 12 分频或外部时钟作为时钟源。它们支持 16 位自动重装载、8 位自动重装载拆分模式和捕获模式，适合周期中断、波形测量和低频信号捕获。
+          Timer2 和 Timer3 可以使用系统时钟.系统时钟 12 分频或外部时钟作为时钟源。它们支持 16 位自动重装载.8 位自动重装载拆分模式和捕获模式，适合周期中断.波形测量和低频信号捕获。
         </p>
 
         <figure>
@@ -464,10 +464,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十1、通信与数字外设</h2>
+        <h2>十1.通信与数字外设</h2>
 
         <p>
-          EFM8BB1 集成 UART、SPI、SMBus/I2C 和 CRC 单元。UART 适合串口调试和简单通信，SPI 适合外接 Flash、ADC、显示屏或其他高速外设，SMBus/I2C 适合连接传感器和配置类芯片，CRC 可用于数据校验或 Flash 校验。
+          EFM8BB1 集成 UART.SPI.SMBus/I2C 和 CRC 单元。UART 适合串口调试和简单通信，SPI 适合外接 Flash.ADC.显示屏或其他高速外设，SMBus/I2C 适合连接传感器和配置类芯片，CRC 可用于数据校验或 Flash 校验。
         </p>
 
         <ul>
@@ -479,10 +479,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十2、ADC 与模拟外设</h2>
+        <h2>十2.ADC 与模拟外设</h2>
 
         <p>
-          EFM8BB1 的 ADC 支持外部引脚、片上温度传感器、内部稳压电源、VDD 和 GND 等输入源。ADC 输入通道通过 ADC0MX 选择，转换启动可由软件、定时器或其他触发源控制。
+          EFM8BB1 的 ADC 支持外部引脚.片上温度传感器.内部稳压电源.VDD 和 GND 等输入源。ADC 输入通道通过 ADC0MX 选择，转换启动可由软件.定时器或其他触发源控制。
         </p>
 
         <figure>
@@ -504,10 +504,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十3、复位源、调试和引导加载程序</h2>
+        <h2>十3.复位源.调试和引导加载程序</h2>
 
         <p>
-          EFM8BB1 集成多种复位源，包括上电复位、欠压复位、外部复位、看门狗复位和软件相关复位。C2 接口用于在线调试和编程，通常由 C2CK/RSTB 与 C2D 两根信号组成。
+          EFM8BB1 集成多种复位源，包括上电复位.欠压复位.外部复位.看门狗复位和软件相关复位。C2 接口用于在线调试和编程，通常由 C2CK/RSTB 与 C2D 两根信号组成。
         </p>
 
         <figure>
@@ -536,10 +536,10 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十4、参考代码与示例工程</h2>
+        <h2>十4.参考代码与示例工程</h2>
 
         <p>
-          EFM8BB1 的参考代码覆盖 ADC、GPIO、外部中断、PCA、定时器、振荡器和串口输出等常见功能。建议先跑通 Blinky、PortIO、UART 和 Timer 示例，再逐步加入 ADC、PCA 和外部通信功能。
+          EFM8BB1 的参考代码覆盖 ADC.GPIO.外部中断.PCA.定时器.振荡器和串口输出等常见功能。建议先跑通 Blinky.PortIO.UART 和 Timer 示例，再逐步加入 ADC.PCA 和外部通信功能。
         </p>
 
         <figure><img src="images/44-example-adc-external-input.png?v=ef7caca13ac7" alt="EFM8BB1 ADC ExternalInput 示例"><figcaption>图 44：ADC ExternalInput 示例。</figcaption></figure>
@@ -560,26 +560,26 @@ XBARE    交叉开关使能</code></pre>
       </section>
 
       <section>
-        <h2>十5、工程开发建议</h2>
+        <h2>十5.工程开发建议</h2>
 
         <p>
-          开发 EFM8BB10F8I-A-QFN20 时，建议先建立一套固定的初始化模板：系统时钟、交叉开关、GPIO、UART、定时器和调试接口优先配置稳定。然后再根据项目需要逐步打开 ADC、PCA、SPI、SMBus 和外部中断。
+          开发 EFM8BB10F8I-A-QFN20 时，建议先建立一套固定的初始化模板：系统时钟.交叉开关.GPIO.UART.定时器和调试接口优先配置稳定。然后再根据项目需要逐步打开 ADC.PCA.SPI.SMBus 和外部中断。
         </p>
 
         <ul>
           <li>所有未用模拟引脚应明确配置，避免悬空导致功耗或噪声问题。</li>
-          <li>使用交叉开关前，先规划 UART、SPI、PCA、ADC 和 C2D 引脚冲突。</li>
+          <li>使用交叉开关前，先规划 UART.SPI.PCA.ADC 和 C2D 引脚冲突。</li>
           <li>使用 C2 调试时，避免外部电路强驱 C2D 或 C2CK/RSTB。</li>
-          <li>配置 PWM 时，重点检查 PCA 时钟源、分频、分辨率和比较寄存器写入顺序。</li>
-          <li>配置 ADC 时，重点检查引脚模拟模式、参考电压、输入通道和跟踪时间。</li>
+          <li>配置 PWM 时，重点检查 PCA 时钟源.分频.分辨率和比较寄存器写入顺序。</li>
+          <li>配置 ADC 时，重点检查引脚模拟模式.参考电压.输入通道和跟踪时间。</li>
         </ul>
       </section>
 
       <section>
-        <h2>十6、总结</h2>
+        <h2>十6.总结</h2>
 
         <p>
-          EFM8BB10F8I-A-QFN20 虽然属于 8 位 MCU，但片上外设较完整，I/O 复用也比较灵活。实际开发中，最容易出问题的部分通常不是单个外设本身，而是端口模式、交叉开关分配、C2 调试引脚共享、PCA 输出路由和 ADC 引脚模拟配置。因此，工程模板中应优先固化这些基础配置，再逐步扩展业务逻辑。
+          EFM8BB10F8I-A-QFN20 虽然属于 8 位 MCU，但片上外设较完整，I/O 复用也比较灵活。实际开发中，最容易出问题的部分通常不是单个外设本身，而是端口模式.交叉开关分配.C2 调试引脚共享.PCA 输出路由和 ADC 引脚模拟配置。因此，工程模板中应优先固化这些基础配置，再逐步扩展业务逻辑。
         </p>
       </section>
 

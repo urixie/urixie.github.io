@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>根文件系统组成与构建流程 - XYJ</title>
-  <meta name="description" content="整理嵌入式 Linux 根文件系统的目录结构、BusyBox、动态库、设备节点、init、挂载、Buildroot、Ubuntu Base、打包格式和常见启动问题。">
+  <meta name="description" content="整理嵌入式 Linux 根文件系统的目录结构.BusyBox.动态库.设备节点.init.挂载.Buildroot.Ubuntu Base.打包格式和常见启动问题。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,17 +22,17 @@
       <h1>根文件系统组成与构建流程</h1>
 
       <p>
-        根文件系统 RootFS 是 Linux 启动后挂载的第一个文件系统，里面包含用户态程序、动态库、配置文件、设备节点、启动脚本和应用程序。Kernel 启动成功后，如果无法挂载 rootfs 或找不到 init，系统仍然无法进入用户态。
+        根文件系统 RootFS 是 Linux 启动后挂载的第一个文件系统，里面包含用户态程序.动态库.配置文件.设备节点.启动脚本和应用程序。Kernel 启动成功后，如果无法挂载 rootfs 或找不到 init，系统仍然无法进入用户态。
       </p>
 
       <div class="article-note">
-        U-Boot 负责加载 Kernel，Kernel 负责驱动硬件和挂载 RootFS，RootFS 负责提供用户态环境。三者版本、路径、启动参数必须匹配，否则系统会卡在启动阶段。
+        U-Boot 负责加载 Kernel，Kernel 负责驱动硬件和挂载 RootFS，RootFS 负责提供用户态环境。三者版本.路径.启动参数必须匹配，否则系统会卡在启动阶段。
       </div>
 
       <section>
-        <h2>1、RootFS 在启动链路中的作用</h2>
+        <h2>1.RootFS 在启动链路中的作用</h2>
         <p>
-          Kernel 根据启动参数中的 <code>root=</code> 找到根文件系统，挂载后执行第一个用户态程序，常见是 <code>/sbin/init</code>、<code>/init</code> 或 systemd。</p>
+          Kernel 根据启动参数中的 <code>root=</code> 找到根文件系统，挂载后执行第一个用户态程序，常见是 <code>/sbin/init</code>.<code>/init</code> 或 systemd。</p>
         <figure class="article-figure">
           <svg viewBox="0 0 780 260" role="img" aria-label="RootFS 启动链路示意图">
             <rect x="50" y="90" width="120" height="58" rx="12" fill="#e0f2fe" stroke="#0284c7"/><text x="110" y="125" text-anchor="middle" font-size="14">Kernel</text>
@@ -51,7 +51,7 @@
       </section>
 
       <section>
-        <h2>2、RootFS 基本目录结构</h2>
+        <h2>2.RootFS 基本目录结构</h2>
         <pre><code>rootfs/
 ├── bin/        # 基础用户命令
 ├── sbin/       # 系统管理命令
@@ -62,25 +62,25 @@
 ├── proc/       # procfs 挂载点
 ├── sys/        # sysfs 挂载点
 ├── tmp/        # 临时目录
-├── var/        # 日志、运行时数据
+├── var/        # 日志.运行时数据
 └── home/       # 用户目录</code></pre>
         <p>
-          最小 rootfs 可以非常小，只需要 BusyBox、必要动态库、init 脚本和几个挂载点。完整发行版 rootfs 则会包含包管理器、systemd、网络工具、调试工具等。</p>
+          最小 rootfs 可以非常小，只需要 BusyBox.必要动态库.init 脚本和几个挂载点。完整发行版 rootfs 则会包含包管理器.systemd.网络工具.调试工具等。</p>
       </section>
 
       <section>
-        <h2>3、BusyBox 根文件系统</h2>
+        <h2>3.BusyBox 根文件系统</h2>
         <p>
           BusyBox 把大量常用 Linux 命令集成到一个可执行文件中，非常适合资源有限的嵌入式系统。</p>
         <pre><code>make menuconfig
 make -j$(nproc)
 make CONFIG_PREFIX=$PWD/rootfs install</code></pre>
         <p>
-          安装后，BusyBox 会在 <code>bin</code>、<code>sbin</code> 等目录下创建大量指向 busybox 的软链接，例如 <code>ls</code>、<code>cat</code>、<code>sh</code>。</p>
+          安装后，BusyBox 会在 <code>bin</code>.<code>sbin</code> 等目录下创建大量指向 busybox 的软链接，例如 <code>ls</code>.<code>cat</code>.<code>sh</code>。</p>
       </section>
 
       <section>
-        <h2>4、动态库与链接器</h2>
+        <h2>4.动态库与链接器</h2>
         <p>
           如果用户程序是动态链接的，rootfs 中必须包含对应架构的动态库和动态链接器。否则即使文件存在，也可能运行时报 “not found”。</p>
         <pre><code>file app
@@ -91,49 +91,49 @@ readelf -d app | grep NEEDED</code></pre>
       </section>
 
       <section>
-        <h2>5、init 与启动脚本</h2>
+        <h2>5.init 与启动脚本</h2>
         <p>
           Kernel 挂载 rootfs 后会尝试启动 init。BusyBox 系统常用 <code>/etc/inittab</code> 和 <code>/etc/init.d/rcS</code>，systemd 系统则启动 <code>/sbin/init</code> 指向 systemd。</p>
         <pre><code>::sysinit:/etc/init.d/rcS
 ::respawn:-/bin/sh
 ::ctrlaltdel:/sbin/reboot</code></pre>
         <p>
-          最小系统中，<code>rcS</code> 通常负责挂载 <code>proc</code>、<code>sysfs</code>、<code>devtmpfs</code>，配置网络，启动应用。</p>
+          最小系统中，<code>rcS</code> 通常负责挂载 <code>proc</code>.<code>sysfs</code>.<code>devtmpfs</code>，配置网络，启动应用。</p>
       </section>
 
       <section>
-        <h2>6、挂载 proc、sysfs、devtmpfs</h2>
+        <h2>6.挂载 proc.sysfs.devtmpfs</h2>
         <pre><code>mount -t proc none /proc
 mount -t sysfs none /sys
 mount -t devtmpfs none /dev
 mount -t tmpfs none /tmp</code></pre>
         <p>
-          如果这些伪文件系统没有挂载，很多命令和服务会异常，例如看不到进程信息、设备节点不完整、系统服务启动失败。</p>
+          如果这些伪文件系统没有挂载，很多命令和服务会异常，例如看不到进程信息.设备节点不完整.系统服务启动失败。</p>
       </section>
 
       <section>
-        <h2>7、使用 Buildroot 构建 RootFS</h2>
+        <h2>7.使用 Buildroot 构建 RootFS</h2>
         <p>
-          Buildroot 可以自动构建交叉工具链、Bootloader、Kernel、RootFS 和用户态软件包，适合快速生成嵌入式 Linux 系统。</p>
+          Buildroot 可以自动构建交叉工具链.Bootloader.Kernel.RootFS 和用户态软件包，适合快速生成嵌入式 Linux 系统。</p>
         <pre><code>make menuconfig
 make -j$(nproc)</code></pre>
         <p>
-          Buildroot 常见产物位于 <code>output/images</code>，包括 rootfs.ext4、rootfs.tar、Image、dtb 等，具体取决于配置。</p>
+          Buildroot 常见产物位于 <code>output/images</code>，包括 rootfs.ext4.rootfs.tar.Image.dtb 等，具体取决于配置。</p>
       </section>
 
       <section>
-        <h2>8、使用 Ubuntu Base 构建 RootFS</h2>
+        <h2>8.使用 Ubuntu Base 构建 RootFS</h2>
         <p>
-          如果板子资源足够，也可以使用 Ubuntu Base 这类发行版根文件系统。它的优点是软件生态完整，缺点是体积更大、启动更慢、依赖更多。</p>
+          如果板子资源足够，也可以使用 Ubuntu Base 这类发行版根文件系统。它的优点是软件生态完整，缺点是体积更大.启动更慢.依赖更多。</p>
         <pre><code>tar -xpf ubuntu-base-xx.xx-base-arm64.tar.gz -C rootfs
 cp /usr/bin/qemu-aarch64-static rootfs/usr/bin/
 chroot rootfs /bin/bash</code></pre>
         <p>
-          进入 chroot 后可以安装软件包、配置用户、网络、systemd 服务等。构建完成后再打包成 ext4、tar 或其它格式。</p>
+          进入 chroot 后可以安装软件包.配置用户.网络.systemd 服务等。构建完成后再打包成 ext4.tar 或其它格式。</p>
       </section>
 
       <section>
-        <h2>9、RootFS 打包格式</h2>
+        <h2>9.RootFS 打包格式</h2>
         <ul>
           <li><code>rootfs.tar</code>：适合部署到已有分区。</li>
           <li><code>rootfs.ext4</code>：适合直接烧录到 ext4 分区。</li>
@@ -144,26 +144,26 @@ chroot rootfs /bin/bash</code></pre>
       </section>
 
       <section>
-        <h2>10、RootFS 启动问题排查</h2>
+        <h2>10.RootFS 启动问题排查</h2>
         <table>
           <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
           <tbody>
-            <tr><td>Kernel panic: unable to mount root fs</td><td>root= 参数、分区、文件系统驱动、rootwait</td></tr>
-            <tr><td>No init found</td><td>/sbin/init、/init、BusyBox 安装、执行权限</td></tr>
-            <tr><td>app: not found</td><td>架构不匹配、动态链接器缺失、依赖库缺失</td></tr>
-            <tr><td>设备节点缺失</td><td>devtmpfs、mdev/udev、驱动是否 probe</td></tr>
-            <tr><td>系统只读</td><td>挂载参数、分区损坏、只读文件系统设计</td></tr>
+            <tr><td>Kernel panic: unable to mount root fs</td><td>root= 参数.分区.文件系统驱动.rootwait</td></tr>
+            <tr><td>No init found</td><td>/sbin/init./init.BusyBox 安装.执行权限</td></tr>
+            <tr><td>app: not found</td><td>架构不匹配.动态链接器缺失.依赖库缺失</td></tr>
+            <tr><td>设备节点缺失</td><td>devtmpfs.mdev/udev.驱动是否 probe</td></tr>
+            <tr><td>系统只读</td><td>挂载参数.分区损坏.只读文件系统设计</td></tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h2>十1、工程检查清单</h2>
+        <h2>十1.工程检查清单</h2>
         <ul>
           <li>rootfs 架构是否和 Kernel/应用一致。</li>
           <li>动态库和动态链接器是否完整。</li>
           <li><code>/sbin/init</code> 或 <code>/init</code> 是否存在且可执行。</li>
-          <li><code>/proc</code>、<code>/sys</code>、<code>/dev</code> 挂载点是否存在。</li>
+          <li><code>/proc</code>.<code>/sys</code>.<code>/dev</code> 挂载点是否存在。</li>
           <li>U-Boot 的 <code>bootargs</code> 中 <code>root=</code> 是否匹配实际分区。</li>
           <li>rootfs 打包格式是否符合启动介质和内核配置。</li>
           <li>日志目录是否可写，是否会写满 Flash。</li>

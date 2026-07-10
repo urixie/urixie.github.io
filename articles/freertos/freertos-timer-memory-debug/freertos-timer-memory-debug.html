@@ -6,8 +6,8 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>FreeRTOS 软件定时器、内存与调试 - XYJ</title>
-  <meta name="description" content="整理 FreeRTOS 软件定时器、定时器服务任务、动态内存、静态内存、heap_4、栈溢出检测、任务运行统计和常见调试方法。">
+  <title>FreeRTOS 软件定时器.内存与调试 - XYJ</title>
+  <meta name="description" content="整理 FreeRTOS 软件定时器.定时器服务任务.动态内存.静态内存.heap_4.栈溢出检测.任务运行统计和常见调试方法。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -19,14 +19,14 @@
 
     <article class="article card">
       <div class="post-meta">FREERTOS · TIMER · HEAP · DEBUG · TRACE</div>
-      <h1>FreeRTOS 软件定时器、内存与调试</h1>
+      <h1>FreeRTOS 软件定时器.内存与调试</h1>
 
       <p>
-        FreeRTOS 项目真正上线时，最常见的问题往往不是 API 不会用，而是定时器回调阻塞、任务栈不够、堆碎片、优先级配置不合理、FromISR 用错以及系统长时间运行后偶发异常。本文整理软件定时器、内存管理和调试检查方法。
+        FreeRTOS 项目真正上线时，最常见的问题往往不是 API 不会用，而是定时器回调阻塞.任务栈不够.堆碎片.优先级配置不合理.FromISR 用错以及系统长时间运行后偶发异常。本文整理软件定时器.内存管理和调试检查方法。
       </p>
 
       <section>
-        <h2>1、软件定时器是什么</h2>
+        <h2>1.软件定时器是什么</h2>
         <p>
           FreeRTOS 软件定时器由内核定时器服务任务统一管理。它不是硬件定时器中断，回调函数运行在定时器服务任务上下文中。
         </p>
@@ -49,7 +49,7 @@ xTimerStart(timer, 0);</code></pre>
       </section>
 
       <section>
-        <h2>2、一次性定时器与周期定时器</h2>
+        <h2>2.一次性定时器与周期定时器</h2>
         <ul>
           <li>一次性定时器：到期后只执行一次回调。</li>
           <li>周期定时器：到期后自动重新计时，周期执行回调。</li>
@@ -62,10 +62,10 @@ xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
       </section>
 
       <section>
-        <h2>3、定时器回调注意事项</h2>
+        <h2>3.定时器回调注意事项</h2>
         <ul>
           <li>不要在定时器回调中做长时间循环。</li>
-          <li>不要在回调中等待很久的队列、信号量或互斥锁。</li>
+          <li>不要在回调中等待很久的队列.信号量或互斥锁。</li>
           <li>复杂工作应通知任务去处理。</li>
           <li>多个软件定时器共用定时器服务任务，某个回调卡住会影响其它回调。</li>
         </ul>
@@ -77,9 +77,9 @@ xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
       </section>
 
       <section>
-        <h2>4、FreeRTOS 内存管理</h2>
+        <h2>4.FreeRTOS 内存管理</h2>
         <p>
-          FreeRTOS 可以使用动态内存，也可以使用静态内存。动态创建任务、队列、信号量、定时器时，会从 FreeRTOS 堆中分配内存。静态创建则由用户提供控制块和栈空间。
+          FreeRTOS 可以使用动态内存，也可以使用静态内存。动态创建任务.队列.信号量.定时器时，会从 FreeRTOS 堆中分配内存。静态创建则由用户提供控制块和栈空间。
         </p>
         <ul>
           <li><code>heap_1</code>：只能分配，不能释放。</li>
@@ -94,7 +94,7 @@ xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
       </section>
 
       <section>
-        <h2>5、静态创建对象</h2>
+        <h2>5.静态创建对象</h2>
         <p>
           对稳定性要求较高的项目，可以优先使用静态创建，避免运行过程中动态分配失败。
         </p>
@@ -114,7 +114,7 @@ xTaskCreateStatic(task_entry,
       </section>
 
       <section>
-        <h2>6、栈溢出检测</h2>
+        <h2>6.栈溢出检测</h2>
         <p>
           FreeRTOS 可以配置栈溢出检测。常见配置项包括 <code>configCHECK_FOR_STACK_OVERFLOW</code> 和钩子函数 <code>vApplicationStackOverflowHook()</code>。
         </p>
@@ -132,9 +132,9 @@ xTaskCreateStatic(task_entry,
       </section>
 
       <section>
-        <h2>7、运行统计与调试</h2>
+        <h2>7.运行统计与调试</h2>
         <p>
-          FreeRTOS 可通过任务列表、运行时间统计、栈水位、断言和 trace 工具分析系统状态。常见排查方向包括任务是否阻塞、优先级是否合理、CPU 是否被高优先级任务占满、队列是否长期满或空。
+          FreeRTOS 可通过任务列表.运行时间统计.栈水位.断言和 trace 工具分析系统状态。常见排查方向包括任务是否阻塞.优先级是否合理.CPU 是否被高优先级任务占满.队列是否长期满或空。
         </p>
         <pre><code>char buf[512];
 vTaskList(buf);
@@ -148,23 +148,23 @@ printf("%s\n", buf);</code></pre>
       </section>
 
       <section>
-        <h2>8、常见问题排查表</h2>
+        <h2>8.常见问题排查表</h2>
         <table>
           <thead>
             <tr><th>现象</th><th>优先排查方向</th></tr>
           </thead>
           <tbody>
-            <tr><td>某个任务不运行</td><td>优先级被压制、任务一直阻塞、栈溢出</td></tr>
-            <tr><td>系统偶发死机</td><td>栈溢出、中断优先级、FromISR API 用错</td></tr>
-            <tr><td>队列发送失败</td><td>队列满、接收任务优先级低或未运行</td></tr>
-            <tr><td>定时器不准</td><td>Tick 配置、回调耗时、定时器服务任务优先级</td></tr>
-            <tr><td>运行一段时间后异常</td><td>堆泄漏、碎片、任务栈余量不足</td></tr>
+            <tr><td>某个任务不运行</td><td>优先级被压制.任务一直阻塞.栈溢出</td></tr>
+            <tr><td>系统偶发死机</td><td>栈溢出.中断优先级.FromISR API 用错</td></tr>
+            <tr><td>队列发送失败</td><td>队列满.接收任务优先级低或未运行</td></tr>
+            <tr><td>定时器不准</td><td>Tick 配置.回调耗时.定时器服务任务优先级</td></tr>
+            <tr><td>运行一段时间后异常</td><td>堆泄漏.碎片.任务栈余量不足</td></tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h2>9、工程检查清单</h2>
+        <h2>9.工程检查清单</h2>
         <ul>
           <li>任务栈是否做过水位检测。</li>
           <li>软件定时器回调是否足够短。</li>

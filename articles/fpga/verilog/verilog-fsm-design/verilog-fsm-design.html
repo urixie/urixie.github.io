@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 状态机设计方法 - XYJ</title>
-  <meta name="description" content="整理 Verilog 有限状态机 FSM 的设计方法，包括一段式、两段式、三段式状态机、状态编码、状态跳转、输出逻辑和工程检查清单。">
+  <meta name="description" content="整理 Verilog 有限状态机 FSM 的设计方法，包括一段式.两段式.三段式状态机.状态编码.状态跳转.输出逻辑和工程检查清单。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,7 +22,7 @@
       <h1>Verilog 状态机设计方法</h1>
 
       <p>
-        状态机是 FPGA 设计中最常用的控制结构。协议解析、ADC 采样时序、SPI/IIC 控制、帧接收、按键消抖、启动流程控制，几乎都可以用状态机描述。状态机的核心是：当前状态、状态跳转条件、下一状态和输出逻辑。
+        状态机是 FPGA 设计中最常用的控制结构。协议解析.ADC 采样时序.SPI/IIC 控制.帧接收.按键消抖.启动流程控制，几乎都可以用状态机描述。状态机的核心是：当前状态.状态跳转条件.下一状态和输出逻辑。
       </p>
 
       <div class="article-note">
@@ -30,11 +30,11 @@
       </div>
 
       <section>
-        <h2>1、状态机的基本组成</h2>
+        <h2>1.状态机的基本组成</h2>
         <ul>
           <li>当前状态：<code>state</code>，记录现在处于哪个阶段。</li>
           <li>下一状态：<code>next_state</code>，组合逻辑计算下一步去哪里。</li>
-          <li>跳转条件：输入事件、计数结束、握手完成、超时等。</li>
+          <li>跳转条件：输入事件.计数结束.握手完成.超时等。</li>
           <li>输出逻辑：根据状态或跳转条件产生控制信号。</li>
         </ul>
         <figure class="article-figure">
@@ -52,7 +52,7 @@
       </section>
 
       <section>
-        <h2>2、状态编码</h2>
+        <h2>2.状态编码</h2>
         <p>
           状态通常用 <code>localparam</code> 定义，避免在代码里直接写魔法数字。</p>
         <pre><code>localparam S_IDLE  = 2'd0;
@@ -63,11 +63,11 @@ localparam S_DONE  = 2'd3;
 reg [1:0] state;
 reg [1:0] next_state;</code></pre>
         <p>
-          小型状态机可以用二进制编码；速度要求高、状态较多时，也可以考虑 one-hot 编码。具体由综合工具和目标 FPGA 资源决定。</p>
+          小型状态机可以用二进制编码；速度要求高.状态较多时，也可以考虑 one-hot 编码。具体由综合工具和目标 FPGA 资源决定。</p>
       </section>
 
       <section>
-        <h2>3、三段式状态机</h2>
+        <h2>3.三段式状态机</h2>
         <p>
           三段式状态机把“状态寄存器”“下一状态组合逻辑”“输出逻辑”分开，结构清晰，适合大多数工程代码。</p>
         <pre><code>// 第一段：状态寄存器
@@ -114,30 +114,30 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>4、一段式、两段式、三段式怎么选</h2>
+        <h2>4.一段式.两段式.三段式怎么选</h2>
         <table>
           <thead><tr><th>写法</th><th>特点</th><th>建议</th></tr></thead>
           <tbody>
             <tr><td>一段式</td><td>状态跳转和输出写在一个时序 always 中</td><td>小状态机可用，但复杂后不易维护</td></tr>
             <tr><td>两段式</td><td>状态寄存器一段，组合逻辑一段</td><td>常用，但输出逻辑要注意毛刺</td></tr>
-            <tr><td>三段式</td><td>状态寄存器、跳转逻辑、输出逻辑分开</td><td>推荐作为工程默认写法</td></tr>
+            <tr><td>三段式</td><td>状态寄存器.跳转逻辑.输出逻辑分开</td><td>推荐作为工程默认写法</td></tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h2>5、Moore 与 Mealy</h2>
+        <h2>5.Moore 与 Mealy</h2>
         <p>
-          Moore 状态机输出只和当前状态有关；Mealy 状态机输出和当前状态、输入条件都有关。Moore 更稳定，Mealy 响应更快，但要注意组合路径和毛刺。</p>
+          Moore 状态机输出只和当前状态有关；Mealy 状态机输出和当前状态.输入条件都有关。Moore 更稳定，Mealy 响应更快，但要注意组合路径和毛刺。</p>
         <pre><code>// Moore：输出只看 state
 assign busy = (state == S_WAIT);
 
-// Mealy：输出和 state、输入都有关
+// Mealy：输出和 state.输入都有关
 assign fire = (state == S_WAIT) &amp;&amp; data_valid;</code></pre>
       </section>
 
       <section>
-        <h2>6、状态机常见错误</h2>
+        <h2>6.状态机常见错误</h2>
         <ul>
           <li>没有 default 分支，异常状态无法恢复。</li>
           <li>组合逻辑中没有默认赋值，推断 latch。</li>
@@ -148,7 +148,7 @@ assign fire = (state == S_WAIT) &amp;&amp; data_valid;</code></pre>
       </section>
 
       <section>
-        <h2>7、工程检查清单</h2>
+        <h2>7.工程检查清单</h2>
         <ul>
           <li>状态名是否能表达真实流程。</li>
           <li>复位后状态是否确定。</li>

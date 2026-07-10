@@ -57,7 +57,7 @@
       </p>
 
       <section id="overview">
-        <h2>1、功能概述</h2>
+        <h2>1.功能概述</h2>
         <p>
           该工程实现了一个温度-频率转换链路：NTC 热敏电阻随温度改变阻值，通过分压电路将阻值变化转换为电压信号，
           CW32L011 的 ADC 模块采集该电压，计算出当前 NTC 阻值后查表映射为 PWM 频率，最后由 GTIM2 通道 3 输出对应频率的 PWM 波形。
@@ -78,7 +78,7 @@
       </section>
 
       <section id="hardware">
-        <h2>2、硬件资源</h2>
+        <h2>2.硬件资源</h2>
         <ul>
           <li>芯片：CW32L011K8T6（ARM Cortex-M0+，48MHz）</li>
           <li>开发板：CW32L011K8T6 StartKit</li>
@@ -88,7 +88,7 @@
 
         <h3>引脚分配</h3>
         <ul>
-          <li>PA00～PA09、PB00～PB01：ADC 模拟输入通道 AIN0～AIN11，连接 NTC 热敏电阻分压电路</li>
+          <li>PA00～PA09.PB00～PB01：ADC 模拟输入通道 AIN0～AIN11，连接 NTC 热敏电阻分压电路</li>
           <li>PA12：GTIM2_CH3，PWM 输出引脚</li>
         </ul>
 
@@ -98,7 +98,7 @@
       </section>
 
       <section id="clock-gpio">
-        <h2>3、时钟与 GPIO 配置</h2>
+        <h2>3.时钟与 GPIO 配置</h2>
 
         <h3>时钟配置</h3>
         <p>
@@ -115,7 +115,7 @@ void SystemClock_Config(void)
 
         <h3>GPIO 配置（PWM 输出）</h3>
         <p>
-          PA12 配置为定时器输出引脚，需要开启 GPIO 时钟、设置推挽输出、复用为 GTIM2_CH3：
+          PA12 配置为定时器输出引脚，需要开启 GPIO 时钟.设置推挽输出.复用为 GTIM2_CH3：
         </p>
         <pre><code>// GPIO 初始化（伪代码）
 void GPIO_Config_PWM(void)
@@ -128,7 +128,7 @@ void GPIO_Config_PWM(void)
       </section>
 
       <section id="adc-config">
-        <h2>4、ADC 配置与多通道采样</h2>
+        <h2>4.ADC 配置与多通道采样</h2>
 
         <h3>ADC GPIO 配置</h3>
         <p>
@@ -138,9 +138,9 @@ void GPIO_Config_PWM(void)
 void ADC_GPIO_Config(void)
 {
     // 1. 使能 ADC 外设时钟
-    // 2. 使能 GPIOA、GPIOB 时钟
+    // 2. 使能 GPIOA.GPIOB 时钟
     // 3. 将 PA00～PA09 配置为模拟输入模式
-    // 4. 将 PB00、PB01 配置为模拟输入模式
+    // 4. 将 PB00.PB01 配置为模拟输入模式
     //    PA00_ANALOG_ENABLE();  // AIN0
     //    PA01_ANALOG_ENABLE();  // AIN1
     //    ...
@@ -225,11 +225,11 @@ void ADC_MultiChannel_Average(void)
       </section>
 
       <section id="gtim-pwm">
-        <h2>5、GTIM2 PWM 输出配置</h2>
+        <h2>5.GTIM2 PWM 输出配置</h2>
 
         <p>
           CW32L011 的 GTIM2（通用定时器 2）通道 3（CH3）映射到 PA12，用于输出 PWM 波形。
-          采用边缘对齐、向上计数模式，输出 PWM1 波形（高电平有效）。
+          采用边缘对齐.向上计数模式，输出 PWM1 波形（高电平有效）。
         </p>
 
         <pre><code>// GTIM2 PWM 输出配置（伪代码）
@@ -278,7 +278,7 @@ void PWM_Output_Config(uint32_t frequency)
       </section>
 
       <section id="ntc-formula">
-        <h2>6、NTC 阻值到 PWM 频率的转换</h2>
+        <h2>6.NTC 阻值到 PWM 频率的转换</h2>
 
         <h3>求 ADC 最小值</h3>
         <p>
@@ -321,12 +321,12 @@ void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
 }</code></pre>
 
         <div class="article-warning">
-          NTC 分压电路参数（R1、R2）和经验公式系数（K1～K4、FREF）取决于实际硬件和标定数据，需根据具体型号和实验数据调整。
+          NTC 分压电路参数（R1.R2）和经验公式系数（K1～K4.FREF）取决于实际硬件和标定数据，需根据具体型号和实验数据调整。
         </div>
       </section>
 
       <section id="main-loop">
-        <h2>7、主循环逻辑</h2>
+        <h2>7.主循环逻辑</h2>
 
         <pre><code>int main(void)
 {
@@ -377,7 +377,7 @@ void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
       </section>
 
       <section id="summary">
-        <h2>8、总结</h2>
+        <h2>8.总结</h2>
         <ul>
           <li>CW32L011 的 ADC 支持最多 16 通道序列采样，本例使用 12 通道分两批读取</li>
           <li>ADC 采样周期设置为 262 个 ADC 时钟（≥40μs），满足 BGR 采样保持时间要求</li>

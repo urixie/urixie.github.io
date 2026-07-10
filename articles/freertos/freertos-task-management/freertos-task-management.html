@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS 任务管理与栈空间 - XYJ</title>
-  <meta name="description" content="整理 FreeRTOS 任务创建、任务删除、任务延时、任务优先级、任务句柄、任务栈、栈水位检测和任务设计方法。">
+  <meta name="description" content="整理 FreeRTOS 任务创建.任务删除.任务延时.任务优先级.任务句柄.任务栈.栈水位检测和任务设计方法。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,11 +22,11 @@
       <h1>FreeRTOS 任务管理与栈空间</h1>
 
       <p>
-        FreeRTOS 的任务可以理解为嵌入式系统中的轻量线程。每个任务都有自己的任务函数、栈空间、优先级和任务控制块。任务设计是否合理，会直接影响系统实时性、稳定性和可维护性。
+        FreeRTOS 的任务可以理解为嵌入式系统中的轻量线程。每个任务都有自己的任务函数.栈空间.优先级和任务控制块。任务设计是否合理，会直接影响系统实时性.稳定性和可维护性。
       </p>
 
       <section>
-        <h2>1、任务创建</h2>
+        <h2>1.任务创建</h2>
         <p>
           常用 <code>xTaskCreate()</code> 创建动态任务，也可以用 <code>xTaskCreateStatic()</code> 创建静态任务。动态任务由 FreeRTOS 堆分配任务控制块和栈，静态任务由用户提供内存，更适合对内存确定性要求高的项目。
         </p>
@@ -47,9 +47,9 @@ xTaskCreate(led_task, "led", 1024, NULL, 1, NULL);</code></pre>
       </section>
 
       <section>
-        <h2>2、任务句柄</h2>
+        <h2>2.任务句柄</h2>
         <p>
-          任务句柄用于操作指定任务，例如删除、挂起、恢复、通知等。创建任务时可以保存句柄。
+          任务句柄用于操作指定任务，例如删除.挂起.恢复.通知等。创建任务时可以保存句柄。
         </p>
         <pre><code>static TaskHandle_t s_uart_task_handle;
 
@@ -65,7 +65,7 @@ xTaskCreate(uart_task,
       </section>
 
       <section>
-        <h2>3、任务优先级设计</h2>
+        <h2>3.任务优先级设计</h2>
         <p>
           优先级应该按实时性和阻塞行为设计，而不是按“功能重要性”随意设置。高优先级任务应该尽快完成处理并进入阻塞态。
         </p>
@@ -73,7 +73,7 @@ xTaskCreate(uart_task,
           <li>硬实时响应任务：优先级较高，但必须短小。</li>
           <li>通信接收任务：通常高于普通业务任务。</li>
           <li>显示刷新任务：优先级不宜过高，避免影响采样和通信。</li>
-          <li>日志、存储、统计任务：一般优先级较低。</li>
+          <li>日志.存储.统计任务：一般优先级较低。</li>
         </ul>
         <div class="article-warning">
           高优先级任务如果写成无阻塞死循环，会饿死低优先级任务。这类问题表现为系统某些功能不运行，但并不一定死机。
@@ -81,7 +81,7 @@ xTaskCreate(uart_task,
       </section>
 
       <section>
-        <h2>4、任务延时：vTaskDelay 与 vTaskDelayUntil</h2>
+        <h2>4.任务延时：vTaskDelay 与 vTaskDelayUntil</h2>
         <p>
           <code>vTaskDelay()</code> 是相对延时，从当前调用时刻开始等待指定 Tick。<code>vTaskDelayUntil()</code> 是周期性延时，适合固定周期任务。
         </p>
@@ -95,14 +95,14 @@ xTaskCreate(uart_task,
     }
 }</code></pre>
         <p>
-          周期采样、周期控制、定时通信更适合用 <code>vTaskDelayUntil()</code>，它比简单 <code>vTaskDelay()</code> 更容易维持稳定周期。
+          周期采样.周期控制.定时通信更适合用 <code>vTaskDelayUntil()</code>，它比简单 <code>vTaskDelay()</code> 更容易维持稳定周期。
         </p>
       </section>
 
       <section>
-        <h2>5、任务栈空间</h2>
+        <h2>5.任务栈空间</h2>
         <p>
-          每个 FreeRTOS 任务都有独立栈。任务栈用于保存局部变量、函数调用上下文、中断嵌套时的部分上下文等。栈太小会导致栈溢出，栈太大又会浪费 RAM。
+          每个 FreeRTOS 任务都有独立栈。任务栈用于保存局部变量.函数调用上下文.中断嵌套时的部分上下文等。栈太小会导致栈溢出，栈太大又会浪费 RAM。
         </p>
         <figure class="article-figure">
           <svg viewBox="0 0 760 340" role="img" aria-label="FreeRTOS 任务栈示意图">
@@ -130,9 +130,9 @@ xTaskCreate(uart_task,
       </section>
 
       <section>
-        <h2>6、栈水位检测</h2>
+        <h2>6.栈水位检测</h2>
         <p>
-          FreeRTOS 提供栈水位检测接口，可以查看任务历史运行过程中剩余栈空间的最小值。调试阶段建议重点关注通信、显示、文件系统、协议解析等任务。
+          FreeRTOS 提供栈水位检测接口，可以查看任务历史运行过程中剩余栈空间的最小值。调试阶段建议重点关注通信.显示.文件系统.协议解析等任务。
         </p>
         <pre><code>UBaseType_t watermark = uxTaskGetStackHighWaterMark(NULL);
 printf("stack watermark = %u\n", (unsigned)watermark);</code></pre>
@@ -142,7 +142,7 @@ printf("stack watermark = %u\n", (unsigned)watermark);</code></pre>
       </section>
 
       <section>
-        <h2>7、任务设计检查清单</h2>
+        <h2>7.任务设计检查清单</h2>
         <ul>
           <li>任务职责是否单一。</li>
           <li>任务是否有明确阻塞点。</li>

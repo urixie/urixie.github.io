@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>EF2L45 单口 BRAM IP 配置与读写验证 - XYJ</title>
-  <meta name="description" content="基于 EF2L45LG144B FPGA，通过 IP Generator 配置 Single Port RAM，并使用 Verilog 状态机完成 BRAM 写入、读出和结果校验。">
+  <meta name="description" content="基于 EF2L45LG144B FPGA，通过 IP Generator 配置 Single Port RAM，并使用 Verilog 状态机完成 BRAM 写入.读出和结果校验。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -23,16 +23,16 @@
       <h1>EF2L45 单口 BRAM IP 配置与读写验证</h1>
 
       <p>
-        本文记录在 EF2L45LG144B FPGA 工程中，通过 IP Generator 生成单口 RAM，并使用 Verilog 状态机完成写入、
-        读出和数据校验的过程。该实验主要用于验证片上 BRAM IP 的基本读写时序、写优先模式以及输出寄存器延迟。
+        本文记录在 EF2L45LG144B FPGA 工程中，通过 IP Generator 生成单口 RAM，并使用 Verilog 状态机完成写入.
+        读出和数据校验的过程。该实验主要用于验证片上 BRAM IP 的基本读写时序.写优先模式以及输出寄存器延迟。
       </p>
 
       <div class="article-note">
-        本文重点关注 IP Generator 中 Single Port RAM 的关键配置，以及 Verilog 侧如何按照 BRAM 的时序要求完成写入、等待、读取和比较。
+        本文重点关注 IP Generator 中 Single Port RAM 的关键配置，以及 Verilog 侧如何按照 BRAM 的时序要求完成写入.等待.读取和比较。
       </div>
 
       <section>
-        <h2>1、实验目标</h2>
+        <h2>1.实验目标</h2>
         <ul>
           <li>使用 IP Generator 生成 EF2 系列 FPGA 的单口 BRAM。</li>
           <li>BRAM 数据宽度设置为 8bit。</li>
@@ -47,7 +47,7 @@
       </section>
 
       <section>
-        <h2>2、IP Generator 基本配置</h2>
+        <h2>2.IP Generator 基本配置</h2>
 
         <p>
           首先在 IP Generator 中选择 EF2_LOGIC_BRAM，组件名称设置为 <code>SinglePortRam</code>。
@@ -75,7 +75,7 @@
       </section>
 
       <section>
-        <h2>3、Port A 参数配置</h2>
+        <h2>3.Port A 参数配置</h2>
 
         <p>
           在 Port A Options 页面中，设置 RAM 的数据宽度和深度。本文配置为：
@@ -90,7 +90,7 @@ Port Enable：Use Wea</code></pre>
 
         <figure>
           <img src="images/ef2-single-port-ram-02-port-a-options.png?v=ef7caca13ac7" alt="EF2 Single Port RAM Port A Options 配置页面">
-          <figcaption>Port A Options 页面：设置 Width=8、Depth=200、Write First，并启用带 Ocea 的输出寄存器。</figcaption>
+          <figcaption>Port A Options 页面：设置 Width=8.Depth=200.Write First，并启用带 Ocea 的输出寄存器。</figcaption>
         </figure>
 
         <p>
@@ -104,7 +104,7 @@ Port Enable：Use Wea</code></pre>
       </section>
 
       <section>
-        <h2>4、初始化配置</h2>
+        <h2>4.初始化配置</h2>
 
         <p>
           在 Other Options 页面中，Memory Initialization 选择 <code>Fill Memory Initialization values</code>，
@@ -117,13 +117,13 @@ Port Enable：Use Wea</code></pre>
         </figure>
 
         <p>
-          当前配置预计使用 1 个 BRAM 资源。对于只做少量缓存、查表或数据暂存的场景，单口 RAM 可以减少逻辑资源占用，
+          当前配置预计使用 1 个 BRAM 资源。对于只做少量缓存.查表或数据暂存的场景，单口 RAM 可以减少逻辑资源占用，
           也便于后续扩展为采集缓存或状态表。
         </p>
       </section>
 
       <section>
-        <h2>5、Verilog 顶层测试逻辑</h2>
+        <h2>5.Verilog 顶层测试逻辑</h2>
 
         <p>
           下面的测试逻辑实例化 <code>SinglePortRam</code>，然后通过状态机依次向地址 0 到 7 写入对应数据，
@@ -275,14 +275,14 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>6、状态机时序说明</h2>
+        <h2>6.状态机时序说明</h2>
 
         <p>
           当前测试流程按照“写入一个地址，再读回同一个地址并比较”的方式执行：
         </p>
 
         <ol>
-          <li><code>S_IDLE</code>：清零地址、数据和错误计数。</li>
+          <li><code>S_IDLE</code>：清零地址.数据和错误计数。</li>
           <li><code>S_WRITE</code>：准备写地址和写数据。</li>
           <li><code>S_WRITE_HOLD</code>：拉高写使能，将数据写入 RAM。</li>
           <li><code>S_READ_SETUP</code>：关闭写使能，保持读地址。</li>
@@ -297,7 +297,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>7、LED 指示逻辑</h2>
+        <h2>7.LED 指示逻辑</h2>
 
         <p>
           代码中使用 <code>error_count</code> 记录错误次数。如果没有读写错误，<code>O_led2</code> 保持固定状态；
@@ -311,15 +311,15 @@ O_led2 常亮
 O_led2 慢速闪烁</code></pre>
 
         <p>
-          这种方式适合没有串口打印、没有在线调试工具时，快速判断 BRAM 读写验证是否通过。
+          这种方式适合没有串口打印.没有在线调试工具时，快速判断 BRAM 读写验证是否通过。
         </p>
       </section>
 
       <section>
-        <h2>8、调试信号说明</h2>
+        <h2>8.调试信号说明</h2>
 
         <p>
-          为了便于后续通过 ILA、SignalTap 或在线逻辑分析工具观察状态，代码保留了几个调试信号：
+          为了便于后续通过 ILA.SignalTap 或在线逻辑分析工具观察状态，代码保留了几个调试信号：
         </p>
 
         <ul>
@@ -334,12 +334,12 @@ O_led2 慢速闪烁</code></pre>
       </section>
 
       <section>
-        <h2>9、常见问题</h2>
+        <h2>9.常见问题</h2>
 
         <h3>1. 为什么写使能要单独保持一个周期？</h3>
         <p>
-          BRAM 写入通常在时钟边沿根据地址、数据和写使能采样。将 <code>S_WRITE</code> 和
-          <code>S_WRITE_HOLD</code> 分开，可以保证写地址、写数据先稳定，再拉高写使能，避免时序不清晰。
+          BRAM 写入通常在时钟边沿根据地址.数据和写使能采样。将 <code>S_WRITE</code> 和
+          <code>S_WRITE_HOLD</code> 分开，可以保证写地址.写数据先稳定，再拉高写使能，避免时序不清晰。
         </p>
 
         <h3>2. 为什么读数据需要等待？</h3>
@@ -356,16 +356,16 @@ O_led2 慢速闪烁</code></pre>
       </section>
 
       <section>
-        <h2>10、经验总结</h2>
+        <h2>10.经验总结</h2>
 
         <p>
-          使用 FPGA 片上 BRAM 时，不能只看端口连接是否正确，还要结合 IP Generator 中的工作模式、
-          输出寄存器、端口使能和初始化配置来设计 Verilog 状态机。尤其是输出寄存器开启后，读数据会存在额外周期延迟。
+          使用 FPGA 片上 BRAM 时，不能只看端口连接是否正确，还要结合 IP Generator 中的工作模式.
+          输出寄存器.端口使能和初始化配置来设计 Verilog 状态机。尤其是输出寄存器开启后，读数据会存在额外周期延迟。
         </p>
 
         <p>
           对于 EF2L45 这类 FPGA 工程，建议先用小范围地址做读写自检，例如本文中的 0 到 7 地址。
-          自检通过后，再将 BRAM 扩展到 ADC 数据缓存、协议收发缓冲、查表或跨模块数据交换场景。
+          自检通过后，再将 BRAM 扩展到 ADC 数据缓存.协议收发缓冲.查表或跨模块数据交换场景。
         </p>
       </section>
 

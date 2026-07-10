@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 基础语法与硬件描述思维 - XYJ</title>
-  <meta name="description" content="整理 Verilog 基础语法、module、端口、wire、reg、assign、always、阻塞赋值、非阻塞赋值、参数化和硬件描述思维。">
+  <meta name="description" content="整理 Verilog 基础语法.module.端口.wire.reg.assign.always.阻塞赋值.非阻塞赋值.参数化和硬件描述思维。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,17 +22,17 @@
       <h1>Verilog 基础语法与硬件描述思维</h1>
 
       <p>
-        Verilog 不是普通软件语言，而是硬件描述语言。写 Verilog 的重点不是“程序一行一行执行”，而是描述电路结构、寄存器行为、组合逻辑和时序逻辑。本文从最基础的语法开始，建立面向 FPGA 的硬件描述思维。
+        Verilog 不是普通软件语言，而是硬件描述语言。写 Verilog 的重点不是“程序一行一行执行”，而是描述电路结构.寄存器行为.组合逻辑和时序逻辑。本文从最基础的语法开始，建立面向 FPGA 的硬件描述思维。
       </p>
 
       <div class="article-note">
-        初学 Verilog 最容易犯的错误，是把它当 C 语言写。C 语言描述的是 CPU 上顺序执行的指令，Verilog 描述的是并行存在的硬件电路。你写下的每个 always、assign、寄存器和连线，最终都要能对应到硬件结构。
+        初学 Verilog 最容易犯的错误，是把它当 C 语言写。C 语言描述的是 CPU 上顺序执行的指令，Verilog 描述的是并行存在的硬件电路。你写下的每个 always.assign.寄存器和连线，最终都要能对应到硬件结构。
       </div>
 
       <section>
-        <h2>1、Verilog工程的基本单位：module</h2>
+        <h2>1.Verilog工程的基本单位：module</h2>
         <p>
-          <code>module</code> 是 Verilog 的基本设计单元，可以理解为一个硬件模块。模块有输入、输出和内部逻辑，综合后可能变成组合逻辑、触发器、RAM、DSP 或其它 FPGA 资源。
+          <code>module</code> 是 Verilog 的基本设计单元，可以理解为一个硬件模块。模块有输入.输出和内部逻辑，综合后可能变成组合逻辑.触发器.RAM.DSP 或其它 FPGA 资源。
         </p>
         <pre><code>module led_blink (
     input  wire clk,
@@ -42,12 +42,12 @@
 
 endmodule</code></pre>
         <p>
-          上面这个模块有一个时钟 <code>clk</code>、一个低有效复位 <code>rst_n</code> 和一个 LED 输出 <code>led</code>。端口方向决定信号从模块外进入还是从模块内输出。
+          上面这个模块有一个时钟 <code>clk</code>.一个低有效复位 <code>rst_n</code> 和一个 LED 输出 <code>led</code>。端口方向决定信号从模块外进入还是从模块内输出。
         </p>
       </section>
 
       <section>
-        <h2>2、wire 与 reg</h2>
+        <h2>2.wire 与 reg</h2>
         <p>
           <code>wire</code> 更像连线，常用于连续赋值和模块端口连接；<code>reg</code> 表示在过程块中被赋值的变量，综合后不一定都是寄存器，是否变成寄存器取决于 always 块写法。
         </p>
@@ -63,7 +63,7 @@ assign a_and_b = a &amp; b;</code></pre>
       </section>
 
       <section>
-        <h2>3、assign连续赋值</h2>
+        <h2>3.assign连续赋值</h2>
         <p>
           <code>assign</code> 描述组合逻辑。只要右侧输入信号变化，左侧输出就会跟着变化，类似一根持续存在的硬件连线加组合门电路。
         </p>
@@ -89,7 +89,7 @@ assign sum = data0 + data1;</code></pre>
       </section>
 
       <section>
-        <h2>4、always块</h2>
+        <h2>4.always块</h2>
         <p>
           <code>always</code> 用于描述过程逻辑。根据敏感列表不同，可以描述组合逻辑，也可以描述时序逻辑。
         </p>
@@ -111,7 +111,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>5、阻塞赋值与非阻塞赋值</h2>
+        <h2>5.阻塞赋值与非阻塞赋值</h2>
         <p>
           阻塞赋值使用 <code>=</code>，语句按顺序立即更新；非阻塞赋值使用 <code>&lt;=</code>，通常在时钟边沿统一更新。工程中建议遵循：组合逻辑用阻塞赋值，时序逻辑用非阻塞赋值。
         </p>
@@ -133,9 +133,9 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>6、参数化设计</h2>
+        <h2>6.参数化设计</h2>
         <p>
-          <code>parameter</code> 可以让模块更容易复用。例如计数器位宽、FIFO 深度、数据总线宽度都适合参数化。
+          <code>parameter</code> 可以让模块更容易复用。例如计数器位宽.FIFO 深度.数据总线宽度都适合参数化。
         </p>
         <pre><code>module counter #(
     parameter WIDTH = 16
@@ -156,7 +156,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>7、基础编码检查清单</h2>
+        <h2>7.基础编码检查清单</h2>
         <ul>
           <li>模块端口方向是否清晰。</li>
           <li>组合逻辑是否覆盖所有分支，避免锁存器。</li>

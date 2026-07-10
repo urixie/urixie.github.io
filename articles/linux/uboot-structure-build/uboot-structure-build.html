@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>U-Boot 组成与构建流程 - XYJ</title>
-  <meta name="description" content="整理 U-Boot 的作用、启动阶段、源码目录、配置系统、设备树、编译构建、烧录产物、环境变量和嵌入式 Linux 启动调试方法。">
+  <meta name="description" content="整理 U-Boot 的作用.启动阶段.源码目录.配置系统.设备树.编译构建.烧录产物.环境变量和嵌入式 Linux 启动调试方法。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,7 +22,7 @@
       <h1>U-Boot 组成与构建流程</h1>
 
       <p>
-        U-Boot 是嵌入式 Linux 系统中常见的 Bootloader。它的核心任务是完成最早期硬件初始化、加载内核镜像、加载设备树、准备启动参数，并最终跳转到 Linux Kernel 入口。
+        U-Boot 是嵌入式 Linux 系统中常见的 Bootloader。它的核心任务是完成最早期硬件初始化.加载内核镜像.加载设备树.准备启动参数，并最终跳转到 Linux Kernel 入口。
       </p>
 
       <div class="article-note">
@@ -30,9 +30,9 @@
       </div>
 
       <section>
-        <h2>1、U-Boot 在系统启动链路中的位置</h2>
+        <h2>1.U-Boot 在系统启动链路中的位置</h2>
         <p>
-          SoC 上电后，最先运行的通常不是 U-Boot，而是芯片内部 ROM Code。ROM Code 根据启动介质选择规则，从 eMMC、SPI Flash、SD 卡、NAND、USB 等位置加载下一阶段程序。很多平台会先加载 SPL，再加载完整 U-Boot。
+          SoC 上电后，最先运行的通常不是 U-Boot，而是芯片内部 ROM Code。ROM Code 根据启动介质选择规则，从 eMMC.SPI Flash.SD 卡.NAND.USB 等位置加载下一阶段程序。很多平台会先加载 SPL，再加载完整 U-Boot。
         </p>
         <figure class="article-figure">
           <svg viewBox="0 0 780 260" role="img" aria-label="U-Boot 启动链路示意图">
@@ -54,23 +54,23 @@
       </section>
 
       <section>
-        <h2>2、U-Boot 的主要职责</h2>
+        <h2>2.U-Boot 的主要职责</h2>
         <ul>
           <li>初始化串口，输出早期启动日志。</li>
-          <li>初始化 DDR、时钟、PMIC、存储控制器等关键硬件。</li>
-          <li>从 Flash、eMMC、SD、TFTP 等位置加载内核镜像。</li>
+          <li>初始化 DDR.时钟.PMIC.存储控制器等关键硬件。</li>
+          <li>从 Flash.eMMC.SD.TFTP 等位置加载内核镜像。</li>
           <li>加载设备树 DTB，并可对设备树做启动前修正。</li>
           <li>设置 Kernel 启动参数，例如 <code>bootargs</code>。</li>
-          <li>提供命令行环境，方便烧录、调试、读写存储和网络启动。</li>
+          <li>提供命令行环境，方便烧录.调试.读写存储和网络启动。</li>
         </ul>
       </section>
 
       <section>
-        <h2>3、U-Boot 源码目录</h2>
+        <h2>3.U-Boot 源码目录</h2>
         <p>
           不同版本目录略有差异，但常见结构如下：</p>
         <pre><code>u-boot/
-├── arch/              # 架构相关代码，如 arm、riscv
+├── arch/              # 架构相关代码，如 arm.riscv
 ├── board/             # 板级代码
 ├── configs/           # defconfig 配置文件
 ├── drivers/           # 驱动代码
@@ -81,37 +81,37 @@
 ├── env/               # 环境变量存储相关
 └── Makefile</code></pre>
         <p>
-          移植 U-Boot 时，最常修改的是板级目录、defconfig、设备树、DDR 初始化、存储启动配置和环境变量位置。
+          移植 U-Boot 时，最常修改的是板级目录.defconfig.设备树.DDR 初始化.存储启动配置和环境变量位置。
         </p>
       </section>
 
       <section>
-        <h2>4、配置系统：defconfig 与 menuconfig</h2>
+        <h2>4.配置系统：defconfig 与 menuconfig</h2>
         <p>
           U-Boot 使用 Kconfig 配置系统。通常先选择板级 defconfig，再根据需要进入 menuconfig 修改功能。</p>
         <pre><code>make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- board_defconfig
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</code></pre>
         <p>
-          常见配置包括启动命令、命令行功能、网络协议、存储驱动、文件系统支持、FIT 镜像支持、环境变量存储位置等。
+          常见配置包括启动命令.命令行功能.网络协议.存储驱动.文件系统支持.FIT 镜像支持.环境变量存储位置等。
         </p>
       </section>
 
       <section>
-        <h2>5、交叉编译 U-Boot</h2>
+        <h2>5.交叉编译 U-Boot</h2>
         <p>
-          构建 U-Boot 前要确认交叉工具链、板级 defconfig 和芯片厂商补丁是否匹配。</p>
+          构建 U-Boot 前要确认交叉工具链.板级 defconfig 和芯片厂商补丁是否匹配。</p>
         <pre><code>export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 
 make board_defconfig
 make -j$(nproc)</code></pre>
         <p>
-          64 位 ARM 平台通常使用 <code>aarch64-linux-gnu-</code> 工具链。具体前缀取决于芯片平台、厂商 SDK 和 ABI。
+          64 位 ARM 平台通常使用 <code>aarch64-linux-gnu-</code> 工具链。具体前缀取决于芯片平台.厂商 SDK 和 ABI。
         </p>
       </section>
 
       <section>
-        <h2>6、常见构建产物</h2>
+        <h2>6.常见构建产物</h2>
         <ul>
           <li><code>u-boot.bin</code>：裸二进制 U-Boot 镜像。</li>
           <li><code>u-boot.elf</code>：带符号信息的 ELF 文件，适合调试。</li>
@@ -124,19 +124,19 @@ make -j$(nproc)</code></pre>
       </section>
 
       <section>
-        <h2>7、环境变量与 bootcmd</h2>
+        <h2>7.环境变量与 bootcmd</h2>
         <p>
-          U-Boot 环境变量决定了从哪里加载内核、设备树和根文件系统。常见变量包括 <code>bootcmd</code>、<code>bootargs</code>、<code>kernel_addr_r</code>、<code>fdt_addr_r</code>。</p>
+          U-Boot 环境变量决定了从哪里加载内核.设备树和根文件系统。常见变量包括 <code>bootcmd</code>.<code>bootargs</code>.<code>kernel_addr_r</code>.<code>fdt_addr_r</code>。</p>
         <pre><code>printenv
 setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rw rootwait
 saveenv
 boot</code></pre>
         <p>
-          调试启动失败时，重点查看 <code>bootargs</code> 是否正确、内核和 dtb 是否加载到正确地址、rootfs 路径是否匹配实际分区。</p>
+          调试启动失败时，重点查看 <code>bootargs</code> 是否正确.内核和 dtb 是否加载到正确地址.rootfs 路径是否匹配实际分区。</p>
       </section>
 
       <section>
-        <h2>8、U-Boot 调试检查清单</h2>
+        <h2>8.U-Boot 调试检查清单</h2>
         <ul>
           <li>串口波特率和串口号是否正确。</li>
           <li>DDR 初始化是否通过，内存容量是否识别正确。</li>
@@ -144,7 +144,7 @@ boot</code></pre>
           <li>defconfig 是否对应当前板卡。</li>
           <li>设备树是否和板级硬件一致。</li>
           <li><code>bootargs</code> 中 rootfs 分区是否正确。</li>
-          <li>内核镜像、dtb、rootfs 是否版本匹配。</li>
+          <li>内核镜像.dtb.rootfs 是否版本匹配。</li>
         </ul>
       </section>
 

@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言结构体与数据组织整理 - XYJ</title>
-  <meta name="description" content="面向嵌入式工程实践整理 C 语言 struct、union、enum、位域、结构体对齐、协议帧和参数表设计。">
+  <meta name="description" content="面向嵌入式工程实践整理 C 语言 struct.union.enum.位域.结构体对齐.协议帧和参数表设计。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -23,30 +23,30 @@
       <h1>C语言结构体与数据组织整理</h1>
 
       <p>
-        本文整理 C 语言中结构体、联合体、枚举、位域和数据布局的工程用法。重点面向参数表、通信协议、寄存器映射、Flash 存储和上位机 / 下位机数据一致性设计。
+        本文整理 C 语言中结构体.联合体.枚举.位域和数据布局的工程用法。重点面向参数表.通信协议.寄存器映射.Flash 存储和上位机 / 下位机数据一致性设计。
       </p>
 
       <div class="article-note">
-        结构体的价值不是把变量简单打包，而是把一组相关数据变成有边界、有含义、可传递、可维护的工程对象。位域虽然写法直观，但它不适合直接作为跨平台协议格式。
+        结构体的价值不是把变量简单打包，而是把一组相关数据变成有边界.有含义.可传递.可维护的工程对象。位域虽然写法直观，但它不适合直接作为跨平台协议格式。
       </div>
 
       <section>
-        <h2>1、为什么嵌入式项目离不开结构体</h2>
+        <h2>1.为什么嵌入式项目离不开结构体</h2>
         <p>
-          嵌入式工程中常常需要管理成组数据，例如设备参数、通信帧、传感器采样结果、错误状态、升级包头部、Flash 存储记录等。结构体可以让这些字段具有清晰的组织关系。
+          嵌入式工程中常常需要管理成组数据，例如设备参数.通信帧.传感器采样结果.错误状态.升级包头部.Flash 存储记录等。结构体可以让这些字段具有清晰的组织关系。
         </p>
         <ul>
           <li>让参数配置从零散变量变成表格化数据。</li>
           <li>让协议帧解析更容易维护。</li>
           <li>让模块接口更清晰，减少函数参数数量。</li>
-          <li>让 Flash 存储、CRC 校验和版本管理更有结构。</li>
+          <li>让 Flash 存储.CRC 校验和版本管理更有结构。</li>
         </ul>
       </section>
 
       <section>
-        <h2>2、struct 的基本用法</h2>
+        <h2>2.struct 的基本用法</h2>
         <p>
-          <code>struct</code> 用来定义一组相关字段。建议使用 <code>typedef</code> 定义清晰的类型名，字段命名要表达单位、范围和含义。
+          <code>struct</code> 用来定义一组相关字段。建议使用 <code>typedef</code> 定义清晰的类型名，字段命名要表达单位.范围和含义。
         </p>
         <pre><code>typedef struct {
     uint16_t voltage_mv;
@@ -60,9 +60,9 @@
       </section>
 
       <section>
-        <h2>3、结构体数组与参数表</h2>
+        <h2>3.结构体数组与参数表</h2>
         <p>
-          当参数数量较多时，不建议为每个参数单独写一套变量和处理函数。可以使用结构体数组描述参数表，把名称、地址、默认值、上下限和属性集中管理。
+          当参数数量较多时，不建议为每个参数单独写一套变量和处理函数。可以使用结构体数组描述参数表，把名称.地址.默认值.上下限和属性集中管理。
         </p>
         <pre><code>typedef struct {
     uint8_t address;
@@ -78,14 +78,14 @@ static const param_item_t g_param_table[] = {
     {1, "保护阈值", 2500, 0, 4095, 0},
 };</code></pre>
         <p>
-          参数表的优势是后续可以统一生成界面、统一校验范围、统一存储到 Flash，也便于与上位机配置文件保持一致。
+          参数表的优势是后续可以统一生成界面.统一校验范围.统一存储到 Flash，也便于与上位机配置文件保持一致。
         </p>
       </section>
 
       <section>
-        <h2>4、union 的作用与风险</h2>
+        <h2>4.union 的作用与风险</h2>
         <p>
-          <code>union</code> 的所有成员共享同一段内存。它适合用于同一段数据的多种解释方式，例如把 32 位值按字节访问。但它也容易引入大小端、对齐和可读性问题。
+          <code>union</code> 的所有成员共享同一段内存。它适合用于同一段数据的多种解释方式，例如把 32 位值按字节访问。但它也容易引入大小端.对齐和可读性问题。
         </p>
         <pre><code>typedef union {
     uint32_t value;
@@ -97,9 +97,9 @@ static const param_item_t g_param_table[] = {
       </section>
 
       <section>
-        <h2>5、enum 枚举与状态机</h2>
+        <h2>5.enum 枚举与状态机</h2>
         <p>
-          枚举可以让状态值更可读。状态机、错误码、设备模式和事件类型都适合用枚举表达。
+          枚举可以让状态值更可读。状态机.错误码.设备模式和事件类型都适合用枚举表达。
         </p>
         <pre><code>typedef enum {
     APP_STATE_IDLE = 0,
@@ -115,7 +115,7 @@ static app_state_t s_state = APP_STATE_IDLE;</code></pre>
       </section>
 
       <section>
-        <h2>6、位域的基本语法</h2>
+        <h2>6.位域的基本语法</h2>
         <p>
           位域可以把一个整数中的多个 bit 字段写成结构体形式。它适合表达“某几个 bit 表示某个状态”的含义，代码阅读起来比纯位运算更直观。
         </p>
@@ -131,9 +131,9 @@ static app_state_t s_state = APP_STATE_IDLE;</code></pre>
       </section>
 
       <section>
-        <h2>7、位域在嵌入式中的适用场景</h2>
+        <h2>7.位域在嵌入式中的适用场景</h2>
         <p>
-          位域适合用于内部状态表达、调试视图和临时解释某个状态字。例如某个状态字只有在本工程内部使用，且不会跨编译器、跨平台、跨协议长期保存，这时位域可以提升可读性。
+          位域适合用于内部状态表达.调试视图和临时解释某个状态字。例如某个状态字只有在本工程内部使用，且不会跨编译器.跨平台.跨协议长期保存，这时位域可以提升可读性。
         </p>
         <pre><code>typedef union {
     uint8_t value;
@@ -155,24 +155,24 @@ status.bits.over_temp = 1U;</code></pre>
       </section>
 
       <section>
-        <h2>8、位域的风险与限制</h2>
+        <h2>8.位域的风险与限制</h2>
         <p>
-          位域看起来很像寄存器手册中的 bit 描述，但 C 标准并不保证不同编译器、不同平台对位域的排列顺序完全一致。位域涉及的风险主要包括：bit 顺序、字节序、对齐填充、底层类型大小和读改写行为。
+          位域看起来很像寄存器手册中的 bit 描述，但 C 标准并不保证不同编译器.不同平台对位域的排列顺序完全一致。位域涉及的风险主要包括：bit 顺序.字节序.对齐填充.底层类型大小和读改写行为。
         </p>
         <ul>
           <li>不同编译器可能采用不同的 bit 分配方向。</li>
           <li>结构体中可能存在填充位，<code>sizeof</code> 结果不一定符合直觉。</li>
           <li>访问位域时，编译器可能生成读改写指令，操作硬件寄存器时可能触发副作用。</li>
           <li>位域成员不能直接取地址，因为它可能不是独立可寻址对象。</li>
-          <li>跨上位机、下位机、文件格式和通信协议时，不应依赖位域内存布局。</li>
+          <li>跨上位机.下位机.文件格式和通信协议时，不应依赖位域内存布局。</li>
         </ul>
         <div class="article-warning">
-          如果某个数据要写入 Flash、生成 bin 文件、通过串口/CAN/SPI 发送，或者需要和上位机保持二进制一致，优先使用掩码和移位手动打包，不要直接发送位域结构体。
+          如果某个数据要写入 Flash.生成 bin 文件.通过串口/CAN/SPI 发送，或者需要和上位机保持二进制一致，优先使用掩码和移位手动打包，不要直接发送位域结构体。
         </div>
       </section>
 
       <section>
-        <h2>9、寄存器位操作推荐写法</h2>
+        <h2>9.寄存器位操作推荐写法</h2>
         <p>
           对硬件寄存器来说，更推荐用掩码和位移描述 bit 字段。这样虽然代码略长，但行为更明确，也更容易和芯片手册对应。
         </p>
@@ -189,7 +189,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
       </section>
 
       <section>
-        <h2>10、结构体对齐与 sizeof</h2>
+        <h2>10.结构体对齐与 sizeof</h2>
         <p>
           编译器可能为了提升访问效率，在结构体字段之间插入填充字节。因此 <code>sizeof(struct)</code> 不一定等于所有字段大小之和。
         </p>
@@ -201,14 +201,14 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
 
 // sizeof(example_t) 可能大于 1 + 4 + 2</code></pre>
         <p>
-          如果结构体要写入 Flash 或与上位机二进制文件对应，必须明确结构体版本、字段顺序、对齐策略和 CRC 范围。必要时不要直接写结构体，而是手动序列化。
+          如果结构体要写入 Flash 或与上位机二进制文件对应，必须明确结构体版本.字段顺序.对齐策略和 CRC 范围。必要时不要直接写结构体，而是手动序列化。
         </p>
       </section>
 
       <section>
-        <h2>十1、协议帧和参数表设计示例</h2>
+        <h2>十1.协议帧和参数表设计示例</h2>
         <p>
-          一个相对清晰的协议帧通常包含帧头、命令、长度、数据和校验。不要把裸结构体直接发送出去，建议通过函数进行打包。
+          一个相对清晰的协议帧通常包含帧头.命令.长度.数据和校验。不要把裸结构体直接发送出去，建议通过函数进行打包。
         </p>
         <pre><code>typedef struct {
     uint8_t header0;
@@ -224,7 +224,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
       </section>
 
       <section>
-        <h2>十2、结构体与位域设计检查清单</h2>
+        <h2>十2.结构体与位域设计检查清单</h2>
         <ul>
           <li>字段名是否带有单位和含义。</li>
           <li>是否显式指定了协议或存储字段的类型宽度。</li>
@@ -233,7 +233,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
           <li>寄存器操作是否优先使用掩码和位移。</li>
           <li>结构体是否会被直接写入 Flash 或发送到上位机。</li>
           <li>是否考虑了结构体对齐和版本兼容。</li>
-          <li>是否需要添加 magic、version、length、crc 等保护字段。</li>
+          <li>是否需要添加 magic.version.length.crc 等保护字段。</li>
           <li>是否把内部内存布局误当成外部协议格式。</li>
         </ul>
       </section>

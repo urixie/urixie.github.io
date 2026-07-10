@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux Kernel 组成与构建流程 - XYJ</title>
-  <meta name="description" content="整理 Linux Kernel 的源码组成、Kconfig、defconfig、设备树、内核模块、交叉编译、Image/zImage/uImage/dtb、安装模块和嵌入式 Linux 内核调试方法。">
+  <meta name="description" content="整理 Linux Kernel 的源码组成.Kconfig.defconfig.设备树.内核模块.交叉编译.Image/zImage/uImage/dtb.安装模块和嵌入式 Linux 内核调试方法。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,7 +22,7 @@
       <h1>Linux Kernel 组成与构建流程</h1>
 
       <p>
-        Linux Kernel 是系统的核心，负责进程调度、内存管理、文件系统、网络协议栈、设备驱动、中断处理和系统调用。嵌入式 Linux 开发中，Kernel 构建通常和设备树、驱动模块、根文件系统、U-Boot 启动参数一起配合使用。
+        Linux Kernel 是系统的核心，负责进程调度.内存管理.文件系统.网络协议栈.设备驱动.中断处理和系统调用。嵌入式 Linux 开发中，Kernel 构建通常和设备树.驱动模块.根文件系统.U-Boot 启动参数一起配合使用。
       </p>
 
       <div class="article-note">
@@ -30,9 +30,9 @@
       </div>
 
       <section>
-        <h2>1、Kernel 在启动链路中的位置</h2>
+        <h2>1.Kernel 在启动链路中的位置</h2>
         <p>
-          U-Boot 加载内核镜像和设备树后，把控制权交给 Kernel。Kernel 完成解压、架构初始化、驱动初始化、挂载根文件系统，最后启动第一个用户态进程。</p>
+          U-Boot 加载内核镜像和设备树后，把控制权交给 Kernel。Kernel 完成解压.架构初始化.驱动初始化.挂载根文件系统，最后启动第一个用户态进程。</p>
         <figure class="article-figure">
           <svg viewBox="0 0 780 260" role="img" aria-label="Kernel 启动链路示意图">
             <rect x="45" y="90" width="110" height="58" rx="12" fill="#e0f2fe" stroke="#0284c7"/><text x="100" y="125" text-anchor="middle" font-size="14">U-Boot</text>
@@ -47,14 +47,14 @@
             <text x="620" y="180" text-anchor="middle" font-size="13">第一个用户态程序</text>
             <defs><marker id="arrow-kernel" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker></defs>
           </svg>
-          <figcaption>图 1：Kernel 依赖内核镜像、设备树和根文件系统共同启动。</figcaption>
+          <figcaption>图 1：Kernel 依赖内核镜像.设备树和根文件系统共同启动。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>2、Kernel 源码目录</h2>
+        <h2>2.Kernel 源码目录</h2>
         <pre><code>linux/
-├── arch/              # 架构相关代码和 defconfig、dts
+├── arch/              # 架构相关代码和 defconfig.dts
 ├── block/             # 块设备层
 ├── crypto/            # 加密子系统
 ├── drivers/           # 设备驱动
@@ -62,17 +62,17 @@
 ├── include/           # 头文件
 ├── init/              # 启动初始化
 ├── ipc/               # 进程间通信
-├── kernel/            # 调度、进程、时间等核心代码
+├── kernel/            # 调度.进程.时间等核心代码
 ├── lib/               # 通用库
 ├── mm/                # 内存管理
 ├── net/               # 网络协议栈
 └── scripts/           # 构建脚本</code></pre>
         <p>
-          嵌入式开发最常接触的是 <code>arch/arm</code>、<code>arch/arm64</code>、<code>drivers</code>、<code>arch/*/boot/dts</code>、<code>include</code> 和 <code>scripts</code>。</p>
+          嵌入式开发最常接触的是 <code>arch/arm</code>.<code>arch/arm64</code>.<code>drivers</code>.<code>arch/*/boot/dts</code>.<code>include</code> 和 <code>scripts</code>。</p>
       </section>
 
       <section>
-        <h2>3、配置系统：Kconfig、defconfig、.config</h2>
+        <h2>3.配置系统：Kconfig.defconfig..config</h2>
         <p>
           Kernel 使用 Kconfig 管理配置。<code>defconfig</code> 是默认配置，<code>.config</code> 是当前实际构建配置。驱动可以选择编进内核，也可以编成模块。</p>
         <pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
@@ -86,16 +86,16 @@ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig</code></pre>
       </section>
 
       <section>
-        <h2>4、设备树 DTS/DTB</h2>
+        <h2>4.设备树 DTS/DTB</h2>
         <p>
-          设备树源码是 <code>.dts</code> 或 <code>.dtsi</code>，编译后生成 <code>.dtb</code>。Kernel 通过设备树了解板级硬件资源，例如串口、I2C、SPI、GPIO、中断、时钟和 pinctrl。</p>
+          设备树源码是 <code>.dts</code> 或 <code>.dtsi</code>，编译后生成 <code>.dtb</code>。Kernel 通过设备树了解板级硬件资源，例如串口.I2C.SPI.GPIO.中断.时钟和 pinctrl。</p>
         <pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- dtbs</code></pre>
         <p>
           驱动是否 probe 成功，通常依赖设备树节点的 <code>compatible</code> 是否和驱动匹配。</p>
       </section>
 
       <section>
-        <h2>5、交叉编译 Kernel</h2>
+        <h2>5.交叉编译 Kernel</h2>
         <p>
           不同平台的构建命令会有差异，下面是常见 ARM64 形式：</p>
         <pre><code>export ARCH=arm64
@@ -108,19 +108,19 @@ make -j$(nproc) Image modules dtbs</code></pre>
       </section>
 
       <section>
-        <h2>6、常见构建产物</h2>
+        <h2>6.常见构建产物</h2>
         <ul>
           <li><code>arch/arm64/boot/Image</code>：ARM64 内核镜像。</li>
           <li><code>arch/arm/boot/zImage</code>：ARM32 常见压缩内核镜像。</li>
           <li><code>arch/*/boot/dts/*.dtb</code>：设备树二进制文件。</li>
           <li><code>*.ko</code>：内核模块。</li>
           <li><code>System.map</code>：符号地址表，调试内核问题有用。</li>
-          <li><code>vmlinux</code>：未压缩、带符号的内核 ELF 文件。</li>
+          <li><code>vmlinux</code>：未压缩.带符号的内核 ELF 文件。</li>
         </ul>
       </section>
 
       <section>
-        <h2>7、安装内核模块</h2>
+        <h2>7.安装内核模块</h2>
         <p>
           如果驱动编成模块，需要把模块安装进根文件系统的 <code>/lib/modules/$(uname -r)</code> 目录。</p>
         <pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
@@ -130,15 +130,15 @@ make -j$(nproc) Image modules dtbs</code></pre>
       </section>
 
       <section>
-        <h2>8、Kernel 调试检查清单</h2>
+        <h2>8.Kernel 调试检查清单</h2>
         <ul>
-          <li>内核 Image、dtb、模块是否来自同一次构建。</li>
+          <li>内核 Image.dtb.模块是否来自同一次构建。</li>
           <li><code>.config</code> 中驱动是 <code>y</code> 还是 <code>m</code>。</li>
           <li>设备树 compatible 是否和驱动匹配。</li>
           <li>U-Boot 加载的 dtb 是否确实是你修改后的版本。</li>
           <li>模块安装路径是否和 <code>uname -r</code> 一致。</li>
-          <li>dmesg 中是否有 probe 失败、时钟、pinctrl、电源或中断错误。</li>
-          <li>内核启动参数 <code>console</code>、<code>root</code>、<code>rootwait</code> 是否正确。</li>
+          <li>dmesg 中是否有 probe 失败.时钟.pinctrl.电源或中断错误。</li>
+          <li>内核启动参数 <code>console</code>.<code>root</code>.<code>rootwait</code> 是否正确。</li>
         </ul>
       </section>
 

@@ -7,7 +7,7 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux Shell 脚本与 systemd 服务 - XYJ</title>
-  <meta name="description" content="整理 Linux Shell 脚本、变量、条件判断、循环、函数、重定向、日志、crontab、systemd 服务、journalctl 和嵌入式启动脚本设计。">
+  <meta name="description" content="整理 Linux Shell 脚本.变量.条件判断.循环.函数.重定向.日志.crontab.systemd 服务.journalctl 和嵌入式启动脚本设计。">
   <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
 <body>
@@ -22,11 +22,11 @@
       <h1>Linux Shell 脚本与 systemd 服务</h1>
 
       <p>
-        Linux 工程中，Shell 脚本经常用于自动构建、部署、启动、日志收集和环境检查。systemd 则常用于把应用程序做成系统服务，实现开机自启、异常重启、日志统一管理和依赖控制。
+        Linux 工程中，Shell 脚本经常用于自动构建.部署.启动.日志收集和环境检查。systemd 则常用于把应用程序做成系统服务，实现开机自启.异常重启.日志统一管理和依赖控制。
       </p>
 
       <section>
-        <h2>1、Shell 脚本基础结构</h2>
+        <h2>1.Shell 脚本基础结构</h2>
         <pre><code>#!/bin/sh
 
 APP_DIR=/opt/app
@@ -44,7 +44,7 @@ exec "$APP_BIN"</code></pre>
       </section>
 
       <section>
-        <h2>2、变量与引号</h2>
+        <h2>2.变量与引号</h2>
         <p>
           Shell 中变量替换和空格处理非常容易出错。路径变量建议始终加双引号，避免路径中出现空格或空值导致命令行为异常。
         </p>
@@ -55,7 +55,7 @@ echo "log dir: $LOG_DIR"</code></pre>
       </section>
 
       <section>
-        <h2>3、条件判断与循环</h2>
+        <h2>3.条件判断与循环</h2>
         <pre><code>if [ -f /etc/os-release ]; then
     cat /etc/os-release
 fi
@@ -69,12 +69,12 @@ while true; do
     sleep 1
 done</code></pre>
         <p>
-          脚本里不要写没有退出条件的死循环，除非它本来就是守护脚本；即便是守护脚本，也要考虑日志大小、异常退出和信号处理。
+          脚本里不要写没有退出条件的死循环，除非它本来就是守护脚本；即便是守护脚本，也要考虑日志大小.异常退出和信号处理。
         </p>
       </section>
 
       <section>
-        <h2>4、重定向与日志</h2>
+        <h2>4.重定向与日志</h2>
         <pre><code>./app &gt; app.log 2&gt;&amp;1
 ./app &gt;&gt; app.log 2&gt;&amp;1
 
@@ -85,7 +85,7 @@ tail -f app.log</code></pre>
       </section>
 
       <section>
-        <h2>5、set -e 与错误处理</h2>
+        <h2>5.set -e 与错误处理</h2>
         <p>
           <code>set -e</code> 可以让脚本在命令失败时退出，但它并不是万能的。复杂脚本建议对关键命令显式检查返回值。
         </p>
@@ -96,9 +96,9 @@ fi</code></pre>
       </section>
 
       <section>
-        <h2>6、systemd 服务文件</h2>
+        <h2>6.systemd 服务文件</h2>
         <p>
-          在带 systemd 的 Linux 系统中，可以把应用做成服务。这样可以实现开机启动、异常重启、统一日志和依赖管理。
+          在带 systemd 的 Linux 系统中，可以把应用做成服务。这样可以实现开机启动.异常重启.统一日志和依赖管理。
         </p>
         <pre><code>[Unit]
 Description=My Embedded App
@@ -122,7 +122,7 @@ systemctl status myapp</code></pre>
       </section>
 
       <section>
-        <h2>7、journalctl 查看日志</h2>
+        <h2>7.journalctl 查看日志</h2>
         <pre><code>journalctl -u myapp -f
 journalctl -u myapp --since "1 hour ago"
 journalctl -xe</code></pre>
@@ -132,7 +132,7 @@ journalctl -xe</code></pre>
       </section>
 
       <section>
-        <h2>8、crontab 与定时任务</h2>
+        <h2>8.crontab 与定时任务</h2>
         <pre><code>crontab -e
 
 # 每天凌晨 3 点执行日志清理
@@ -143,7 +143,7 @@ journalctl -xe</code></pre>
       </section>
 
       <section>
-        <h2>9、嵌入式启动脚本建议</h2>
+        <h2>9.嵌入式启动脚本建议</h2>
         <ul>
           <li>启动前检查配置文件和可执行权限。</li>
           <li>日志路径要存在，并限制日志大小。</li>
@@ -154,7 +154,7 @@ journalctl -xe</code></pre>
       </section>
 
       <section>
-        <h2>10、工程检查清单</h2>
+        <h2>10.工程检查清单</h2>
         <ul>
           <li>脚本首行解释器是否存在。</li>
           <li>脚本是否有执行权限。</li>

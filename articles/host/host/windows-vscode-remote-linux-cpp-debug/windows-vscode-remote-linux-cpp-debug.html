@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <meta name="description" content="Windows 下通过 VS Code Remote-SSH、CodeLLDB、CMake Tools 远程调试 Linux C/C++ 程序配置整理。">
+  <meta name="description" content="Windows 下通过 VS Code Remote-SSH.CodeLLDB.CMake Tools 远程调试 Linux C/C++ 程序配置整理。">
   <meta name="keywords" content="VS Code, Remote SSH, CodeLLDB, CMake Tools, Linux, C++, 远程调试, launch.json">
   <meta name="author" content="XYJ">
   <title>Windows 下通过 VS Code 远程调试 Linux C/C++ 程序配置 - XYJ</title>
@@ -60,23 +60,23 @@
       <h1>Windows 下通过 VS Code 远程调试 Linux C/C++ 程序配置</h1>
 
       <p>
-        本文整理 Windows 主机通过 VS Code 连接 Linux 开发环境，并使用 CodeLLDB、CMake Tools 与 <code>launch.json</code> 完成 C/C++ 程序远程调试的基础配置流程。
-        这种方式适合把代码、编译器、CMake、调试器和运行环境都放在 Linux 端，而 Windows 端只保留 VS Code 图形化开发体验。
+        本文整理 Windows 主机通过 VS Code 连接 Linux 开发环境，并使用 CodeLLDB.CMake Tools 与 <code>launch.json</code> 完成 C/C++ 程序远程调试的基础配置流程。
+        这种方式适合把代码.编译器.CMake.调试器和运行环境都放在 Linux 端，而 Windows 端只保留 VS Code 图形化开发体验。
       </p>
 
       <div class="article-note">
-        本文整理自我的原创文章，主要面向 Windows + VS Code + Linux 远程开发场景，重点保留插件安装、Linux 依赖安装、launch.json 配置、调试流程和常见问题排查。
+        本文整理自我的原创文章，主要面向 Windows + VS Code + Linux 远程开发场景，重点保留插件安装.Linux 依赖安装.launch.json 配置.调试流程和常见问题排查。
       </div>
 
       <section id="overview">
-        <h2>1、配置目标</h2>
+        <h2>1.配置目标</h2>
         <p>
           目标是在 Windows 电脑上使用 VS Code 作为开发入口，通过 SSH 打开 Linux 端工程目录，在 Linux 环境中完成 C/C++ 项目的编译与调试。
-          这样可以避免 Windows 与 Linux 编译环境不一致的问题，同时保留 VS Code 图形化断点、变量查看、调用栈查看等调试体验。
+          这样可以避免 Windows 与 Linux 编译环境不一致的问题，同时保留 VS Code 图形化断点.变量查看.调用栈查看等调试体验。
         </p>
 
         <div class="article-note">
-          核心思路：Windows 端只负责运行 VS Code 客户端；代码、编译器、CMake、调试器和 VS Code Server 运行在 Linux 远程环境中。
+          核心思路：Windows 端只负责运行 VS Code 客户端；代码.编译器.CMake.调试器和 VS Code Server 运行在 Linux 远程环境中。
         </div>
 
         <figure>
@@ -86,16 +86,16 @@
       </section>
 
       <section id="plugins">
-        <h2>2、VS Code 插件配置</h2>
+        <h2>2.VS Code 插件配置</h2>
         <p>
-          在 VS Code 中需要准备远程连接、C/C++ 编辑与调试相关插件。对于远程 Linux 调试，建议按下面顺序配置。
+          在 VS Code 中需要准备远程连接.C/C++ 编辑与调试相关插件。对于远程 Linux 调试，建议按下面顺序配置。
         </p>
 
         <ol>
           <li>在 Windows 本地 VS Code 安装 <strong>Remote - SSH</strong>，用于通过 SSH 打开 Linux 远程目录。</li>
           <li>连接到 Linux 后，在远程环境中安装 <strong>CodeLLDB</strong>，用于 LLDB 调试。</li>
           <li>如果项目使用 CMake，安装 <strong>CMake Tools</strong>，用于识别 CMake target，并为 <code>${command:cmake.launchTargetPath}</code> 提供可执行文件路径。</li>
-          <li>建议安装 <strong>clangd</strong> 或 C/C++ 相关插件，用于代码补全、跳转和诊断。</li>
+          <li>建议安装 <strong>clangd</strong> 或 C/C++ 相关插件，用于代码补全.跳转和诊断。</li>
         </ol>
 
         <figure>
@@ -109,7 +109,7 @@
       </section>
 
       <section id="linux-deps">
-        <h2>3、Linux 依赖安装</h2>
+        <h2>3.Linux 依赖安装</h2>
         <p>
           在 Linux 远程主机上更新软件源并安装编译与调试工具：
         </p>
@@ -118,7 +118,7 @@
 sudo apt install -y build-essential cmake clangd lldb ninja-build gdb</code></pre>
 
         <p>
-          如果是全新的 Ubuntu / Debian 环境，以上命令可以一站式安装编译和调试所需的全部常用工具，避免后续出现找不到编译器、构建工具或调试器的问题。
+          如果是全新的 Ubuntu / Debian 环境，以上命令可以一站式安装编译和调试所需的全部常用工具，避免后续出现找不到编译器.构建工具或调试器的问题。
         </p>
 
         <p>
@@ -133,7 +133,7 @@ g++ --version</code></pre>
       </section>
 
       <section id="launch-json">
-        <h2>4、launch.json 配置</h2>
+        <h2>4.launch.json 配置</h2>
         <p>
           在工程根目录下创建 <code>.vscode/launch.json</code>。如果工程由 CMake 管理，并且已经通过 CMake Tools 选择了启动目标，可以使用下面配置。
         </p>
@@ -192,7 +192,7 @@ g++ --version</code></pre>
       </section>
 
       <section id="debug-flow">
-        <h2>5、推荐调试流程</h2>
+        <h2>5.推荐调试流程</h2>
 
         <div class="step-card">
           <h3>步骤 1：连接 Linux 主机</h3>
@@ -216,11 +216,11 @@ g++ --version</code></pre>
       </section>
 
       <section id="faq">
-        <h2>6、常见问题</h2>
+        <h2>6.常见问题</h2>
 
         <h3>1. 启动调试时提示找不到可执行文件</h3>
         <p>
-          优先检查 CMake Tools 是否已经 Configure 成功、是否选择了正确的 Launch Target，以及当前项目是否真的生成了可执行目标。
+          优先检查 CMake Tools 是否已经 Configure 成功.是否选择了正确的 Launch Target，以及当前项目是否真的生成了可执行目标。
         </p>
 
         <h3>2. CodeLLDB 装了但远程调试不可用</h3>
@@ -245,7 +245,7 @@ cmake --build build</code></pre>
       </section>
 
       <footer class="article-footer">
-        <p>本文整理自我的原创调试记录，重点保留 VS Code Remote-SSH、CodeLLDB、CMake Tools 与 launch.json 的核心配置流程。</p>
+        <p>本文整理自我的原创调试记录，重点保留 VS Code Remote-SSH.CodeLLDB.CMake Tools 与 launch.json 的核心配置流程。</p>
       </footer>
     </article>
   </main>
