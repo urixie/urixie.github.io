@@ -19,6 +19,7 @@
   .secondary-sidebar {
     width: auto;
     padding-left: 0;
+    padding-right: 0;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     border-top-left-radius: 0;
