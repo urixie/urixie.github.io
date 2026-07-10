@@ -95,3 +95,79 @@
     column-gap: clamp(18px, 2.4vw, 32px) !important;
   }
 }
+
+/* 代码块复制按钮悬浮在右上角，避免打断正文阅读节奏。 */
+.code-block-wrap {
+  position: relative;
+  margin: 16px 0;
+}
+
+.article .code-block-wrap pre {
+  margin: 0;
+  padding-right: 86px;
+}
+
+.copy-code-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 48px;
+  height: 28px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 230, 118, 0.28);
+  border-radius: 999px;
+  color: rgba(184, 247, 208, 0.92);
+  background: rgba(17, 24, 34, 0.82);
+  backdrop-filter: blur(10px);
+  font-family: Consolas, "JetBrains Mono", "Microsoft YaHei", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.78;
+  appearance: none;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.copy-code-button:hover {
+  opacity: 1;
+  color: #05130b;
+  border-color: rgba(0, 230, 118, 0.72);
+  background: rgba(0, 230, 118, 0.9);
+  transform: translateY(-1px);
+}
+
+.copy-code-button:active {
+  transform: translateY(0);
+}
+
+.copy-code-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .article .code-block-wrap pre {
+    padding-right: 72px;
+  }
+
+  .copy-code-button {
+    top: 10px;
+    right: 10px;
+    min-width: 44px;
+    height: 26px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}
