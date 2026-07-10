@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、启动日志与串口控制台</h2>
+        <h2>1、启动日志与串口控制台</h2>
         <p>
           串口日志是嵌入式 Linux 最重要的第一现场。U-Boot、内核启动、驱动 probe、rootfs 挂载、systemd 启动都可以从串口看到线索。
         </p>
@@ -43,7 +43,7 @@ uname -a</code></pre>
       </section>
 
       <section>
-        <h2>二、设备树调试</h2>
+        <h2>2、设备树调试</h2>
         <p>
           设备树描述硬件资源，例如 GPIO、I2C、SPI、UART、中断、时钟、电源和 pinctrl。驱动能否 probe 成功，很多时候取决于设备树节点是否正确。
         </p>
@@ -55,7 +55,7 @@ hexdump -C /proc/device-tree/model</code></pre>
       </section>
 
       <section>
-        <h2>三、驱动 probe 与 dmesg</h2>
+        <h2>3、驱动 probe 与 dmesg</h2>
         <p>
           驱动加载后会根据 compatible、总线类型或设备 ID 匹配设备。匹配成功后执行 probe。probe 失败时，通常会在 dmesg 中留下错误码。</p>
         <pre><code>dmesg | grep -i spi
@@ -66,7 +66,7 @@ dmesg | grep -i error</code></pre>
       </section>
 
       <section>
-        <h2>四、设备节点与 sysfs</h2>
+        <h2>4、设备节点与 sysfs</h2>
         <p>
           Linux 中很多设备会在 <code>/dev</code> 下生成节点，例如串口、SPI、I2C、输入设备等。<code>/sys</code> 则可以查看设备、驱动、总线和类的关系。</p>
         <pre><code>ls -l /dev/ttyS*
@@ -77,7 +77,7 @@ ls /sys/bus/spi/devices</code></pre>
       </section>
 
       <section>
-        <h2>五、内核模块</h2>
+        <h2>5、内核模块</h2>
         <p>
           如果驱动编译成模块，可以使用 <code>insmod</code>、<code>rmmod</code>、<code>lsmod</code> 调试加载和卸载。</p>
         <pre><code>insmod my_driver.ko
@@ -89,7 +89,7 @@ dmesg | tail -n 80</code></pre>
       </section>
 
       <section>
-        <h2>六、交叉编译与部署</h2>
+        <h2>6、交叉编译与部署</h2>
         <p>
           嵌入式 Linux 用户程序通常在 PC 上交叉编译，再拷贝到板子运行。常见问题是工具链架构不匹配、动态库缺失、运行权限不够。</p>
         <pre><code>file app
@@ -101,7 +101,7 @@ scp app root@192.168.1.10:/opt/app/</code></pre>
       </section>
 
       <section>
-        <h2>七、用户态调试：strace 与 gdbserver</h2>
+        <h2>7、用户态调试：strace 与 gdbserver</h2>
         <p>
           <code>strace</code> 用来跟踪系统调用，<code>gdbserver</code> 用来远程调试程序。文件打不开、设备打不开、权限问题，优先用 strace；崩溃和逻辑错误，可以用 gdbserver。</p>
         <pre><code>strace -o trace.log ./app
@@ -112,7 +112,7 @@ gdbserver :2345 ./app
       </section>
 
       <section>
-        <h2>八、常见排查路径</h2>
+        <h2>8、常见排查路径</h2>
         <table>
           <thead><tr><th>现象</th><th>排查路径</th></tr></thead>
           <tbody>
@@ -126,7 +126,7 @@ gdbserver :2345 ./app
       </section>
 
       <section>
-        <h2>九、工程检查清单</h2>
+        <h2>9、工程检查清单</h2>
         <ul>
           <li>设备树节点是否实际进入运行系统。</li>
           <li>compatible 是否和驱动匹配。</li>

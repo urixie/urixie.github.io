@@ -32,7 +32,7 @@
       </div>
 
       <section>
-        <h2>一、实验环境</h2>
+        <h2>1、实验环境</h2>
         <ul>
           <li>硬件平台：讯为 RK3568 开发板</li>
           <li>内核版本：Linux 5.10</li>
@@ -44,7 +44,7 @@
       </section>
 
       <section>
-        <h2>二、硬件连接</h2>
+        <h2>2、硬件连接</h2>
         <p>
           SPI 转 CAN 模块需要接到 iTOP-RK3568 对应的 SPI 引脚。本文使用的 SPI0_M1 相关引脚包括：
         </p>
@@ -63,7 +63,7 @@
       </section>
 
       <section>
-        <h2>三、内核 SPI 配置</h2>
+        <h2>3、内核 SPI 配置</h2>
         <p>
           进入 Linux 5.10 内核配置界面，打开 SPI 支持相关选项：
         </p>
@@ -88,7 +88,7 @@
       </section>
 
       <section>
-        <h2>四、设备树添加 SPI0 spidev 节点</h2>
+        <h2>4、设备树添加 SPI0 spidev 节点</h2>
 
         <p>
           内核配置完成后，还需要在设备树中开启 SPI0，并添加 spidev 设备节点。打开以下文件：
@@ -124,7 +124,7 @@
       </section>
 
       <section>
-        <h2>五、确认 spidev 设备节点</h2>
+        <h2>5、确认 spidev 设备节点</h2>
         <p>
           内核、设备树配置完成并重新编译烧录后，启动系统并检查 /dev 下是否生成 spidev 设备节点：
         </p>
@@ -147,7 +147,7 @@
       </section>
 
       <section>
-        <h2>六、用户态 SPI 测试程序</h2>
+        <h2>6、用户态 SPI 测试程序</h2>
         <p>
           下面的程序通过 /dev/spidev0.0 打开 SPI 设备，设置 SPI 模式、每字比特数和最大速度，
           然后通过 SPI_IOC_MESSAGE 向 SPI 总线发送 10 字节测试数据。
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
       </section>
 
       <section>
-        <h2>七、编译与运行</h2>
+        <h2>7、编译与运行</h2>
         <p>
           将测试程序保存为 app.c，然后在开发板系统中编译运行：
         </p>
@@ -289,7 +289,7 @@ int main(int argc, char *argv[])
       </section>
 
       <section>
-        <h2>八、逻辑分析仪验证</h2>
+        <h2>8、逻辑分析仪验证</h2>
         <p>
           为了确认 SPI 总线确实有数据输出，可以使用逻辑分析仪抓取 CLK、MISO、MOSI、CS 信号。
           本次测试中，MOSI 上可以看到发送的数据 01、02、03、04、05、06、07、08、09、0A，说明用户态程序已经成功驱动 SPI 发送数据。
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
       </section>
 
       <section>
-        <h2>九、经验总结</h2>
+        <h2>9、经验总结</h2>
         <p>
           RK3568 上调通 SPI 功能时，需要同时关注硬件引脚、内核配置、设备树、spidev 设备节点和用户态测试程序。
           其中 /dev/spidev0.0 是否生成，是判断用户态 SPI 通路是否打通的重要标志。

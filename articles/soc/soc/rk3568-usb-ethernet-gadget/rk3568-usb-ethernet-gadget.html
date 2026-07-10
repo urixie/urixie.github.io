@@ -32,7 +32,7 @@
       </div>
 
       <section>
-        <h2>一、实验环境</h2>
+        <h2>1、实验环境</h2>
         <ul>
           <li>硬件平台：讯为 RK3568 开发板</li>
           <li>内核版本：Linux 4.19.232</li>
@@ -43,7 +43,7 @@
       </section>
 
       <section>
-        <h2>二、功能目标</h2>
+        <h2>2、功能目标</h2>
         <p>
           USB Ethernet Gadget 的作用是让开发板在 USB Device / OTG 模式下表现为一张 USB 虚拟网卡。
           主机端识别后，可以通过该虚拟网卡与开发板通信，用于调试、数据传输、设备配置或无传统网口场景下的网络连接。
@@ -59,7 +59,7 @@ DNS：8.8.8.8、114.114.114.114</code></pre>
       </section>
 
       <section>
-        <h2>三、内核配置路径</h2>
+        <h2>3、内核配置路径</h2>
         <p>
           首先进入 Linux 4.19 内核配置界面，进入 USB Gadget Support 配置路径：
         </p>
@@ -88,7 +88,7 @@ CONFIG_USB_LIBCOMPOSITE=y</code></pre>
       </section>
 
       <section>
-        <h2>四、USB Gadget 预组合配置</h2>
+        <h2>4、USB Gadget 预组合配置</h2>
         <p>
           在 USB Gadget Support 中，还需要进入 USB gadget precomposed configurations，并选择 Ethernet Gadget。
         </p>
@@ -105,7 +105,7 @@ CONFIG_USB_LIBCOMPOSITE=y</code></pre>
       </section>
 
       <section>
-        <h2>五、系统侧配置思路</h2>
+        <h2>5、系统侧配置思路</h2>
         <p>
           内核配置完成并烧录后，系统侧主要通过 ConfigFS 创建 USB Gadget 设备，并绑定 UDC 控制器。整体流程如下：
         </p>
@@ -125,7 +125,7 @@ CONFIG_USB_LIBCOMPOSITE=y</code></pre>
       </section>
 
       <section>
-        <h2>六、自动配置脚本</h2>
+        <h2>6、自动配置脚本</h2>
         <p>
           下面的脚本用于在 Ubuntu Base 22 系统中自动创建 USB Gadget 初始化脚本、配置 systemd 服务，并生成 usb0 网络接口配置。
         </p>
@@ -277,7 +277,7 @@ main</code></pre>
       </section>
 
       <section>
-        <h2>七、网口冲突处理</h2>
+        <h2>7、网口冲突处理</h2>
 
         <div class="article-warning">
           配置 usb0 时需要注意：建议禁用其他网口，防止默认路由、DNS 或网关冲突，导致 usb0 虽然生成但无法正常通信。
@@ -309,7 +309,7 @@ ip link set wlan0 down</code></pre>
       </section>
 
       <section>
-        <h2>八、验证方式</h2>
+        <h2>8、验证方式</h2>
 
         <p>配置完成后，可以通过以下命令检查状态：</p>
 
@@ -325,7 +325,7 @@ ping www.baidu.com</code></pre>
       </section>
 
       <section>
-        <h2>九、经验总结</h2>
+        <h2>9、经验总结</h2>
 
         <p>
           这次配置的关键不只是启用内核选项，还包括系统启动阶段的 ConfigFS 初始化、RNDIS 功能创建、

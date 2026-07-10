@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、Kernel 在启动链路中的位置</h2>
+        <h2>1、Kernel 在启动链路中的位置</h2>
         <p>
           U-Boot 加载内核镜像和设备树后，把控制权交给 Kernel。Kernel 完成解压、架构初始化、驱动初始化、挂载根文件系统，最后启动第一个用户态进程。</p>
         <figure class="article-figure">
@@ -52,7 +52,7 @@
       </section>
 
       <section>
-        <h2>二、Kernel 源码目录</h2>
+        <h2>2、Kernel 源码目录</h2>
         <pre><code>linux/
 ├── arch/              # 架构相关代码和 defconfig、dts
 ├── block/             # 块设备层
@@ -72,7 +72,7 @@
       </section>
 
       <section>
-        <h2>三、配置系统：Kconfig、defconfig、.config</h2>
+        <h2>3、配置系统：Kconfig、defconfig、.config</h2>
         <p>
           Kernel 使用 Kconfig 管理配置。<code>defconfig</code> 是默认配置，<code>.config</code> 是当前实际构建配置。驱动可以选择编进内核，也可以编成模块。</p>
         <pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
@@ -86,7 +86,7 @@ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig</code></pre>
       </section>
 
       <section>
-        <h2>四、设备树 DTS/DTB</h2>
+        <h2>4、设备树 DTS/DTB</h2>
         <p>
           设备树源码是 <code>.dts</code> 或 <code>.dtsi</code>，编译后生成 <code>.dtb</code>。Kernel 通过设备树了解板级硬件资源，例如串口、I2C、SPI、GPIO、中断、时钟和 pinctrl。</p>
         <pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- dtbs</code></pre>
@@ -95,7 +95,7 @@ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig</code></pre>
       </section>
 
       <section>
-        <h2>五、交叉编译 Kernel</h2>
+        <h2>5、交叉编译 Kernel</h2>
         <p>
           不同平台的构建命令会有差异，下面是常见 ARM64 形式：</p>
         <pre><code>export ARCH=arm64
@@ -108,7 +108,7 @@ make -j$(nproc) Image modules dtbs</code></pre>
       </section>
 
       <section>
-        <h2>六、常见构建产物</h2>
+        <h2>6、常见构建产物</h2>
         <ul>
           <li><code>arch/arm64/boot/Image</code>：ARM64 内核镜像。</li>
           <li><code>arch/arm/boot/zImage</code>：ARM32 常见压缩内核镜像。</li>
@@ -120,7 +120,7 @@ make -j$(nproc) Image modules dtbs</code></pre>
       </section>
 
       <section>
-        <h2>七、安装内核模块</h2>
+        <h2>7、安装内核模块</h2>
         <p>
           如果驱动编成模块，需要把模块安装进根文件系统的 <code>/lib/modules/$(uname -r)</code> 目录。</p>
         <pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
@@ -130,7 +130,7 @@ make -j$(nproc) Image modules dtbs</code></pre>
       </section>
 
       <section>
-        <h2>八、Kernel 调试检查清单</h2>
+        <h2>8、Kernel 调试检查清单</h2>
         <ul>
           <li>内核 Image、dtb、模块是否来自同一次构建。</li>
           <li><code>.config</code> 中驱动是 <code>y</code> 还是 <code>m</code>。</li>

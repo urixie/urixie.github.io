@@ -57,7 +57,7 @@
       </p>
 
       <section id="overview">
-        <h2>一、功能概述</h2>
+        <h2>1、功能概述</h2>
         <p>
           该工程实现了一个温度-频率转换链路：NTC 热敏电阻随温度改变阻值，通过分压电路将阻值变化转换为电压信号，
           CW32L011 的 ADC 模块采集该电压，计算出当前 NTC 阻值后查表映射为 PWM 频率，最后由 GTIM2 通道 3 输出对应频率的 PWM 波形。
@@ -78,7 +78,7 @@
       </section>
 
       <section id="hardware">
-        <h2>二、硬件资源</h2>
+        <h2>2、硬件资源</h2>
         <ul>
           <li>芯片：CW32L011K8T6（ARM Cortex-M0+，48MHz）</li>
           <li>开发板：CW32L011K8T6 StartKit</li>
@@ -98,7 +98,7 @@
       </section>
 
       <section id="clock-gpio">
-        <h2>三、时钟与 GPIO 配置</h2>
+        <h2>3、时钟与 GPIO 配置</h2>
 
         <h3>时钟配置</h3>
         <p>
@@ -128,7 +128,7 @@ void GPIO_Config_PWM(void)
       </section>
 
       <section id="adc-config">
-        <h2>四、ADC 配置与多通道采样</h2>
+        <h2>4、ADC 配置与多通道采样</h2>
 
         <h3>ADC GPIO 配置</h3>
         <p>
@@ -225,7 +225,7 @@ void ADC_MultiChannel_Average(void)
       </section>
 
       <section id="gtim-pwm">
-        <h2>五、GTIM2 PWM 输出配置</h2>
+        <h2>5、GTIM2 PWM 输出配置</h2>
 
         <p>
           CW32L011 的 GTIM2（通用定时器 2）通道 3（CH3）映射到 PA12，用于输出 PWM 波形。
@@ -278,7 +278,7 @@ void PWM_Output_Config(uint32_t frequency)
       </section>
 
       <section id="ntc-formula">
-        <h2>六、NTC 阻值到 PWM 频率的转换</h2>
+        <h2>6、NTC 阻值到 PWM 频率的转换</h2>
 
         <h3>求 ADC 最小值</h3>
         <p>
@@ -326,7 +326,7 @@ void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
       </section>
 
       <section id="main-loop">
-        <h2>七、主循环逻辑</h2>
+        <h2>7、主循环逻辑</h2>
 
         <pre><code>int main(void)
 {
@@ -377,7 +377,7 @@ void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
       </section>
 
       <section id="summary">
-        <h2>八、总结</h2>
+        <h2>8、总结</h2>
         <ul>
           <li>CW32L011 的 ADC 支持最多 16 通道序列采样，本例使用 12 通道分两批读取</li>
           <li>ADC 采样周期设置为 262 个 ADC 时钟（≥40μs），满足 BGR 采样保持时间要求</li>

@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、U-Boot 在系统启动链路中的位置</h2>
+        <h2>1、U-Boot 在系统启动链路中的位置</h2>
         <p>
           SoC 上电后，最先运行的通常不是 U-Boot，而是芯片内部 ROM Code。ROM Code 根据启动介质选择规则，从 eMMC、SPI Flash、SD 卡、NAND、USB 等位置加载下一阶段程序。很多平台会先加载 SPL，再加载完整 U-Boot。
         </p>
@@ -54,7 +54,7 @@
       </section>
 
       <section>
-        <h2>二、U-Boot 的主要职责</h2>
+        <h2>2、U-Boot 的主要职责</h2>
         <ul>
           <li>初始化串口，输出早期启动日志。</li>
           <li>初始化 DDR、时钟、PMIC、存储控制器等关键硬件。</li>
@@ -66,7 +66,7 @@
       </section>
 
       <section>
-        <h2>三、U-Boot 源码目录</h2>
+        <h2>3、U-Boot 源码目录</h2>
         <p>
           不同版本目录略有差异，但常见结构如下：</p>
         <pre><code>u-boot/
@@ -86,7 +86,7 @@
       </section>
 
       <section>
-        <h2>四、配置系统：defconfig 与 menuconfig</h2>
+        <h2>4、配置系统：defconfig 与 menuconfig</h2>
         <p>
           U-Boot 使用 Kconfig 配置系统。通常先选择板级 defconfig，再根据需要进入 menuconfig 修改功能。</p>
         <pre><code>make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- board_defconfig
@@ -97,7 +97,7 @@ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</code></pre>
       </section>
 
       <section>
-        <h2>五、交叉编译 U-Boot</h2>
+        <h2>5、交叉编译 U-Boot</h2>
         <p>
           构建 U-Boot 前要确认交叉工具链、板级 defconfig 和芯片厂商补丁是否匹配。</p>
         <pre><code>export ARCH=arm
@@ -111,7 +111,7 @@ make -j$(nproc)</code></pre>
       </section>
 
       <section>
-        <h2>六、常见构建产物</h2>
+        <h2>6、常见构建产物</h2>
         <ul>
           <li><code>u-boot.bin</code>：裸二进制 U-Boot 镜像。</li>
           <li><code>u-boot.elf</code>：带符号信息的 ELF 文件，适合调试。</li>
@@ -124,7 +124,7 @@ make -j$(nproc)</code></pre>
       </section>
 
       <section>
-        <h2>七、环境变量与 bootcmd</h2>
+        <h2>7、环境变量与 bootcmd</h2>
         <p>
           U-Boot 环境变量决定了从哪里加载内核、设备树和根文件系统。常见变量包括 <code>bootcmd</code>、<code>bootargs</code>、<code>kernel_addr_r</code>、<code>fdt_addr_r</code>。</p>
         <pre><code>printenv
@@ -136,7 +136,7 @@ boot</code></pre>
       </section>
 
       <section>
-        <h2>八、U-Boot 调试检查清单</h2>
+        <h2>8、U-Boot 调试检查清单</h2>
         <ul>
           <li>串口波特率和串口号是否正确。</li>
           <li>DDR 初始化是否通过，内存容量是否识别正确。</li>

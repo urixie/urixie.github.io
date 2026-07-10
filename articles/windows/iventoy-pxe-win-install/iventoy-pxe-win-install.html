@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、iVentoy PXE安装的基本链路</h2>
+        <h2>1、iVentoy PXE安装的基本链路</h2>
         <p>
           PXE 安装需要两端：服务端运行 iVentoy，客户端从网卡启动。客户端通过 DHCP/TFTP/HTTP 等方式获取启动文件，再加载 ISO 安装系统。
         </p>
@@ -49,7 +49,7 @@
       </section>
 
       <section>
-        <h2>二、原版Windows镜像与iVentoy项目地址</h2>
+        <h2>2、原版Windows镜像与iVentoy项目地址</h2>
         <p>
           PXE 装机时建议优先使用微软官方原版 ISO，再按目标电脑补充网卡、存储控制器、芯片组等驱动。这样比使用未知来源的二次打包镜像更容易定位问题。
         </p>
@@ -66,7 +66,7 @@
       </section>
 
       <section>
-        <h2>三、服务端准备</h2>
+        <h2>3、服务端准备</h2>
         <ol>
           <li>在服务端电脑下载并解压 iVentoy。</li>
           <li>把 Windows 10 / Windows 11 ISO 放入 iVentoy 指定的 ISO 目录。</li>
@@ -79,7 +79,7 @@
       </section>
 
       <section>
-        <h2>四、客户端设置PXE启动</h2>
+        <h2>4、客户端设置PXE启动</h2>
         <ol>
           <li>进入客户端 BIOS / UEFI。</li>
           <li>开启 Network Boot / PXE Boot。</li>
@@ -92,7 +92,7 @@
       </section>
 
       <section>
-        <h2>五、为什么PXE能启动，Windows安装却没网</h2>
+        <h2>5、为什么PXE能启动，Windows安装却没网</h2>
         <p>
           PXE 启动早期使用的是网卡固件、UEFI PXE 驱动或 BIOS PXE 能力；进入 Windows 安装环境后，控制权转到 Windows PE / Windows 安装程序。这时候能否继续访问网络，取决于 Windows PE 中是否带有目标网卡驱动。
         </p>
@@ -107,7 +107,7 @@
       </section>
 
       <section>
-        <h2>六、方案一：使用USB转网口</h2>
+        <h2>6、方案一：使用USB转网口</h2>
         <p>
           如果目标电脑内置网卡太新，原版 Windows ISO 没有驱动，最省事的办法通常是插一个兼容性好的 USB 转网口。很多 USB 有线网卡芯片在 WinPE 或 Windows 中更容易被识别。</p>
         <ul>
@@ -120,7 +120,7 @@
       </section>
 
       <section>
-        <h2>七、方案二：向原版ISO注入网卡驱动</h2>
+        <h2>7、方案二：向原版ISO注入网卡驱动</h2>
         <p>
           如果希望不用 USB 转网口，或者需要批量安装同型号电脑，可以把目标网卡驱动注入到 Windows 安装镜像中。通常至少要关注两个文件：</p>
         <ul>
@@ -132,7 +132,7 @@
       </section>
 
       <section>
-        <h2>八、DISM注入驱动示例</h2>
+        <h2>8、DISM注入驱动示例</h2>
         <p>
           在 Windows 主机上可以使用 DISM 挂载 WIM 并添加驱动。示例仅展示思路，实际路径按自己的 ISO 解压目录和驱动目录调整。</p>
         <pre><code>mkdir C:\mount\boot
@@ -151,7 +151,7 @@ Dism /Unmount-Wim /MountDir:C:\mount\install /Commit</code></pre>
       </section>
 
       <section>
-        <h2>九、PXE安装完成后避免再次进入PXE</h2>
+        <h2>9、PXE安装完成后避免再次进入PXE</h2>
         <p>
           Windows 安装过程中会多次重启。第一次把系统文件释放到硬盘后，重启时如果仍然优先从 PXE 启动，就会再次进入 iVentoy 菜单，看起来像“安装循环”。</p>
         <ul>
@@ -162,7 +162,7 @@ Dism /Unmount-Wim /MountDir:C:\mount\install /Commit</code></pre>
       </section>
 
       <section>
-        <h2>十、常见问题排查</h2>
+        <h2>10、常见问题排查</h2>
         <table>
           <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
           <tbody>
@@ -176,7 +176,7 @@ Dism /Unmount-Wim /MountDir:C:\mount\install /Commit</code></pre>
       </section>
 
       <section>
-        <h2>十一、工程检查清单</h2>
+        <h2>十1、工程检查清单</h2>
         <ul>
           <li>服务端和客户端是否在同一网络，或直连网络是否配置正确。</li>
           <li>iVentoy 监听的是否是连接客户端的那块网卡。</li>

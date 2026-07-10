@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、状态机的基本组成</h2>
+        <h2>1、状态机的基本组成</h2>
         <ul>
           <li>当前状态：<code>state</code>，记录现在处于哪个阶段。</li>
           <li>下一状态：<code>next_state</code>，组合逻辑计算下一步去哪里。</li>
@@ -52,7 +52,7 @@
       </section>
 
       <section>
-        <h2>二、状态编码</h2>
+        <h2>2、状态编码</h2>
         <p>
           状态通常用 <code>localparam</code> 定义，避免在代码里直接写魔法数字。</p>
         <pre><code>localparam S_IDLE  = 2'd0;
@@ -67,7 +67,7 @@ reg [1:0] next_state;</code></pre>
       </section>
 
       <section>
-        <h2>三、三段式状态机</h2>
+        <h2>3、三段式状态机</h2>
         <p>
           三段式状态机把“状态寄存器”“下一状态组合逻辑”“输出逻辑”分开，结构清晰，适合大多数工程代码。</p>
         <pre><code>// 第一段：状态寄存器
@@ -114,7 +114,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>四、一段式、两段式、三段式怎么选</h2>
+        <h2>4、一段式、两段式、三段式怎么选</h2>
         <table>
           <thead><tr><th>写法</th><th>特点</th><th>建议</th></tr></thead>
           <tbody>
@@ -126,7 +126,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>五、Moore 与 Mealy</h2>
+        <h2>5、Moore 与 Mealy</h2>
         <p>
           Moore 状态机输出只和当前状态有关；Mealy 状态机输出和当前状态、输入条件都有关。Moore 更稳定，Mealy 响应更快，但要注意组合路径和毛刺。</p>
         <pre><code>// Moore：输出只看 state
@@ -137,7 +137,7 @@ assign fire = (state == S_WAIT) &amp;&amp; data_valid;</code></pre>
       </section>
 
       <section>
-        <h2>六、状态机常见错误</h2>
+        <h2>6、状态机常见错误</h2>
         <ul>
           <li>没有 default 分支，异常状态无法恢复。</li>
           <li>组合逻辑中没有默认赋值，推断 latch。</li>
@@ -148,7 +148,7 @@ assign fire = (state == S_WAIT) &amp;&amp; data_valid;</code></pre>
       </section>
 
       <section>
-        <h2>七、工程检查清单</h2>
+        <h2>7、工程检查清单</h2>
         <ul>
           <li>状态名是否能表达真实流程。</li>
           <li>复位后状态是否确定。</li>

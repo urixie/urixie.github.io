@@ -31,7 +31,7 @@
       </div>
 
       <section>
-        <h2>一、嵌入式 C 与普通 C 的差异</h2>
+        <h2>1、嵌入式 C 与普通 C 的差异</h2>
         <p>
           普通 C 程序主要处理内存中的数据，而嵌入式 C 经常直接面对硬件寄存器、中断、DMA、外设状态和实时约束。变量的值可能被中断、硬件或 DMA 改变，而不是只由当前代码路径改变。
         </p>
@@ -45,7 +45,7 @@
       </section>
 
       <section>
-        <h2>二、volatile 的作用</h2>
+        <h2>2、volatile 的作用</h2>
         <p>
           <code>volatile</code> 告诉编译器：这个变量的值可能在当前代码无法感知的情况下发生变化，每次访问都必须真实读写，不能随意优化掉。
         </p>
@@ -68,7 +68,7 @@ void wait_uart_rx(void)
       </section>
 
       <section>
-        <h2>三、static 的几种用法</h2>
+        <h2>3、static 的几种用法</h2>
         <p>
           <code>static</code> 在 C 语言中有两类常见含义：改变生命周期，或者限制符号可见性。文件内全局变量和内部函数建议使用 <code>static</code>，避免污染全局命名空间。
         </p>
@@ -84,7 +84,7 @@ static void filter_reset(void)
       </section>
 
       <section>
-        <h2>四、const 的工程意义</h2>
+        <h2>4、const 的工程意义</h2>
         <p>
           <code>const</code> 表示对象不应被修改。嵌入式中，常量表、字符串、配置描述表、命令表都适合使用 <code>const</code>，这样可以帮助编译器把数据放到只读区域，也能减少误修改。
         </p>
@@ -103,7 +103,7 @@ static const cmd_info_t g_cmd_table[] = {
       </section>
 
       <section>
-        <h2>五、宏定义、条件编译与函数指针</h2>
+        <h2>5、宏定义、条件编译与函数指针</h2>
         <p>
           宏常用于常量、位操作、条件编译和简单内联表达式。宏没有类型检查，复杂宏必须加括号，避免运算优先级问题。函数指针常用于事件回调、驱动适配层、命令表和状态机处理。
         </p>
@@ -119,7 +119,7 @@ static event_cb_t s_event_cb;</code></pre>
       </section>
 
       <section>
-        <h2>六、C 语言标准与编译器扩展</h2>
+        <h2>6、C 语言标准与编译器扩展</h2>
         <p>
           C 语言标准定义了语法、类型、表达式、预处理、库函数、翻译阶段等基础规则。常见标准包括 C89/C90、C99、C11、C17/C18 和 C23。不同编译器对不同标准的支持程度并不完全相同，工程中通常通过编译选项指定标准，例如 <code>-std=c99</code>、<code>-std=gnu11</code>。
         </p>
@@ -138,7 +138,7 @@ static event_cb_t s_event_cb;</code></pre>
       </section>
 
       <section>
-        <h2>七、指定初始化</h2>
+        <h2>7、指定初始化</h2>
         <p>
           指定初始化可以明确指定数组下标或结构体成员进行初始化。相比按顺序初始化，它更适合参数表、命令表、状态表和驱动注册表，因为字段含义更清楚，后续调整成员顺序时也更安全。
         </p>
@@ -199,7 +199,7 @@ static const driver_t g_uart_driver = {
       </section>
 
       <section>
-        <h2>八、语句表达式</h2>
+        <h2>8、语句表达式</h2>
         <p>
           语句表达式是 GNU C 扩展，形式是 <code>({ ... })</code>。它允许在一个表达式位置写一个代码块，并把代码块最后一个表达式作为整个表达式的值返回。
         </p>
@@ -226,7 +226,7 @@ uint16_t x = MIN(100U, 200U);</code></pre>
       </section>
 
       <section>
-        <h2>九、typeof 与 container_of</h2>
+        <h2>9、typeof 与 container_of</h2>
         <p>
           <code>typeof</code> 是 GNU C 扩展，用于获得表达式的类型。它经常和语句表达式配合，用来编写更通用的宏。
         </p>
@@ -257,7 +257,7 @@ typedef struct {
       </section>
 
       <section>
-        <h2>十、零长度数组与柔性数组</h2>
+        <h2>10、零长度数组与柔性数组</h2>
         <p>
           早期 GNU C 支持零长度数组，常用于结构体末尾表示变长数据区。C99 标准引入了柔性数组成员，推荐写法是结构体最后一个成员写成空下标数组。
         </p>
@@ -286,7 +286,7 @@ if (pkt != NULL) {
       </section>
 
       <section>
-        <h2>十一、属性声明：section</h2>
+        <h2>十1、属性声明：section</h2>
         <p>
           <code>section</code> 属性可以把变量或函数放到指定段中，常用于启动代码、中断向量表、Bootloader、固件信息、校验字段、Flash 固定地址数据等场景。
         </p>
@@ -321,7 +321,7 @@ const app_info_t g_app_info __attribute__((section(&quot;.app_info&quot;), used)
       </section>
 
       <section>
-        <h2>十二、属性声明：aligned 与 packed</h2>
+        <h2>十2、属性声明：aligned 与 packed</h2>
         <p>
           <code>aligned</code> 用于指定对象对齐方式，常用于 DMA 缓冲区、Cache 行对齐、Flash 写入对齐、加密数据块对齐等场景。<code>packed</code> 用于减少结构体填充字节，让结构体布局更紧凑。
         </p>
@@ -349,7 +349,7 @@ typedef struct __attribute__((packed)) {
       </section>
 
       <section>
-        <h2>十三、属性声明：format</h2>
+        <h2>十3、属性声明：format</h2>
         <p>
           <code>format</code> 属性可以让编译器像检查 <code>printf</code> 一样检查自定义日志函数的格式字符串和参数类型，适合嵌入式日志模块。
         </p>
@@ -368,7 +368,7 @@ void app_log(const char *fmt, ...)
       </section>
 
       <section>
-        <h2>十四、属性声明：weak 与 alias</h2>
+        <h2>十4、属性声明：weak 与 alias</h2>
         <p>
           <code>weak</code> 声明弱符号。链接时，如果同时存在强符号和弱符号，强符号会覆盖弱符号。它常用于默认钩子函数、中断默认处理函数、板级弱实现和可选扩展接口。
         </p>
@@ -394,7 +394,7 @@ void timer_irq_handler(void) __attribute__((weak, alias(&quot;default_handler&qu
       </section>
 
       <section>
-        <h2>十五、内联函数、noinline 与头文件</h2>
+        <h2>十5、内联函数、noinline 与头文件</h2>
         <p>
           <code>inline</code> 建议编译器把函数体展开到调用处，减少函数调用开销。它适合短小、频繁调用、逻辑简单的函数。<code>noinline</code> 则明确要求不要内联，常用于调试、性能分析、异常路径和需要保留调用栈的场景。
         </p>
@@ -415,7 +415,7 @@ void fault_dump(void)
       </section>
 
       <section>
-        <h2>十六、内建函数</h2>
+        <h2>十6、内建函数</h2>
         <p>
           GCC 提供很多 <code>__builtin_*</code> 内建函数，用于位操作、溢出检测、分支预测、常量判断、内存屏障等。它们由编译器直接识别，通常比普通函数更接近底层优化。
         </p>
@@ -431,7 +431,7 @@ if (__builtin_expect(error_code != 0, 0)) {
       </section>
 
       <section>
-        <h2>十七、可变参数宏</h2>
+        <h2>十7、可变参数宏</h2>
         <p>
           可变参数宏常用于日志系统、断言、调试输出和错误检查。GNU C 支持 <code>##__VA_ARGS__</code> 写法，用于在没有额外参数时去掉多余逗号。
         </p>
@@ -450,7 +450,7 @@ if (__builtin_expect(error_code != 0, 0)) {
       </section>
 
       <section>
-        <h2>十八、GNU C 扩展使用检查清单</h2>
+        <h2>十8、GNU C 扩展使用检查清单</h2>
         <ul>
           <li>是否明确知道当前项目使用的是 <code>-std=c*</code> 还是 <code>-std=gnu*</code>。</li>
           <li>指定初始化是否能替代容易错位的顺序初始化。</li>

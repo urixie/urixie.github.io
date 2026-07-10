@@ -69,7 +69,7 @@
       </div>
 
       <section id="overview">
-        <h2>一、配置目标</h2>
+        <h2>1、配置目标</h2>
         <p>
           目标是在 Windows 电脑上使用 VS Code 作为开发入口，通过 SSH 打开 Linux 端工程目录，在 Linux 环境中完成 C/C++ 项目的编译与调试。
           这样可以避免 Windows 与 Linux 编译环境不一致的问题，同时保留 VS Code 图形化断点、变量查看、调用栈查看等调试体验。
@@ -86,7 +86,7 @@
       </section>
 
       <section id="plugins">
-        <h2>二、VS Code 插件配置</h2>
+        <h2>2、VS Code 插件配置</h2>
         <p>
           在 VS Code 中需要准备远程连接、C/C++ 编辑与调试相关插件。对于远程 Linux 调试，建议按下面顺序配置。
         </p>
@@ -109,7 +109,7 @@
       </section>
 
       <section id="linux-deps">
-        <h2>三、Linux 依赖安装</h2>
+        <h2>3、Linux 依赖安装</h2>
         <p>
           在 Linux 远程主机上更新软件源并安装编译与调试工具：
         </p>
@@ -133,7 +133,7 @@ g++ --version</code></pre>
       </section>
 
       <section id="launch-json">
-        <h2>四、launch.json 配置</h2>
+        <h2>4、launch.json 配置</h2>
         <p>
           在工程根目录下创建 <code>.vscode/launch.json</code>。如果工程由 CMake 管理，并且已经通过 CMake Tools 选择了启动目标，可以使用下面配置。
         </p>
@@ -192,7 +192,7 @@ g++ --version</code></pre>
       </section>
 
       <section id="debug-flow">
-        <h2>五、推荐调试流程</h2>
+        <h2>5、推荐调试流程</h2>
 
         <div class="step-card">
           <h3>步骤 1：连接 Linux 主机</h3>
@@ -216,7 +216,7 @@ g++ --version</code></pre>
       </section>
 
       <section id="faq">
-        <h2>六、常见问题</h2>
+        <h2>6、常见问题</h2>
 
         <h3>1. 启动调试时提示找不到可执行文件</h3>
         <p>

@@ -32,7 +32,7 @@
       </div>
 
       <section>
-        <h2>一、设计目标</h2>
+        <h2>1、设计目标</h2>
         <ul>
           <li>使用 FPGA 直接驱动 AHT20 温湿度传感器。</li>
           <li>系统时钟为 20MHz，IIC SCL 目标频率为 200kHz。</li>
@@ -45,7 +45,7 @@
       </section>
 
       <section>
-        <h2>二、AHT20 通信流程</h2>
+        <h2>2、AHT20 通信流程</h2>
         <p>
           AHT20 上电后需要等待一段时间，再通过 IIC 发送测量命令。本文的状态机按照以下流程执行：
         </p>
@@ -112,7 +112,7 @@ Data read：01</code></pre>
       </section>
 
       <section>
-        <h2>三、IIC 主机模块设计</h2>
+        <h2>3、IIC 主机模块设计</h2>
 
         <p>
           IIC 主机模块负责把上层命令转换成实际的 SDA / SCL 时序。命令位包括 WR、STA、RD、STO、ACK 和 NACK。
@@ -419,7 +419,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>四、CRC8/ITU 校验模块</h2>
+        <h2>4、CRC8/ITU 校验模块</h2>
 
         <p>
           AHT20 返回的最后 1 字节是 CRC。本文采用 CRC8/ITU 算法，初始值为 0xFF，多项式为 0x31。
@@ -494,7 +494,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>五、AHT20 顶层读取状态机</h2>
+        <h2>5、AHT20 顶层读取状态机</h2>
 
         <p>
           顶层模块负责按照 AHT20 的通信流程调度 IIC 模块。它会先发送测量命令，再等待 80ms，
@@ -523,7 +523,7 @@ temperature_raw &lt;= temperature_sum[22:3];</code></pre>
       </section>
 
       <section>
-        <h2>六、关键状态机流程</h2>
+        <h2>6、关键状态机流程</h2>
 
         <p>
           顶层状态机的核心状态如下：
@@ -558,7 +558,7 @@ temperature_raw &lt;= temperature_sum[22:3];</code></pre>
       </section>
 
       <section>
-        <h2>七、温湿度转换公式</h2>
+        <h2>7、温湿度转换公式</h2>
 
         <p>
           AHT20 返回的是 20bit 原始值，需要在后级显示模块、MCU 或上位机中换算成实际温湿度。
@@ -577,7 +577,7 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
       </section>
 
       <section>
-        <h2>八、调试注意事项</h2>
+        <h2>8、调试注意事项</h2>
 
         <div class="article-warning">
           AHT20 的 SDA 为双向开漏总线，FPGA 不能直接强推高电平。输出 1 时应释放为高阻态，由外部上拉电阻拉高。
@@ -595,7 +595,7 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
       </section>
 
       <section>
-        <h2>九、源码说明</h2>
+        <h2>9、源码说明</h2>
 
         <p>
           完整工程建议拆成三个文件：
@@ -613,7 +613,7 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
       </section>
 
       <section>
-        <h2>十、经验总结</h2>
+        <h2>10、经验总结</h2>
 
         <p>
           这个设计的关键在于把 IIC 基础时序和 AHT20 业务流程分层。底层 IIC 模块只负责起始、停止、读写和 ACK/NACK；

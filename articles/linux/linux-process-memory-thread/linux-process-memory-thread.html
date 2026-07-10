@@ -26,7 +26,7 @@
       </p>
 
       <section>
-        <h2>一、进程与线程</h2>
+        <h2>1、进程与线程</h2>
         <p>
           进程是资源分配单位，线程是执行单位。同一个进程内的多个线程共享地址空间、全局变量、堆和文件描述符，但每个线程有自己的栈和调度上下文。
         </p>
@@ -46,7 +46,7 @@
       </section>
 
       <section>
-        <h2>二、查看进程状态</h2>
+        <h2>2、查看进程状态</h2>
         <pre><code>ps aux
 ps -ef
 top
@@ -59,7 +59,7 @@ cat /proc/$(pidof app)/status</code></pre>
       </section>
 
       <section>
-        <h2>三、虚拟内存与 maps</h2>
+        <h2>3、虚拟内存与 maps</h2>
         <p>
           Linux 进程访问的是虚拟地址。<code>/proc/&lt;pid&gt;/maps</code> 可以看到当前进程的地址空间布局，包括代码段、堆、栈、动态库和 mmap 区域。
         </p>
@@ -72,7 +72,7 @@ pmap 1234</code></pre>
       </section>
 
       <section>
-        <h2>四、文件描述符</h2>
+        <h2>4、文件描述符</h2>
         <p>
           Linux 中打开文件、串口、socket、管道、设备节点，都会占用文件描述符。长期运行程序如果忘记关闭文件或 socket，就可能出现资源泄漏。
         </p>
@@ -85,7 +85,7 @@ ulimit -n</code></pre>
       </section>
 
       <section>
-        <h2>五、信号与进程退出</h2>
+        <h2>5、信号与进程退出</h2>
         <p>
           信号是 Linux 进程间异步通知机制。常见信号包括 <code>SIGINT</code>、<code>SIGTERM</code>、<code>SIGKILL</code>、<code>SIGSEGV</code>、<code>SIGABRT</code>。
         </p>
@@ -98,7 +98,7 @@ trap 'echo exit' INT TERM</code></pre>
       </section>
 
       <section>
-        <h2>六、strace 跟踪系统调用</h2>
+        <h2>6、strace 跟踪系统调用</h2>
         <p>
           <code>strace</code> 可以跟踪进程的系统调用，非常适合定位文件打不开、权限不足、设备节点不存在、网络连接失败等问题。
         </p>
@@ -111,7 +111,7 @@ strace -o trace.log ./app</code></pre>
       </section>
 
       <section>
-        <h2>七、core dump 与 gdb</h2>
+        <h2>7、core dump 与 gdb</h2>
         <p>
           程序崩溃后保留 core dump，可以用 gdb 查看崩溃调用栈、局部变量、寄存器和内存。
         </p>
@@ -129,7 +129,7 @@ gdb ./app core
       </section>
 
       <section>
-        <h2>八、工程检查清单</h2>
+        <h2>8、工程检查清单</h2>
         <ul>
           <li>进程是否还活着，PID 是否变化。</li>
           <li>CPU 占用是否异常。</li>

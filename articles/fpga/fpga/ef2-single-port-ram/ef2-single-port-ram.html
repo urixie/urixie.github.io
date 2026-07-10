@@ -32,7 +32,7 @@
       </div>
 
       <section>
-        <h2>一、实验目标</h2>
+        <h2>1、实验目标</h2>
         <ul>
           <li>使用 IP Generator 生成 EF2 系列 FPGA 的单口 BRAM。</li>
           <li>BRAM 数据宽度设置为 8bit。</li>
@@ -47,7 +47,7 @@
       </section>
 
       <section>
-        <h2>二、IP Generator 基本配置</h2>
+        <h2>2、IP Generator 基本配置</h2>
 
         <p>
           首先在 IP Generator 中选择 EF2_LOGIC_BRAM，组件名称设置为 <code>SinglePortRam</code>。
@@ -75,7 +75,7 @@
       </section>
 
       <section>
-        <h2>三、Port A 参数配置</h2>
+        <h2>3、Port A 参数配置</h2>
 
         <p>
           在 Port A Options 页面中，设置 RAM 的数据宽度和深度。本文配置为：
@@ -104,7 +104,7 @@ Port Enable：Use Wea</code></pre>
       </section>
 
       <section>
-        <h2>四、初始化配置</h2>
+        <h2>4、初始化配置</h2>
 
         <p>
           在 Other Options 页面中，Memory Initialization 选择 <code>Fill Memory Initialization values</code>，
@@ -123,7 +123,7 @@ Port Enable：Use Wea</code></pre>
       </section>
 
       <section>
-        <h2>五、Verilog 顶层测试逻辑</h2>
+        <h2>5、Verilog 顶层测试逻辑</h2>
 
         <p>
           下面的测试逻辑实例化 <code>SinglePortRam</code>，然后通过状态机依次向地址 0 到 7 写入对应数据，
@@ -275,7 +275,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>六、状态机时序说明</h2>
+        <h2>6、状态机时序说明</h2>
 
         <p>
           当前测试流程按照“写入一个地址，再读回同一个地址并比较”的方式执行：
@@ -297,7 +297,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>七、LED 指示逻辑</h2>
+        <h2>7、LED 指示逻辑</h2>
 
         <p>
           代码中使用 <code>error_count</code> 记录错误次数。如果没有读写错误，<code>O_led2</code> 保持固定状态；
@@ -316,7 +316,7 @@ O_led2 慢速闪烁</code></pre>
       </section>
 
       <section>
-        <h2>八、调试信号说明</h2>
+        <h2>8、调试信号说明</h2>
 
         <p>
           为了便于后续通过 ILA、SignalTap 或在线逻辑分析工具观察状态，代码保留了几个调试信号：
@@ -334,7 +334,7 @@ O_led2 慢速闪烁</code></pre>
       </section>
 
       <section>
-        <h2>九、常见问题</h2>
+        <h2>9、常见问题</h2>
 
         <h3>1. 为什么写使能要单独保持一个周期？</h3>
         <p>
@@ -356,7 +356,7 @@ O_led2 慢速闪烁</code></pre>
       </section>
 
       <section>
-        <h2>十、经验总结</h2>
+        <h2>10、经验总结</h2>
 
         <p>
           使用 FPGA 片上 BRAM 时，不能只看端口连接是否正确，还要结合 IP Generator 中的工作模式、

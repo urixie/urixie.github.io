@@ -26,7 +26,7 @@
       </p>
 
       <section>
-        <h2>一、软件定时器是什么</h2>
+        <h2>1、软件定时器是什么</h2>
         <p>
           FreeRTOS 软件定时器由内核定时器服务任务统一管理。它不是硬件定时器中断，回调函数运行在定时器服务任务上下文中。
         </p>
@@ -49,7 +49,7 @@ xTimerStart(timer, 0);</code></pre>
       </section>
 
       <section>
-        <h2>二、一次性定时器与周期定时器</h2>
+        <h2>2、一次性定时器与周期定时器</h2>
         <ul>
           <li>一次性定时器：到期后只执行一次回调。</li>
           <li>周期定时器：到期后自动重新计时，周期执行回调。</li>
@@ -62,7 +62,7 @@ xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
       </section>
 
       <section>
-        <h2>三、定时器回调注意事项</h2>
+        <h2>3、定时器回调注意事项</h2>
         <ul>
           <li>不要在定时器回调中做长时间循环。</li>
           <li>不要在回调中等待很久的队列、信号量或互斥锁。</li>
@@ -77,7 +77,7 @@ xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
       </section>
 
       <section>
-        <h2>四、FreeRTOS 内存管理</h2>
+        <h2>4、FreeRTOS 内存管理</h2>
         <p>
           FreeRTOS 可以使用动态内存，也可以使用静态内存。动态创建任务、队列、信号量、定时器时，会从 FreeRTOS 堆中分配内存。静态创建则由用户提供控制块和栈空间。
         </p>
@@ -94,7 +94,7 @@ xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
       </section>
 
       <section>
-        <h2>五、静态创建对象</h2>
+        <h2>5、静态创建对象</h2>
         <p>
           对稳定性要求较高的项目，可以优先使用静态创建，避免运行过程中动态分配失败。
         </p>
@@ -114,7 +114,7 @@ xTaskCreateStatic(task_entry,
       </section>
 
       <section>
-        <h2>六、栈溢出检测</h2>
+        <h2>6、栈溢出检测</h2>
         <p>
           FreeRTOS 可以配置栈溢出检测。常见配置项包括 <code>configCHECK_FOR_STACK_OVERFLOW</code> 和钩子函数 <code>vApplicationStackOverflowHook()</code>。
         </p>
@@ -132,7 +132,7 @@ xTaskCreateStatic(task_entry,
       </section>
 
       <section>
-        <h2>七、运行统计与调试</h2>
+        <h2>7、运行统计与调试</h2>
         <p>
           FreeRTOS 可通过任务列表、运行时间统计、栈水位、断言和 trace 工具分析系统状态。常见排查方向包括任务是否阻塞、优先级是否合理、CPU 是否被高优先级任务占满、队列是否长期满或空。
         </p>
@@ -148,7 +148,7 @@ printf("%s\n", buf);</code></pre>
       </section>
 
       <section>
-        <h2>八、常见问题排查表</h2>
+        <h2>8、常见问题排查表</h2>
         <table>
           <thead>
             <tr><th>现象</th><th>优先排查方向</th></tr>
@@ -164,7 +164,7 @@ printf("%s\n", buf);</code></pre>
       </section>
 
       <section>
-        <h2>九、工程检查清单</h2>
+        <h2>9、工程检查清单</h2>
         <ul>
           <li>任务栈是否做过水位检测。</li>
           <li>软件定时器回调是否足够短。</li>

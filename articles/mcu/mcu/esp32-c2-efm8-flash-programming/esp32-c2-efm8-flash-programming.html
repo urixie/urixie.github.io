@@ -31,7 +31,7 @@
       </div>
 
       <section>
-        <h2>一、资料来源与代码目标</h2>
+        <h2>1、资料来源与代码目标</h2>
 
         <p>
           本次整理用到两类资料：一类是 Silicon Labs 的 AN127 C2 Flash Programming 文档，另一类是 ESP32-S3 工程里的 EFM8 烧写代码。AN127 定义了 C2 帧、复位时序、Flash Programming Interface 命令、块写、块读和整片擦除流程；参考程序则把这些步骤落成了 ESP-IDF 环境下的 GPIO 翻转、超时等待、文件分包和校验逻辑。
@@ -50,7 +50,7 @@
       </section>
 
       <section>
-        <h2>二、C2 接口的两个信号</h2>
+        <h2>2、C2 接口的两个信号</h2>
 
         <p>
           C2 接口由 C2CK 和 C2D 组成。C2CK 由主机驱动，用于产生 START、STOP 和每一位数据的采样边沿；C2D 是双向数据线，在主机发送 INS、ADDRESS 或 DATA 时由 ESP32 驱动，在 Address Read、Data Read 的 WAIT 和 DATA 阶段由目标 EFM8 驱动。
@@ -74,7 +74,7 @@
       </section>
 
       <section>
-        <h2>三、四种 C2 基本帧</h2>
+        <h2>3、四种 C2 基本帧</h2>
 
         <p>
           C2 协议的最小事务只有四种：Address Write、Address Read、Data Write 和 Data Read。所有字段都按 LSB first 传输。主机先产生 START，再发送 2 位 INS 字段，INS 决定当前帧类型。Data Read 和 Data Write 还带有 2 位 LENGTH 字段，参考程序固定使用 <code>00b</code>，也就是每次访问 1 字节。
@@ -124,7 +124,7 @@
       </section>
 
       <section>
-        <h2>四、GPIO 模拟的实现骨架</h2>
+        <h2>4、GPIO 模拟的实现骨架</h2>
 
         <p>
           参考程序把 C2 位时序压缩成一个基础函数 <code>StrobeC2CK()</code>。它先把 C2CK 拉低，再拉高。因为 C2D 在 C2CK 上升沿被采样，主机发送数据时应先设置 C2D 电平，再调用 <code>StrobeC2CK()</code>。主机读取数据时，则应先释放 C2D，再打时钟并读取目标输出。
@@ -146,7 +146,7 @@
       </section>
 
       <section>
-        <h2>五、Address Read 状态位与握手</h2>
+        <h2>5、Address Read 状态位与握手</h2>
 
         <p>
           C2 烧写过程中，大量等待并不是固定延时，而是通过 Address Read 读取状态位。AN127 定义 Address Read 返回的 bit0 是 <code>OutReady</code>，表示 PI 已经准备好输出数据；bit1 是 <code>InBusy</code>，表示 PI 正在处理刚写入 FPDAT 的数据。参考程序据此封装了两个轮询函数。
@@ -161,7 +161,7 @@ Poll_OutReady(): 反复 C2_ReadAR()，直到 (status &amp; 0x01) == 1</code></pr
       </section>
 
       <section>
-        <h2>六、进入 Flash Programming Interface</h2>
+        <h2>6、进入 Flash Programming Interface</h2>
 
         <p>
           对 Flash 执行擦除和写入前，需要先初始化 Programming Interface。AN127 的通用序列是复位目标、等待至少 2us、Address Write 到 FPCTL、依次写入 <code>0x02</code>、<code>0x04</code>、<code>0x01</code>，最后等待至少 20ms。参考程序里的 <code>C2_FlashProgram_Init()</code> 当前选择 FPCTL 后写入 <code>0x02</code> 与 <code>0x01</code>，然后执行 <code>delay_us(20)</code>。
@@ -183,7 +183,7 @@ Poll_OutReady(): 反复 C2_ReadAR()，直到 (status &amp; 0x01) == 1</code></pr
       </section>
 
       <section>
-        <h2>七、整片擦除流程</h2>
+        <h2>7、整片擦除流程</h2>
 
         <p>
           EFM8 Flash 整片擦除通过 FPDAT 命令完成。参考程序先 Address Write 到 <code>FPDAT</code>，再写入 <code>DEVICE_ERASE</code> 命令 <code>0x03</code>。PI 返回 <code>COMMAND_OK</code> 之后，主机必须继续写入三字节解锁序列 <code>0xDE</code>、<code>0xAD</code>、<code>0xA5</code>，目标芯片才真正开始擦除。
@@ -205,7 +205,7 @@ Poll_OutReady();</code></pre>
       </section>
 
       <section>
-        <h2>八、块写入与长度编码</h2>
+        <h2>8、块写入与长度编码</h2>
 
         <p>
           AN127 的 Block Write 命令是 <code>0x07</code>。一个块长度可以是 1 到 256 字节，其中长度码 <code>1..255</code> 表示实际字节数，长度码 <code>0</code> 表示 256 字节。参考程序的 <code>C2_FLASH_ProgramBuf()</code> 会把固件数据拆成多个 256 字节块，尾包不足 256 字节时再按实际长度写入。
@@ -228,7 +228,7 @@ Poll_OutReady();</code></pre>
       </section>
 
       <section>
-        <h2>九、读回校验流程</h2>
+        <h2>9、读回校验流程</h2>
 
         <p>
           写入完成后，参考程序没有只依赖命令返回状态，而是使用 Block Read 命令 <code>0x06</code> 把 Flash 读回并逐字节比较。读流程与写流程的前半段类似，同样需要写入地址高字节、低字节和长度码。区别在于进入数据阶段后，每读一个字节前都要等待 OutReady 置位，然后执行 <code>C2_ReadDR()</code>。
@@ -245,7 +245,7 @@ Poll_OutReady();</code></pre>
       </section>
 
       <section>
-        <h2>十、固件分包与文件格式</h2>
+        <h2>10、固件分包与文件格式</h2>
 
         <p>
           参考程序中的 <code>EFM8_Programmer(FILE* pfile)</code> 不是直接把整个文件一次性写入目标，而是按固定包长读取。每包总长为 <code>StorageFwStart + StorageFwLen</code>，其中前 16 字节是包头，后 1024 字节是固件数据区。程序从包头前 8 字节解析目标地址和本包长度，再把数据区送给 <code>C2_FLASH_ProgramBuf()</code>。
@@ -261,7 +261,7 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
       </section>
 
       <section>
-        <h2>十一、ESP32 软件模拟时的注意点</h2>
+        <h2>十1、ESP32 软件模拟时的注意点</h2>
 
         <p>
           C2 协议本身不复杂，但用通用 MCU GPIO 模拟时很容易踩在边界条件上。ESP32-S3 侧尤其要关注中断、GPIO 方向切换、目标供电和外部电路对 C2D 的影响。如果 C2D 被目标应用电路强拉，或者 ESP32 在 WAIT 阶段没有释放 C2D，读状态就会长期异常。
@@ -278,7 +278,7 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
       </section>
 
       <section>
-        <h2>十二、当前实现可复查的细节</h2>
+        <h2>十2、当前实现可复查的细节</h2>
 
         <p>
           结合 AN127 与参考程序，当前实现有几个后续调试时值得优先复查的点。它们不一定是错误，但都属于“如果硬件上出现偶发失败，应先确认”的位置。
@@ -294,7 +294,7 @@ C2_FLASH_ProgramBuf(FlashAdrr, &amp;FW_Buf[16], FlashLen);</code></pre>
       </section>
 
       <section>
-        <h2>十三、总结</h2>
+        <h2>十3、总结</h2>
 
         <p>
           ESP32 模拟 C2 烧写 EFM8 的程序可以分成三层理解：最底层是 C2CK/C2D 的 bit-bang 时序，中间层是 Address/Data 四种 C2 帧和 InBusy/OutReady 握手，最上层才是 FPDAT 命令组成的擦除、写入、读取和校验流程。只要这三层边界清晰，后续无论是调整固件包格式、增加日志、支持更多 EFM8 型号，还是改进超时策略，都不会破坏底层协议。

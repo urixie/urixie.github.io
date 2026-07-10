@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、为什么需要 RTOS</h2>
+        <h2>1、为什么需要 RTOS</h2>
         <p>
           在简单裸机程序中，通常只有一个 <code>while(1)</code> 主循环，所有任务都在主循环里轮询执行。当功能越来越多时，例如按键、显示、通信、采样、存储、网络、升级同时存在，裸机轮询会变得难维护。
         </p>
@@ -46,7 +46,7 @@
       </section>
 
       <section>
-        <h2>二、FreeRTOS 的核心对象</h2>
+        <h2>2、FreeRTOS 的核心对象</h2>
         <ul>
           <li><strong>Task</strong>：任务，系统中的一个执行单元。</li>
           <li><strong>Scheduler</strong>：调度器，决定当前运行哪个任务。</li>
@@ -58,7 +58,7 @@
       </section>
 
       <section>
-        <h2>三、任务状态</h2>
+        <h2>3、任务状态</h2>
         <p>
           FreeRTOS 中任务并不是一直运行。一个任务可能处于就绪、运行、阻塞、挂起等状态。理解任务状态，是理解 RTOS 的关键。
         </p>
@@ -85,7 +85,7 @@
       </section>
 
       <section>
-        <h2>四、抢占式调度与优先级</h2>
+        <h2>4、抢占式调度与优先级</h2>
         <p>
           FreeRTOS 常用抢占式调度。调度器总是优先运行最高优先级的就绪任务。如果一个更高优先级任务从阻塞态变成就绪态，它可以抢占当前低优先级任务。
         </p>
@@ -100,7 +100,7 @@ vTaskStartScheduler();</code></pre>
       </section>
 
       <section>
-        <h2>五、Tick 与系统节拍</h2>
+        <h2>5、Tick 与系统节拍</h2>
         <p>
           Tick 是 FreeRTOS 的系统节拍。每次 Tick 中断到来，内核会更新系统时间、处理延时列表，并判断是否需要任务切换。
         </p>
@@ -112,7 +112,7 @@ vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
       </section>
 
       <section>
-        <h2>六、中断优先级注意事项</h2>
+        <h2>6、中断优先级注意事项</h2>
         <p>
           Cortex-M 上使用 FreeRTOS 时，中断优先级配置非常重要。能调用 FreeRTOS FromISR API 的中断，优先级不能高于内核允许管理的最高中断优先级，否则可能导致难以复现的异常。
         </p>
@@ -125,7 +125,7 @@ vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
       </section>
 
       <section>
-        <h2>七、工程使用建议</h2>
+        <h2>7、工程使用建议</h2>
         <ul>
           <li>每个任务职责要单一，不要一个任务包办所有功能。</li>
           <li>任务中避免长时间死循环占用 CPU。</li>

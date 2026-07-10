@@ -30,7 +30,7 @@
       </div>
 
       <section>
-        <h2>一、Testbench基本结构</h2>
+        <h2>1、Testbench基本结构</h2>
         <p>
           Testbench 本身不综合成硬件，只用于仿真。它通常没有端口，内部例化待测模块 DUT，然后产生输入激励。</p>
         <pre><code>`timescale 1ns/1ps
@@ -51,7 +51,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>二、产生时钟和复位</h2>
+        <h2>2、产生时钟和复位</h2>
         <p>
           仿真中最常见的激励是时钟和复位。时钟用 <code>always</code> 周期翻转，复位用 <code>initial</code> 控制释放时刻。</p>
         <pre><code>initial begin
@@ -68,7 +68,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>三、输入激励</h2>
+        <h2>3、输入激励</h2>
         <p>
           输入激励可以直接在 <code>initial</code> 中按时间推进，也可以封装成 <code>task</code>，让测试过程更清晰。</p>
         <pre><code>task send_pulse;
@@ -90,7 +90,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>四、波形输出</h2>
+        <h2>4、波形输出</h2>
         <p>
           使用 Icarus Verilog、GTKWave 等工具时，可以输出 VCD 波形文件。其它 FPGA IDE 也有自己的波形查看器。</p>
         <pre><code>initial begin
@@ -111,7 +111,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>五、$display调试</h2>
+        <h2>5、$display调试</h2>
         <p>
           <code>$display</code> 可以在仿真控制台打印变量值，适合快速判断状态跳转、计数值和错误路径。</p>
         <pre><code>always @(posedge clk) begin
@@ -122,7 +122,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>六、自检查Testbench</h2>
+        <h2>6、自检查Testbench</h2>
         <p>
           更好的 Testbench 不只是看波形，而是自动判断输出是否正确。这样改代码后可以快速回归验证。</p>
         <pre><code>if (cnt !== 8'd10) begin
@@ -134,7 +134,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>七、常见仿真问题</h2>
+        <h2>7、常见仿真问题</h2>
         <table>
           <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
           <tbody>
@@ -148,13 +148,13 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>八、上板调试思路</h2>
+        <h2>8、上板调试思路</h2>
         <p>
           上板调试时，可以使用 FPGA 厂商提供的逻辑分析仪工具抓内部信号，例如 SignalTap、ILA、安路或其它工具链中的在线调试功能。抓信号时要优先抓状态机状态、计数器、valid/ready、错误标志和外设接口关键线。</p>
       </section>
 
       <section>
-        <h2>九、仿真检查清单</h2>
+        <h2>9、仿真检查清单</h2>
         <ul>
           <li>是否产生了稳定时钟。</li>
           <li>复位时长是否足够。</li>
