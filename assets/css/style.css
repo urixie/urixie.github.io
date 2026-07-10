@@ -221,6 +221,7 @@ button {
 .secondary-head {
   padding-bottom: 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: center;
 }
 
 .secondary-head span {
@@ -761,6 +762,7 @@ a:focus-visible {
 .section-title {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -1332,7 +1334,8 @@ a:focus-visible {
   }
 
   .section-title {
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
   }
 }
 

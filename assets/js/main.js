@@ -406,9 +406,7 @@ function createSectionedArticleReader(articleRoot) {
 async function renderInlineArticle(topic, category, article, options = {}) {
   const articleList = document.querySelector('#articleList');
   const articleEmpty = document.querySelector('#articleEmpty');
-  const contentIndex = document.querySelector('#contentIndex');
   const contentTitle = document.querySelector('#contentTitle');
-  const contentDesc = document.querySelector('#contentDesc');
 
   if (!articleList || !article) return;
 
@@ -417,9 +415,7 @@ async function renderInlineArticle(topic, category, article, options = {}) {
   homeState.articleSlug = getArticleSlug(article);
   homeState.articleHref = article.href;
 
-  if (contentIndex) contentIndex.textContent = 'READ';
   if (contentTitle) contentTitle.textContent = article.title;
-  if (contentDesc) contentDesc.textContent = article.desc || category?.desc || '';
   if (articleEmpty) articleEmpty.classList.add('hidden');
 
   articleList.replaceChildren(createLoadingCard());
@@ -490,7 +486,6 @@ function renderSecondaryNav(topic) {
 
   if (secondaryEyebrow) secondaryEyebrow.textContent = hasChildren ? '当前专题' : '专题说明';
   if (secondaryTitle) secondaryTitle.textContent = topic.title;
-  if (secondaryDesc) secondaryDesc.textContent = topic.desc || '';
 
   secondaryNav.replaceChildren();
   if (!hasChildren) return;
@@ -576,9 +571,7 @@ function renderAboutContent(topic) {
 }
 
 function renderArticles(topic, category) {
-  const contentIndex = document.querySelector('#contentIndex');
   const contentTitle = document.querySelector('#contentTitle');
-  const contentDesc = document.querySelector('#contentDesc');
   const articleList = document.querySelector('#articleList');
   const articleEmpty = document.querySelector('#articleEmpty');
 
@@ -588,9 +581,7 @@ function renderArticles(topic, category) {
   articleEmpty.classList.add('hidden');
 
   if (!category) {
-    if (contentIndex) contentIndex.textContent = 'INFO';
     if (contentTitle) contentTitle.textContent = topic.title;
-    if (contentDesc) contentDesc.textContent = topic.desc || '';
     renderAboutContent(topic);
     return;
   }
@@ -598,9 +589,7 @@ function renderArticles(topic, category) {
   const article = findArticle(category, homeState.articleSlug);
 
   if (!article) {
-    if (contentIndex) contentIndex.textContent = String(topic.children.findIndex(item => item.id === category.id) + 1).padStart(2, '0');
     if (contentTitle) contentTitle.textContent = category.title;
-    if (contentDesc) contentDesc.textContent = category.desc || topic.desc || '';
     articleList.appendChild(createArticleWelcome(topic, category));
     return;
   }
