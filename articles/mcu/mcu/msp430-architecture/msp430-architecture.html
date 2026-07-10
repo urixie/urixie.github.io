@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MSP430 架构详解 - XYJ</title>
+  <meta name="description" content="详细整理 TI MSP430 内核架构.寄存器.指令系统.中断机制.存储布局和低功耗特性。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#mcu-common">返回 MCU专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">MSP430 · TI · 16-BIT · MIXED-SIGNAL</div>
+      <h1>MSP430 架构详解</h1>
+
+      <p>
+        MSP430 是德州仪器（TI）于 1996 年推出的 16 位混合信号微控制器系列，以其极低的功耗和丰富的模拟外设集成而著称。MSP430 采用独特的Von Neumann 架构（统一程序和数据空间）和基于寄存器的设计，是超低功耗应用的经典选择。本文以 MSP430x2xx 系列（如 MSP430G2553.MSP430F5529）为参考，详细整理 MSP430 内核架构。
+      </p>
+
+      <div class="article-note">
+        MSP430 的设计哲学是"超低功耗"。它的 CPU 可以在 1μs 内从低功耗模式唤醒，活动模式电流仅约 100μA/MHz，待机电流可低至 1μA 以下。这使 MSP430 成为电池供电传感器.智能仪表.医疗设备的首选。
+      </div>
+
+      <section>
+        <h2>1.MSP430 架构概述</h2>
+        <h3>1.1 核心特点</h3>
+        <ul>
+          <li><strong>16 位 RISC 架构</strong>：简洁的指令集，大多数指令单周期执行。</li>
+          <li><strong>Von Neumann 架构</strong>：程序和数据共用 16 位地址总线和数据总线（统一存储空间）。</li>
+          <li><strong>基于寄存器</strong>：16 个 16 位通用寄存器（R0~R15），减少内存访问。</li>
+          <li><strong>16 位数据总线</strong>：内部寄存器.运算单元.地址总线均为 16 位。</li>
+          <li><strong>20 位地址总线</strong>：可寻址 1MB 地址空间（分段式：16 个 64KB 段）。</li>
+          <li><strong>内置 Flash</strong>：支持在系统编程（Flash 编程无需高电压）。</li>
+          <li><strong>低功耗设计</strong>：多种低功耗模式（LPM0~LPM4），CPU 可在 1μs 内唤醒。</li>
+        </ul>
+        <h3>1.2 CPU 结构</h3>
+        <p>
+          MSP430 CPU 主要组成：
+        </p>
+        <ul>
+          <li><strong>16 个通用寄存器</strong>（R0~R15）：R0=PC（程序计数器），R1=SP（堆栈指针），R2=SR（状态寄存器），R3=CG（常量发生器），R4~R15=通用寄存器。</li>
+          <li><strong>算术逻辑单元 ALU</strong>：支持 16 位有符号/无符号运算。</li>
+          <li><strong>程序计数器 PC</strong>：20 位，指向下一条指令地址。</li>
+          <li><strong>状态寄存器 SR</strong>：包含运算标志和控制位。</li>
+          <li><strong>常量发生器 CG</strong>：R3 读取时返回 0.1.2.4.8 等常量，无需立即数指令。</li>
+        </ul>
+        <h3>1.3 系列划分</h3>
+        <table>
+          <thead>
+            <tr><th>系列</th><th>代表型号</th><th>Flash</th><th>SRAM</th><th>特色</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>MSP430G2</td><td>MSP430G2553</td><td>16KB</td><td>512B</td><td>LaunchPad 配套芯片</td></tr>
+            <tr><td>MSP430F5/F6</td><td>MSP430F5529</td><td>128KB</td><td>8KB</td><td>USB.高频.丰富外设</td></tr>
+            <tr><td>MSP430FR2/FR4</td><td>MSP430FR2433</td><td>16KB</td><td>4KB</td><td>FRAM 非易失性存储</td></tr>
+            <tr><td>MSP430FR5/FR6</td><td>MSP430FR5994</td><td>256KB</td><td>8KB</td><td>高性能.FRAM.低功耗加速器</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>2.寄存器模型</h2>
+        <h3>2.1 通用寄存器</h3>
+        <p>
+          MSP430 有 16 个 16 位通用寄存器（R0~R15），但前 4 个有特殊用途：
+        </p>
+        <table>
+          <thead>
+            <tr><th>寄存器</th><th>名称</th><th>功能说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>R0</td><td>PC（Program Counter）</td><td>程序计数器，指向下一条指令地址。20 位，可寻址 1MB 空间。指令长度决定 PC 增量（2 或 4 字节）。</td></tr>
+            <tr><td>R1</td><td>SP（Stack Pointer）</td><td>堆栈指针，指向当前栈顶。堆栈向下增长，16 位，指向 SRAM 区域。</td></tr>
+            <tr><td>R2</td><td>SR（Status Register）</td><td>状态寄存器，包含标志位和控制位。20 位，但低 16 位可用。</td></tr>
+            <tr><td>R3</td><td>CG（Constant Generator）</td><td>常量发生器。读取 R3 返回预定义的常量值（0.1.2.4.8 或 .FETCH/.INMASK），写入被忽略。</td></tr>
+            <tr><td>R4~R15</td><td>—</td><td>通用寄存器，可用于任何指令操作数。</td></tr>
+          </tbody>
+        </table>
+        <h3>2.2 状态寄存器 SR</h3>
+        <table>
+          <thead>
+            <tr><th>位</th><th>名称</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>Z</td><td>零标志，运算结果为 0 时置 1。</td></tr>
+            <tr><td>1</td><td>C</td><td>进位标志，无符号运算进位或借位时置 1。</td></tr>
+            <tr><td>2</td><td>N</td><td>负数标志，结果最高位为 1 时置 1。</td></tr>
+            <tr><td>3</td><td>GIE</td><td>全局中断使能，置 1 使能所有可屏蔽中断。</td></tr>
+            <tr><td>4</td><td>CPUOFF</td><td>CPU 关闭位，置 1 进入低功耗模式。</td></tr>
+            <tr><td>5</td><td>OSCOFF</td><td>振荡器关闭位，置 1 关闭外部晶振。</td></tr>
+            <tr><td>6</td><td>SCG0</td><td>系统时钟发生器关闭位 0。</td></tr>
+            <tr><td>7</td><td>SCG1</td><td>系统时钟发生器关闭位 1。</td></tr>
+            <tr><td>8~15</td><td>V</td><td>溢出标志，有符号运算溢出时置 1。</td></tr>
+          </tbody>
+        </table>
+        <p>
+          CPUOFF.OSCOFF.SCG0.SCG1 四位组合决定进入哪种低功耗模式：
+        </p>
+        <ul>
+          <li>LPM0：CPUOFF=1，其余为 0。</li>
+          <li>LPM1：CPUOFF=1，SCG0=1。</li>
+          <li>LPM2：CPUOFF=1，SCG1=1。</li>
+          <li>LPM3：CPUOFF=1，SCG0=1，SCG1=1。</li>
+          <li>LPM4：CPUOFF=1，OSCOFF=1，SCG0=1，SCG1=1。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3.存储结构</h2>
+        <h3>3.1 地址空间</h3>
+        <p>
+          MSP430 采用 Von Neumann 架构（统一存储），地址空间最大 1MB（20 位地址）：
+        </p>
+        <table>
+          <thead>
+            <tr><th>地址范围</th><th>大小</th><th>区域</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0x0000~0x00FF</td><td>256B</td><td>特殊功能寄存器</td><td>外设寄存器映射。</td></tr>
+            <tr><td>0x0100~0x01FF</td><td>256B</td><td>8 位外设</td><td>看门狗.Timer_A.B.比较器.等 8 位外设。</td></tr>
+            <tr><td>0x0200~0x09FF</td><td>2KB</td><td>16 位外设</td><td>ADC.USCI.UCS 等 16 位外设。</td></tr>
+            <tr><td>0x0A00~0xFFFF</td><td>~60KB</td><td>RAM/Flash</td><td>取决于芯片型号。低地址为 RAM，高地址为 Flash。</td></tr>
+            <tr><td>段 1~F</td><td>64KB/段</td><td>代码/数据段</td><td>分段式寻址，段选择通过程序计数器高位或段寄存器。</td></tr>
+          </tbody>
+        </table>
+        <h3>3.2 Flash 布局</h3>
+        <p>
+          Flash 分为多个段：
+        </p>
+        <ul>
+          <li><strong>信息段 A/B</strong>：通常 256 字节（128W），存放芯片型号.ID.校准数据等。可以用作普通 Flash 存储。</li>
+          <li><strong>主程序段</strong>：存放用户程序代码。</li>
+          <li><strong>BSL 段</strong>（Bootstrap Loader）：出厂预置的引导加载程序，用于串口或 USB 更新固件。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4.指令系统</h2>
+        <h3>4.1 指令格式</h3>
+        <p>
+          MSP430 指令长度有双字节（1 word）和单字节（emulated 指令）两种：
+        </p>
+        <ul>
+          <li><strong>格式 1</strong>（双操作数）：Opcode(4) | S(1) | D(1) | Ad(1) | As(1) | Rd(4) | Rr(4) | ——</li>
+          <li><strong>格式 2</strong>（单操作数）：Opcode(4) | Ad(1) | As(1) | Rd(4) | ——</li>
+          <li><strong>格式 3</strong>（跳转指令）：Offset(10) | 0 | J | Opcode(3) | ——</li>
+        </ul>
+        <h3>4.2 主要指令分类</h3>
+        <table>
+          <thead>
+            <tr><th>类别</th><th>指令</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>算术运算</td><td>ADD.ADDC.SUB.SUBC<br>MOVA.ADD.BIS.BIC<br>INC.DEC.INCD.DECD（增量/减量）</td><td>双操作数指令，支持寄存器.立即数.内存操作数。</td></tr>
+            <tr><td>逻辑运算</td><td>AND.BIT.TST.XOR.COM</td><td>按位操作.TST 是 AND 但不存储结果只影响标志。</td></tr>
+            <tr><td>移位操作</td><td>RLC.RRC.ROL.ROR.SWPB</td><td>带进位循环移位.字节交换。</td></tr>
+            <tr><td>分支跳转</td><td>JEQ/JNEQ.JC/JNC.JN<br>JGE.JL.JMP.CALL.RET</td><td>基于标志位或无条件跳转。注意：跳转指令是 PC 相对寻址，范围约 ±512~1024 字节。</td></tr>
+            <tr><td>数据传送</td><td>MOV.CMP.PUSH.POP<br>MOVA（传送地址）</td><td>MOV 是最常用的数据传送指令，格式与 ADD 类似。</td></tr>
+            <tr><td>中断控制</td><td>RETI.DINT.EINT.NOP</td><td>中断返回.禁用/启用全局中断。</td></tr>
+          </tbody>
+        </table>
+        <h3>4.3 寻址方式</h3>
+        <p>
+          MSP430 支持 4 种源操作数寻址方式和 3 种目的操作数寻址方式：
+        </p>
+        <table>
+          <thead>
+            <tr><th>As 值</th><th>寻址方式</th><th>示例</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>00</td><td>寄存器模式</td><td>MOV R5,R6</td><td>操作数在寄存器中。</td></tr>
+            <tr><td>01</td><td>变址模式</td><td>MOV 2(R5),R6</td><td>基址 R5 + 偏移量。</td></tr>
+            <tr><td>10</td><td>间接寄存器模式</td><td>MOV @R5,R6</td><td>操作数地址在 R5 中。</td></tr>
+            <tr><td>11</td><td>间接自增模式</td><td>MOV @R5+,R6</td><td>先取 R5 地址，再 R5+=2。</td></tr>
+          </tbody>
+        </table>
+        <p>
+          目的操作数只能是寄存器模式或立即数模式（R3 常用作 0 值）。
+        </p>
+        <h3>4.4 模拟指令（Emulated Instructions）</h3>
+        <p>
+          由于 R3=常量发生器，很多指令实际上不存在硬件（由汇编器转换）：
+        </p>
+        <ul>
+          <li><strong>CLR x</strong> → MOV #0,x</li>
+          <li><strong>SETC</strong> → BIS #1,SR</li>
+          <li><strong>CLRC</strong> → BIC #1,SR</li>
+          <li><strong>DINT</strong> → BIC #8,SR（GIE 位清零）</li>
+          <li><strong>EINT</strong> → BIS #8,SR（GIE 位置 1）</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5.中断系统</h2>
+        <h3>5.1 中断向量表</h3>
+        <p>
+          MSP430 中断向量位于 Flash 最高地址区域（每个向量 2 字节）：
+        </p>
+        <pre><code>MSP430G2553 中断向量（部分）：
+0xFFE0  看门狗
+0xFFE2  PCA
+0xFFE4  USCI RX/TX
+0xFFE6  ADC10
+0xFFE8  Timer0_A CC1-2, TA
+0xFFEA  Timer0_A CC0
+0xFFEC  Timer1_A CC1-4, TA
+0xFFEE  比较器 A
+0xFFF0  Timer2_A CC1-2, TA
+0xFFF2  Timer2_A CC0
+0xFFF4  UART RX
+0xFFF6  UART TX
+0xFFFA  ADC10（某些型号）
+0xFFFC  (保留)
+0xFFFE  系统复位 RESET</code></pre>
+        <h3>5.2 中断响应过程</h3>
+        <ol>
+          <li>外设中断请求到达。</li>
+          <li>如果 GIE=1 且该外设中断已使能，CPU 响应中断。</li>
+          <li>当前 PC 入栈（堆栈 -= 2）。</li>
+          <li>SR 入栈（保存进入中断前的状态寄存器）。</li>
+          <li>GIE 自动清除（禁止嵌套）。</li>
+          <li>PC 跳转到对应中断向量地址。</li>
+          <li>执行中断处理程序，最后执行 RETI。</li>
+          <li>RETI 从堆栈恢复 SR 和 PC，继续执行被中断代码。</li>
+        </ol>
+        <h3>5.3 中断嵌套</h3>
+        <p>
+          MSP430 默认不支持中断嵌套（因为进入中断时 GIE 自动清除）。如果要支持嵌套，需要在中断处理程序中重新使能 GIE：
+        </p>
+        <pre><code>#pragma vector=PORT1_VECTOR
+__interrupt void Port1_ISR(void) {
+    _EINT();        // 在嵌套前重新使能全局中断
+    // 处理中断
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>6.低功耗特性</h2>
+        <h3>6.1 低功耗模式</h3>
+        <p>
+          MSP430 的核心优势是极低的功耗。通过设置 SR 中的 CPUOFF.OSCOFF.SCG0.SCG1 位进入不同低功耗模式：
+        </p>
+        <table>
+          <thead>
+            <tr><th>模式</th><th>CPU</th><th>ACLK</th><th>MCLK</th><th>SMCLK</th><th>典型电流</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Active</td><td>运行</td><td>运行</td><td>运行</td><td>运行</td><td>~300μA/MHz</td></tr>
+            <tr><td>LPM0</td><td>关闭</td><td>运行</td><td>关闭</td><td>运行</td><td>~70μA</td></tr>
+            <tr><td>LPM1</td><td>关闭</td><td>运行</td><td>关闭</td><td>关闭</td><td>~20μA</td></tr>
+            <tr><td>LPM2</td><td>关闭</td><td>运行</td><td>关闭</td><td>关闭</td><td>~8μA</td></tr>
+            <tr><td>LPM3</td><td>关闭</td><td>运行</td><td>关闭</td><td>关闭</td><td>~1μA</td></tr>
+            <tr><td>LPM4</td><td>关闭</td><td>关闭</td><td>关闭</td><td>关闭</td><td>&lt;0.1μA</td></tr>
+          </tbody>
+        </table>
+        <h3>6.2 唤醒源</h3>
+        <p>
+          不同低功耗模式支持不同的唤醒源：
+        </p>
+        <ul>
+          <li><strong>LPM0~LPM3</strong>：可由外设中断唤醒（Timer.SPI.UART.ADC 等）。</li>
+          <li><strong>LPM4</strong>：只有外部复位.RTC 报警（某些型号）和 NMI 可唤醒。</li>
+        </ul>
+        <h3>6.3 时钟系统</h3>
+        <p>
+          MSP430 有三个内部时钟：
+        </p>
+        <ul>
+          <li><strong>ACLK</strong>（Auxiliary Clock）：辅助时钟，通常来自低频晶振（32.768kHz），用于低速外设。</li>
+          <li><strong>MCLK</strong>（Master Clock）：主时钟，CPU 和高速外设使用。</li>
+          <li><strong>SMCLK</strong>（Sub-Main Clock）：子主时钟，高速外设使用。</li>
+        </ul>
+        <p>
+          时钟源可以选择内部 DCO（数控振荡器，~1MHz）或外部晶振（32768Hz 或高速晶振）。
+        </p>
+      </section>
+
+      <section>
+        <h2>7.工程实践要点</h2>
+        <ul>
+          <li><strong>看门狗</strong>：复位后看门狗默认使能（1s 溢出），程序必须先停止或周期喂狗，否则芯片不断复位。</li>
+          <li><strong>Flash 写入</strong>：写入 Flash 前必须先解锁（写入特定序列到 FCTL3.FCTL1），写入期间 CPU 暂停。</li>
+          <li><strong>堆栈</strong>：堆栈在 SRAM 区，向下增长。调用函数和中断都会压栈，局部变量过多可能导致栈溢出。</li>
+          <li><strong>中断向量定位</strong>：中断向量地址由芯片决定，参考数据手册。不同 MSP430 型号向量表可能不同。</li>
+          <li><strong>FRAM 型号</strong>：MSP430 FRAM 系列（如 MSP430FR2433）使用 FRAM 而非 Flash，功耗更低，擦写次数更多（10^15 次）。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#mcu-common">返回 MCU专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
+</body>
+</html>

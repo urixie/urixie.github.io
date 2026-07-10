@@ -108,6 +108,60 @@
               desc: 'ARMv7-M · 寄存器模型 · 运行模式 · 存储映射 · NVIC 中断 · DSP/FPU · MPU · 调试组件',
               href: withVersion('articles/mcu/mcu/arm-cortex-m3-m4/arm-cortex-m3-m4.html'),
               tags: ['ARM', 'Cortex-M3', 'Cortex-M4', '架构']
+            },
+            {
+              title: 'ARM Cortex-M0 与 Cortex-M0+ 架构详解',
+              desc: 'ARMv6-M · 指令集子集 · 32 中断 · 低功耗模式 · 2级流水线 · 休眠机制 · 调试组件',
+              href: withVersion('articles/mcu/mcu/arm-cortex-m0/arm-cortex-m0.html'),
+              tags: ['ARM', 'Cortex-M0', 'Cortex-M0+', '架构']
+            },
+            {
+              title: '8051 内核架构详解',
+              desc: 'MCS-51 · 存储器结构 · 寄存器组 · 指令系统 · 定时器 · 串口 · 中断机制 · 增强型 8051',
+              href: withVersion('articles/mcu/mcu/8051-architecture/8051-architecture.html'),
+              tags: ['80551', 'MCS-51', 'Intel', '架构']
+            },
+            {
+              title: 'AVR 架构详解',
+              desc: 'ATmega · ATtiny · 单周期指令 · Harvard 架构 · 32 个通用寄存器 · Flash 自编程 · 看门狗',
+              href: withVersion('articles/mcu/mcu/avr-architecture/avr-architecture.html'),
+              tags: ['AVR', 'ATmega', 'Arduino', '架构']
+            },
+            {
+              title: 'MSP430 架构详解',
+              desc: '16 位 RISC · Von Neumann 架构 · 超低功耗 · LPM0~LPM4 · FRAM · 定时器 · 模拟外设',
+              href: withVersion('articles/mcu/mcu/msp430-architecture/msp430-architecture.html'),
+              tags: ['MSP430', 'TI', '16位', '架构']
+            },
+            {
+              title: 'PIC 架构详解',
+              desc: 'PIC16 · PIC18 · PIC24 · dsPIC · 8/16 位 · Harvard 架构 · Bank 切换 · 35 条指令',
+              href: withVersion('articles/mcu/mcu/pic-architecture/pic-architecture.html'),
+              tags: ['PIC', 'Microchip', '8位', '16位', '架构']
+            },
+            {
+              title: 'STM8 架构详解',
+              desc: '8 位 RISC · ST 自研内核 · 单周期指令 · 24 位地址 · 中断嵌套 · 低功耗 Halt/Wait',
+              href: withVersion('articles/mcu/mcu/stm8-architecture/stm8-architecture.html'),
+              tags: ['STM8', 'ST', '8位', '架构']
+            },
+            {
+              title: 'PIC32 MIPS 架构详解',
+              desc: 'MIPS M4K · 32 位 RISC · 5 级流水线 · 延迟槽 · TLB · $0~$31 寄存器 · CP0',
+              href: withVersion('articles/mcu/mcu/pic32-mips/pic32-mips.html'),
+              tags: ['PIC32', 'MIPS', '32位', '架构']
+            },
+            {
+              title: 'Xtensa 架构详解',
+              desc: 'Xtensa LX6 · 双核 240MHz · 5 级流水线 · 指令集 · 内存布局 · 中断机制 · 低功耗模式 · ULP 协处理器',
+              href: withVersion('articles/mcu/mcu/esp32-xtensa/esp32-xtensa.html'),
+              tags: ['ESP32', 'Xtensa', 'LX6']
+            },
+            {
+              title: 'RISC-V 架构详解',
+              desc: 'RV32IMC · ESP32-C3/C6/H2 · RISC-V ISA · PLIC/CLINT 中断 · CSR 寄存器 · PMP 内存保护 · 低功耗',
+              href: withVersion('articles/mcu/mcu/esp32-risc-v/esp32-risc-v.html'),
+              tags: ['ESP32-C3', 'ESP32-C6', 'RISC-V']
             }
           ]
         },
@@ -172,8 +226,8 @@
         {
           id: 'espressif',
           title: 'Espressif',
-          desc: 'ESP32、ESP32-S3、ESP32-P4 相关资料暂未发布。',
-          placeholders: ['ESP32', 'ESP32-S3', 'ESP32-P4'],
+          desc: 'ESP32 系列芯片资料整理。',
+          placeholders: [],
           articles: []
         }
       ]

@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>AVR 架构详解 - XYJ</title>
+  <meta name="description" content="详细整理 AVR ATmega ATtiny 内核架构.寄存器.指令系统.中断机制.存储布局和低功耗特性。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#mcu-common">返回 MCU专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">AVR · ATMEGA · ATTINY · ATMEL · ARDUINO</div>
+      <h1>AVR 架构详解</h1>
+
+      <p>
+        AVR 是 Atmel（现 Microchip）于 1997 年推出的 8 位微控制器架构，以其创新的 Flash 程序存储器和高效的 RISC 指令集迅速成为嵌入式开发和创客教育的标杆。Arduino 所使用的 ATmega328P 正是 AVR 架构的典型代表。本文以 ATmega48/88/168/328 和 ATtiny 系列为参考，详细整理 AVR 内核架构。
+      </p>
+
+      <div class="article-note">
+        AVR 是最早在微控制器中集成 Flash 存储器的架构之一（与 PIC 类似）。Arduino 的成功让 AVR 成为全球最流行的 8 位 MCU 架构。理解 AVR 的 Harvard 架构（程序和数据分离）和单周期指令设计，有助于理解其他 8 位 MCU 的设计思路。
+      </div>
+
+      <section>
+        <h2>1.AVR 架构概述</h2>
+        <h3>1.1 架构特点</h3>
+        <p>
+          AVR 采用 Harvard 架构（程序存储器和数据存储器分离）和单周期指令执行：
+        </p>
+        <ul>
+          <li><strong>单周期指令</strong>：大多数指令在 1 个时钟周期内完成（8051 需要 12 个机器周期），大幅提升执行效率。</li>
+          <li><strong>Harvard 架构</strong>：程序总线和数据总线独立，指令读取和数据访问可以同时进行。</li>
+          <li><strong>内置 Flash</strong>：程序存储器直接集成在芯片内，支持数万次擦写。</li>
+          <li><strong>寄存器文件</strong>：32 个通用寄存器（0~31），可直接参与指令操作，无需累加器中转。</li>
+          <li><strong>RISC 指令集</strong>：约 130 条指令（不同型号略有差异），大多数是单字（16 位）指令。</li>
+        </ul>
+        <h3>1.2 AVR 系列划分</h3>
+        <table>
+          <thead>
+            <tr><th>系列</th><th>代表型号</th><th>Flash</th><th>SRAM</th><th>EEPROM</th><th>特色</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ATtiny</td><td>ATtiny85</td><td>8KB</td><td>512B</td><td>512B</td><td>极小封装（8-pin DIP）</td></tr>
+            <tr><td>ATmega</td><td>ATmega328P</td><td>32KB</td><td>2KB</td><td>1KB</td><td>Arduino Uno 核心</td></tr>
+            <tr><td>ATmega</td><td>ATmega2560</td><td>256KB</td><td>8KB</td><td>4KB</td><td>Arduino Mega 核心</td></tr>
+            <tr><td>ATxmega</td><td>ATxmega128A1U</td><td>128KB</td><td>8KB</td><td>2KB</td><td>增强型.PDI/PDI 接口</td></tr>
+          </tbody>
+        </table>
+        <h3>1.3 内核结构</h3>
+        <p>
+          AVR 内核主要由以下部件组成：
+        </p>
+        <ul>
+          <li><strong>ALU</strong>：算术逻辑单元，直接对 32 个通用寄存器进行操作。</li>
+          <li><strong>程序计数器 PC</strong>：负责指令地址计算。</li>
+          <li><strong>堆栈指针 SP</strong>：16 位，指向当前堆栈位置（支持超过 256 字节的 SRAM）。</li>
+          <li><strong>状态寄存器 SREG</strong>：存放 ALU 运算结果标志（H.I.T.S.V.N.Z.C）。</li>
+          <li><strong>Flash 控制器</strong>：通过 16/32 位指令预取缓冲读取程序。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2.寄存器模型</h2>
+        <h3>2.1 通用寄存器</h3>
+        <p>
+          AVR 有 32 个 8 位通用寄存器（R0~R31）。这些寄存器直接连接到 ALU，无需像 8051 那样经过累加器：
+        </p>
+        <table>
+          <thead>
+            <tr><th>寄存器</th><th>别名</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>R0~R31</td><td>—</td><td>通用寄存器，可用于任何指令操作数。</td></tr>
+            <tr><td>R26~R27</td><td>X</td><td>16 位间接寻址寄存器（X = R27:R26）。</td></tr>
+            <tr><td>R28~R29</td><td>Y</td><td>16 位间接寻址寄存器（Y = R29:R28）。</td></tr>
+            <tr><td>R30~R31</td><td>Z</td><td>16 位间接寻址寄存器（Z = R31:R30），还用于程序计数器相关寻址。</td></tr>
+          </tbody>
+        </table>
+        <p>
+          注意：R0 和 R1 有特殊用途。R1 固定为 0（用于 MUL 乘法指令结果）。R0 用于 SPM 指令（Flash 自编程）。
+        </p>
+        <h3>2.2 状态寄存器 SREG</h3>
+        <p>
+          SREG（状态寄存器）包含 ALU 运算结果标志：
+        </p>
+        <table>
+          <thead>
+            <tr><th>位</th><th>符号</th><th>名称</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>7</td><td>I</td><td>全局中断使能</td><td>置 1 使能所有中断。中断响应时自动清零，返回时恢复。</td></tr>
+            <tr><td>6</td><td>T</td><td>位复制存储</td><td>BLD（位加载）和 BST（位存储）指令使用。</td></tr>
+            <tr><td>5</td><td>H</td><td>半进位标志</td><td>BCD 运算时用于低 4 位向高 4 位进位。</td></tr>
+            <tr><td>4</td><td>S</td><td>符号标志</td><td>S = N ⊕ V（负数和溢出的异或）。</td></tr>
+            <tr><td>3</td><td>V</td><td>溢出标志</td><td>有符号数运算溢出时置 1。</td></tr>
+            <tr><td>2</td><td>N</td><td>负数标志</td><td>结果最高位为 1 时置 1。</td></tr>
+            <tr><td>1</td><td>Z</td><td>零标志</td><td>结果为 0 时置 1。</td></tr>
+            <tr><td>0</td><td>C</td><td>进位标志</td><td>无符号运算进位或借位时置 1。</td></tr>
+          </tbody>
+        </table>
+        <h3>2.3 堆栈指针 SP</h3>
+        <p>
+          AVR 的堆栈指针是 16 位寄存器（SPH:SPH），可以指向最大 64KB 的 SRAM 空间：
+        </p>
+        <ul>
+          <li>堆栈向下增长（Push 时 SP 递减）。</li>
+          <li>中断和函数调用使用堆栈保存返回地址（2 字节）。</li>
+          <li>局部变量也存放在堆栈中。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3.存储结构</h2>
+        <h3>3.1 存储空间映射</h3>
+        <p>
+          AVR 采用 Harvard 架构，有三个独立的存储空间：
+        </p>
+        <ul>
+          <li><strong>程序存储器（Flash）</strong>：存放程序代码和常量表。AVR 是 16 位/32 位指令，Flash 按字（word，16 位）编址。</li>
+          <li><strong>数据存储器（SRAM）</strong>：0x0000~0x005F 为 I/O 寄存器区，0x0060 开始是通用 SRAM 区。</li>
+          <li><strong>EEPROM</strong>：独立的数据存储空间，可字节访问，典型寿命 10 万次擦写。</li>
+        </ul>
+        <h3>3.2 SRAM 布局（ATmega328P 为例）</h3>
+        <table>
+          <thead>
+            <tr><th>地址</th><th>区域</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0x0000~0x001F</td><td>通用寄存器</td><td>R0~R31。</td></tr>
+            <tr><td>0x0020~0x005F</td><td>I/O 寄存器</td><td>Port.定时器.UART 等控制寄存器。</td></tr>
+            <tr><td>0x0060~0x08FF</td><td>内部 SRAM</td><td>ATmega328P 有 2KB SRAM，地址 0x0060~0x085F。</td></tr>
+            <tr><td>0x8000~</td><td>外部 SRAM 区</td><td>通过 XMEM 接口访问外部 SRAM（如果使能）。</td></tr>
+          </tbody>
+        </table>
+        <h3>3.3 I/O 寄存器映射</h3>
+        <p>
+          ATmega328P 的主要 I/O 寄存器：
+        </p>
+        <table>
+          <thead>
+            <tr><th>地址（I/O 区）</th><th>名称</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0x3F (0x5F)</td><td>SREG</td><td>状态寄存器。</td></tr>
+            <tr><td>0x3E (0x5E)</td><td>SPH</td><td>堆栈指针高字节。</td></tr>
+            <tr><td>0x3D (0x5D)</td><td>SPL</td><td>堆栈指针低字节。</td></tr>
+            <tr><td>0x04 (0x24)</td><td>GPIOR0</td><td>通用 I/O 寄存器 0。</td></tr>
+            <tr><td>0x0D (0x2D)</td><td>SPDR</td><td>SPI 数据寄存器。</td></tr>
+            <tr><td>0x0C (0x2C)</td><td>SPSR</td><td>SPI 状态寄存器。</td></tr>
+            <tr><td>0x0B (0x2B)</td><td>SPCR</td><td>SPI 控制寄存器。</td></tr>
+            <tr><td>0x2F (0x4F)</td><td>EECR</td><td>EEPROM 控制寄存器。</td></tr>
+            <tr><td>0x2E (0x4E)</td><td>EEDR</td><td>EEPROM 数据寄存器。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>4.指令系统</h2>
+        <h3>4.1 指令格式</h3>
+        <p>
+          AVR 指令长度有 16 位（单字）和 32 位（双字）两种：
+        </p>
+        <ul>
+          <li><strong>单字指令</strong>：大多数指令（ADD.MOV.LDI.CPI 等）。</li>
+          <li><strong>双字指令</strong>：需要较大立即数的指令（LDS.STS.CALL.JMP 等）。</li>
+        </ul>
+        <h3>4.2 主要指令分类</h3>
+        <table>
+          <thead>
+            <tr><th>类别</th><th>指令示例</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>算术运算</td><td>ADD.SUB.CPC.SBC<br>INC.DEC<br>MUL.MULS.MULSU（8×8 乘法）<br>ADIW.SBIW（16 位立即数加减）</td><td>直接在寄存器间运算。单周期执行（乘法 2 周期）。</td></tr>
+            <tr><td>逻辑运算</td><td>AND.ANDI.OR.ORI.EOR.COM</td><td>位操作指令。</td></tr>
+            <tr><td>移位操作</td><td>LSL.LSR.ROL.ROR.ASR</td><td>逻辑.算术和循环移位。</td></tr>
+            <tr><td>比较</td><td>CP.CPC.CPI</td><td>比较寄存器或与立即数比较，只影响标志位。</td></tr>
+            <tr><td>位操作</td><td>SET.CLT（设置/清除 T 位）<br>BSET.BCLR（设置/清除 SREG 位）<br>BLD.BST（位加载/存储）<br>SBIC.SBIS.SBRC.SBRS（位测试跳转）</td><td>AVR 有丰富的位操作指令。</td></tr>
+            <tr><td>分支跳转</td><td>RJMP.IJMP（相对/间接跳转）<br>RCALL.ICALL（相对/间接调用）<br>CALL.JMP（调用/跳转，支持 22 位地址）<br>RET.RETI（返回/中断返回）<br>BRNE.BREQ.BRGE.BRLT 等（条件跳转）</td><td>条件跳转基于 SREG 标志位。</td></tr>
+            <tr><td>加载存储</td><td>LD.ST（LDS.STS.IN.OUT）<br>MOV.MOVW（寄存器移动）<br>LDI（加载立即数）<br>LPM.SPM（Flash 读取/写入）<td>LD/ST 支持多种寻址模式。</td></tr>
+            <tr><td>数据传送</td><td>PUSH.POP<br>IN.OUT（I/O 端口访问）<td>堆栈和 I/O 寄存器访问。</td></tr>
+          </tbody>
+        </table>
+        <h3>4.3 寻址方式</h3>
+        <ul>
+          <li><strong>立即数寻址</strong>：LDI Rd, K（K 为 0~255 立即数）。</li>
+          <li><strong>直接寻址</strong>：STS/LDS（SRAM 地址）。</li>
+          <li><strong>寄存器直接寻址</strong>：MOV Rd, Rr。</li>
+          <li><strong>寄存器间接寻址</strong>：LD Rd, X/Y/Z（X=R27:R26，Y=R29:R28，Z=R31:R30）。</li>
+          <li><strong>带后增量的寄存器间接寻址</strong>：LD Rd, X+/Y+/Z+。</li>
+          <li><strong>带预减量的寄存器间接寻址</strong>：LD Rd, -X/-Y/-Z。</li>
+          <li><strong>程序存储器寻址</strong>：LPM（读取 Flash 中的常量表）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5.中断系统</h2>
+        <h3>5.1 中断机制</h3>
+        <p>
+          AVR 的中断是向量式，每个中断源有固定的向量地址：
+        </p>
+        <ul>
+          <li>中断向量位于 Flash 程序存储器的起始区域。</li>
+          <li>向量地址按中断优先级顺序排列（编号越小优先级越高）。</li>
+          <li>向量处通常放置 JMP 指令跳转到实际中断处理程序。</li>
+          <li>进入中断时，硬件自动清除 SREG 的 I 位（禁止嵌套），返回时自动恢复。</li>
+        </ul>
+        <h3>5.2 ATmega328P 中断向量表（部分）</h3>
+        <table>
+          <thead>
+            <tr><th>向量号</th><th>地址</th><th>中断源</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>0x0000</td><td>RESET</td><td>复位向量。</td></tr>
+            <tr><td>2</td><td>0x0002</td><td>INT0</td><td>外部中断 0。</td></tr>
+            <tr><td>3</td><td>0x0004</td><td>INT1</td><td>外部中断 1。</td></tr>
+            <tr><td>4</td><td>0x0006</td><td>PCINT0</td><td>引脚变化中断 0。</td></tr>
+            <tr><td>5</td><td>0x0008</td><td>PCINT1</td><td>引脚变化中断 1。</td></tr>
+            <tr><td>6</td><td>0x000A</td><td>PCINT2</td><td>引脚变化中断 2。</td></tr>
+            <tr><td>7</td><td>0x000C</td><td>WDT</td><td>看门狗定时器中断。</td></tr>
+            <tr><td>8</td><td>0x000E</td><td>TIMER2 COMPA</td><td>定时器 2 比较匹配 A。</td></tr>
+            <tr><td>9</td><td>0x0010</td><td>TIMER2 OVF</td><td>定时器 2 溢出。</td></tr>
+            <tr><td>10</td><td>0x0012</td><td>TIMER1 CAPT</td><td>定时器 1 捕获事件。</td></tr>
+            <tr><td>11</td><td>0x0014</td><td>TIMER1 COMPA</td><td>定时器 1 比较匹配 A。</td></tr>
+            <tr><td>18</td><td>0x0024</td><td>ADC</td><td>ADC 转换完成。</td></tr>
+            <tr><td>19</td><td>0x0026</td><td>USART RX</td><td>USART 接收完成。</td></tr>
+            <tr><td>20</td><td>0x0028</td><td>USART UDRE</td><td>USART 数据寄存器空。</td></tr>
+            <tr><td>21</td><td>0x002A</td><td>USART TX</td><td>USART 发送完成。</td></tr>
+            <tr><td>25</td><td>0x0032</td><td>SPI.ST</td><td>SPI 传输完成。</td></tr>
+          </tbody>
+        </table>
+        <h3>5.3 中断控制寄存器</h3>
+        <ul>
+          <li><strong>EICRA</strong>：外部中断控制寄存器（INT0.INT1 触发方式：上升/下降/低电平）。</li>
+          <li><strong>EIMSK</strong>：外部中断屏蔽寄存器（INT0.INT1 使能）。</li>
+          <li><strong>PCICR</strong>：引脚变化中断控制寄存器。</li>
+          <li><strong>PCMSK0~2</strong>：引脚变化中断屏蔽寄存器。</li>
+        </ul>
+        <h3>5.4 全局中断</h3>
+        <p>
+          SREG 的 I 位是全局中断使能位：
+        </p>
+        <ul>
+          <li><strong>sei</strong>（SET I）：置位 I，全局使能中断。</li>
+          <li><strong>cli</strong>（CLR I）：清零 I，全局禁止中断。</li>
+          <li>进入中断时 I 位自动清零，返回时自动恢复（如果使用了 RETI 指令）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6.定时器系统</h2>
+        <h3>6.1 ATmega328P 定时器</h3>
+        <p>
+          ATmega328P 有 3 个定时器：
+        </p>
+        <ul>
+          <li><strong>Timer/Counter0</strong>：8 位，通用 PWM 和定时。</li>
+          <li><strong>Timer/Counter1</strong>：16 位，高精度定时和 PWM。</li>
+          <li><strong>Timer/Counter2</strong>：8 位，支持异步操作（可用作 RTC）。</li>
+        </ul>
+        <h3>6.2 定时器模式</h3>
+        <ul>
+          <li><strong>普通模式</strong>：计数器从 0 向上计数到 TOP（0xFF 或 OCR0A），然后溢出回到 0。</li>
+          <li><strong>CTC 模式</strong>（Clear Timer on Compare）：计数器计到 OCRn 时清零，可产生精确频率。</li>
+          <li><strong>快速 PWM 模式</strong>：计数器从 0 向上到 TOP，然后直接回到 0（单斜坡）。</li>
+          <li><strong>相位修正 PWM</strong>：计数器从 0 向上到 TOP，再向下到 0（双斜坡），适合电机控制。</li>
+        </ul>
+        <h3>6.3 定时器寄存器</h3>
+        <ul>
+          <li><strong>TCNTn</strong>：定时器计数器寄存器（当前计数值）。</li>
+          <li><strong>OCRnA/B</strong>：输出比较寄存器（匹配时触发动作）。</li>
+          <li><strong>ICRn</strong>：输入捕获寄存器（Timer1 专用）。</li>
+          <li><strong>TCCRnA/B/C</strong>：定时器控制寄存器（模式.分频.输入捕获设置）。</li>
+          <li><strong>TIMSKn</strong>：定时器中断屏蔽寄存器。</li>
+          <li><strong>TIFRn</strong>：定时器中断标志寄存器。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7.串口通信</h2>
+        <h3>7.1 USART 寄存器</h3>
+        <ul>
+          <li><strong>UDRn</strong>：USART 数据寄存器（发送/接收缓冲）。</li>
+          <li><strong>UCSRnA/B/C</strong>：USART 控制和状态寄存器（工作模式.中断使能等）。</li>
+          <li><strong>UBRRnH/L</strong>：USART 波特率寄存器（16 位，分高低字节）。</li>
+        </ul>
+        <h3>7.2 波特率计算</h3>
+        <p>
+          波特率 = fosc / (16 × (UBRR + 1))
+        </p>
+        <p>
+          例如：16MHz 晶振，9600 波特 → UBRR = 16000000 / (16 × 9600) - 1 = 103.167 ≈ 103
+        </p>
+      </section>
+
+      <section>
+        <h2>8.工程实践要点</h2>
+        <ul>
+          <li><strong>熔丝位</strong>：AVR 有丰富的熔丝位（CKSEL.SUT.CKDIV8 等），决定时钟源.启动延时.BOD 电平等。上电复位后首次编程需正确配置熔丝位。</li>
+          <li><strong>看门狗</strong>：使能看门狗后，必须定期执行 WDR（喂狗）指令，否则芯片会复位。</li>
+          <li><strong>Arduino Bootloader</strong>：ATmega328P 出厂自带 Arduino Bootloader（1KB），支持串口上传程序。如果不需要 Bootloader，可以禁用以节省 1KB Flash 空间。</li>
+          <li><strong>熔丝位不可逆</strong>：某些熔丝位（如 SPIEN）需要高电压并行编程才能修改，一旦锁定可能无法再通过 ISP 编程。</li>
+          <li><strong>省电模式</strong>：AVR 支持 Idle.ADC Noise Reduction.Power-save.Power-down.Standby.Extended Standby 等多种省电模式，通过 SMCR 寄存器选择。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#mcu-common">返回 MCU专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
+</body>
+</html>

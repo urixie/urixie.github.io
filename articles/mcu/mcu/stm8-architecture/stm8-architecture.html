@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>STM8 架构详解 - XYJ</title>
+  <meta name="description" content="详细整理 STM8 内核架构.寄存器.指令系统.中断机制.存储布局和低功耗特性。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
+</head>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#mcu-common">返回 MCU专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">STM8 · STMICROELECTRONICS · 8-BIT · RISC</div>
+      <h1>STM8 架构详解</h1>
+
+      <p>
+        STM8 是 STMicroelectronics 推出的 8 位微控制器系列，以其高性能.低成本和完整的开发生态成为工业控制和消费电子的热门选择。STM8 内核源自 Intel 8051 的改良设计，但做了大量改进：单周期指令执行.更快的定时器.更丰富的外设。文章以 STM8S（标准系列）和 STM8L（低功耗系列）为参考。
+      </p>
+
+      <div class="article-note">
+        STM8 与 STM32 虽然名字相似，但内核完全不同：STM32 是 ARM Cortex-M 系列，STM8 是 ST 自研的 8 位架构。STM8 的优势是成本极低（批量单价不到 0.3 美元）、外设丰富、开发工具成熟（STVP.STM8CubeIDE）。
+      </div>
+
+      <section>
+        <h2>1.STM8 架构概述</h2>
+        <h3>1.1 内核特点</h3>
+        <ul>
+          <li><strong>Harvard 架构</strong>：程序总线和数据总线分离。</li>
+          <li><strong>单周期指令</strong>：大多数指令在 1 个机器周期（1~3 个时钟）内完成。</li>
+          <li><strong>24 位地址总线</strong>：可寻址 16MB 程序空间和 16MB 数据空间。</li>
+          <li><strong>16 个通用寄存器</strong>：8 位寄存器 X.Y.A.B.L.C.E.D（X/Y 是 16 位索引寄存器）。</li>
+          <li><strong>20 位程序计数器 PC</strong>：支持 1MB 程序空间。</li>
+          <li><strong>16 位堆栈指针 SP</strong>：支持 64KB 堆栈。</li>
+          <li><strong>内置 Flash</strong>：支持自编程（IAP）和 EEPROM 仿真。</li>
+        </ul>
+        <h3>1.2 STM8 系列划分</h3>
+        <table>
+          <thead>
+            <tr><th>系列</th><th>代表型号</th><th>Flash</th><th>SRAM</th><th>特色</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>STM8S</td><td>STM8S003</td><td>8KB</td><td>1KB</td><td>标准系列，通用控制</td></tr>
+            <tr><td>STM8S</td><td>STM8S103</td><td>8KB</td><td>1KB</td><td>标准系列</td></tr>
+            <tr><td>STM8S</td><td>STM8S207</td><td>128KB</td><td>6KB</td><td>高性能</td></tr>
+            <tr><td>STM8L</td><td>STM8L052</td><td>32KB</td><td>2KB</td><td>低功耗系列</td></tr>
+            <tr><td>STM8A</td><td>STM8AF52</td><td>64KB</td><td>3KB</td><td>汽车级</td></tr>
+            <tr><td>STM8T</td><td>STM8T141</td><td>8KB</td><td>1KB</td><td>触屏控制</td></tr>
+          </tbody>
+        </table>
+        <h3>1.3 内核结构</h3>
+        <p>
+          STM8 内核主要组成：
+        </p>
+        <ul>
+          <li><strong>8 位 ALU</strong>：算术逻辑单元。</li>
+          <li><strong>程序控制器</strong>：管理指令预取.跳转.中断等。</li>
+          <li><strong>寻址单元</strong>：处理各种寻址模式。</li>
+          <li><strong>中断控制器</strong>：支持硬件嵌套中断。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2.寄存器模型</h2>
+        <h3>2.1 通用寄存器</h3>
+        <p>
+          STM8 有 5 组主要寄存器：
+        </p>
+        <table>
+          <thead>
+            <tr><th>寄存器</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>A</td><td>累加器，8 位，主要用于算术运算和数据传送。</td></tr>
+            <tr><td>X</td><td>16 位索引寄存器，用于变址寻址（XH 为高 8 位，XL 为低 8 位）。</td></tr>
+            <tr><td>Y</td><td>16 位索引寄存器（YH.YL）。</td></tr>
+            <tr><td>CC</td><td>条件码寄存器（Condition Code），存放运算标志和控制位。</td></tr>
+            <tr><td>SP</td><td>堆栈指针，16 位，指向当前堆栈顶部（向下增长）。</td></tr>
+            <tr><td>PC</td><td>程序计数器，24 位（STM8 支持 16MB 程序空间）。</td></tr>
+          </tbody>
+        </table>
+        <h3>2.2 条件码寄存器 CC</h3>
+        <p>
+          CC 寄存器包含标志位和控制位：
+        </p>
+        <table>
+          <thead>
+            <tr><th>位</th><th>符号</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>C</td><td>进位/借位标志。</td></tr>
+            <tr><td>1</td><td>Z</td><td>零标志。</td></tr>
+            <tr><td>2</td><td>N</td><td>负数标志。</td></tr>
+            <tr><td>3</td><td>I1</td><td>中断屏蔽位 1（I1/I0 组合决定中断使能状态）。</td></tr>
+            <tr><td>4</td><td>I0</td><td>中断屏蔽位 0。</td></tr>
+            <tr><td>5</td><td>H</td><td>半进位（BCD 运算用）。</td></tr>
+            <tr><td>6</td><td>V</td><td>溢出标志（有符号运算）。</td></tr>
+            <tr><td>7</td><td>—</td><td>保留。</td></tr>
+          </tbody>
+        </table>
+        <p>
+          中断屏蔽由 I1:I0 组合决定：
+        </p>
+        <ul>
+          <li>I1=0, I0=0：所有中断禁止。</li>
+          <li>I1=0, I0=1：只允许最高优先级中断。</li>
+          <li>I1=1, I0=0：允许所有中断（已废弃，仅用于兼容）。</li>
+          <li>I1=1, I0=1：所有中断使能。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3.存储结构</h2>
+        <h3>3.1 地址空间</h3>
+        <p>
+          STM8 的程序空间和数据空间独立（Harvard 架构）：
+        </p>
+        <ul>
+          <li><strong>程序空间</strong>：最大 1MB（20 位地址），存放指令代码和常量表。</li>
+          <li><strong>数据空间</strong>：最大 16MB（24 位地址），包含 RAM 和外设寄存器。</li>
+        </ul>
+        <h3>3.2 数据存储器映射（STM8S003 为例）</h3>
+        <table>
+          <thead>
+            <tr><th>地址范围</th><th>区域</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0x0000~0x00FF</td><td>零页 RAM</td><td>可直接用 8 位地址访问。</td></tr>
+            <tr><td>0x0100~0x027F</td><td>硬件寄存器</td><td>CPU 和外设控制寄存器。</td></tr>
+            <tr><td>0x0280~0x027F</td><td>保留</td><td>—</td></tr>
+            <tr><td>0x0280~0x097F</td><td>数据 RAM</td><td>用户 RAM。</td></tr>
+            <tr><td>0x0x0000~0x3FFF</td><td>EEPROM</td><td>数据 EEPROM（部分型号）。</td></tr>
+            <tr><td>0x0000~0xFFFF</td><td>程序 Flash</td><td>最大 64KB（STM8S003 为 8KB）。</td></tr>
+          </tbody>
+        </table>
+        <h3>3.3 重要外设寄存器</h3>
+        <ul>
+          <li><strong>PA/PB/PC/PD</strong>：GPIO 端口寄存器。</li>
+          <li><strong>PA_ODR.PA_DDR</strong>：端口数据方向和数据输出寄存器。</li>
+          <li><strong>TIM1~TIM5</strong>：定时器（16 位通用定时器）。</li>
+          <li><strong>UART1/UART2</strong>：串口。</li>
+          <li><strong>SPI</strong>：串行外设接口。</li>
+          <li><strong>I2C</strong>：I2C 总线接口。</li>
+          <li><strong>ADC1/ADC2</strong>：模数转换器。</li>
+          <li><strong>AWU</strong>：自动唤醒单元。</li>
+          <li><strong>IWDG/WWDG</strong>：独立/窗口看门狗。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4.指令系统</h2>
+        <h3>4.1 指令格式</h3>
+        <p>
+          STM8 指令长度有 1.2.3.4 字节几种：
+        </p>
+        <ul>
+          <li><strong>1 字节指令</strong>：如 NOP（0x82），INC A（0x4C）。</li>
+          <li><strong>2 字节指令</strong>：如 ADD A,#imm（0x84 imm），LD X,spi（0x72）。</li>
+          <li><strong>3 字节指令</strong>：如 JP rel（0xCC rel:16），CALL rel（0xCD rel:16）。</li>
+          <li><strong>4 字节指令</strong>：如 LD A,abs16（0x72 abs16）。</li>
+        </ul>
+        <h3>4.2 主要指令分类</h3>
+        <table>
+          <thead>
+            <tr><th>类别</th><th>指令</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>算术运算</td><td>ADD.ADC.SUB.SBC.ADDX.SUBX<br>INC.DEC.ADDW.SUBW<br>MUL.DIV（16×16）</td><td>ADDX.SUBX 为 16 位运算。MUL 为无符号乘法，DIV 为除法。</td></tr>
+            <tr><td>逻辑运算</td><td>AND.OR.XOR.CPL.CLP</td><td>CPL 取反，CLP 清除奇偶标志。</td></tr>
+            <tr><td>移位操作</td><td>SLA.SRA.SRL.RLC.RRC.SWAP</td><td>SLA 算术左移，SRA 算术右移，SRL 逻辑右移，SWAP 半字节交换。</td></tr>
+            <tr><td>分支跳转</td><td>JP.JRPA.JRNE.IFNE.IFEQ<br>CALL.CALLF.RET.RETF<br>BTJF.BTJT（位测试跳转）</td><td>JRx 为短跳转（PC 相对）。BTJF/BTJT 是非常有用的位测试后跳转指令。</td></tr>
+            <tr><td>数据传送</td><td>MOV.LD.ST.PUSH.POP<br>EXG.XCH</td><td>MOV 是最常用的传送指令。EXG 交换两个寄存器内容。</td></tr>
+            <tr><td>寻址模式</td><td>LD A,（X） ; 间接寻址<br>LD A,（Y） ; Y 间接<br>LD A,（X+） ; 后增</td><td>支持寄存器间接和后增量寻址。</td></tr>
+          </tbody>
+        </table>
+        <h3>4.3 寻址方式</h3>
+        <ul>
+          <li><strong>立即数寻址</strong>：ADD A,#imm。</li>
+          <li><strong>直接寻址</strong>：LD A,addr 或 LD A,((addr))。</li>
+          <li><strong>寄存器直接寻址</strong>：ADD A,B。</li>
+          <li><strong>寄存器间接寻址</strong>：LD A,(X)。(Y)。(SP)。</li>
+          <li><strong>后增量间接寻址</strong>：LD A,(X+)。</li>
+          <li><strong>变址寻址</strong>：LD A,(X+disp)。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5.中断系统</h2>
+        <h3>5.1 中断概述</h3>
+        <p>
+          STM8 有 2 级优先级中断，所有外设中断可嵌套：
+        </p>
+        <ul>
+          <li>每个外设中断可以设置为高优先级或低优先级。</li>
+          <li>高优先级中断可以打断低优先级中断（嵌套）。</li>
+          <li>低优先级中断不能打断高优先级中断。</li>
+          <li>相同优先级的中断按固定顺序处理（不可嵌套）。</li>
+        </ul>
+        <h3>5.2 中断向量表（STM8S003 部分）</h3>
+        <table>
+          <thead>
+            <tr><th>向量号</th><th>地址</th><th>中断源</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>0x8000</td><td>复位</td></tr>
+            <tr><td>1</td><td>0x8004</td><td>TRAP（软件中断）</td></tr>
+            <tr><td>2</td><td>0x8008</td><td>TLI（外部中断）</td></tr>
+            <tr><td>3</td><td>0x800C</td><td>AWU（自动唤醒）</td></tr>
+            <tr><td>4</td><td>0x8010</td><td>EXTI Port A</td></tr>
+            <tr><td>5</td><td>0x8014</td><td>EXTI Port B</td></tr>
+            <tr><td>6</td><td>0x8018</td><td>EXTI Port C/D</td></tr>
+            <tr><td>7</td><td>0x801C</td><td>EXTI Port D</td></tr>
+            <tr><td>10</td><td>0x8028</td><td>Timer1 Update</td></tr>
+            <tr><td>11</td><td>0x802C</td><td>Timer1 Capture/Compare</td></tr>
+            <tr><td>13</td><td>0x8034</td><td>Timer2 Update</td></tr>
+            <tr><td>14</td><td>0x8038</td><td>Timer2 Capture/Compare</td></tr>
+            <tr><td>19</td><td>0x804C</td><td>SPI End of Transfer</td></tr>
+            <tr><td>20</td><td>0x8050</td><td>USART TX Complete</td></tr>
+            <tr><td>21</td><td>0x8054</td><td>USART RX Complete</td></tr>
+            <tr><td>24</td><td>0x8060</td><td>I2C Interrupt</td></tr>
+          </tbody>
+        </table>
+        <h3>5.3 中断控制寄存器</h3>
+        <ul>
+          <li><strong>ITC_SPR1~ITC_SPR7</strong>：中断优先级配置（每 4 个中断源一组）。</li>
+          <li><strong>EXTI_CR1~EXTI_CR3</strong>：外部中断配置（触发沿选择）。</li>
+          <li><strong>ITC</strong>：中断优先级控制。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6.低功耗特性</h2>
+        <h3>6.1 功耗模式</h3>
+        <p>
+          STM8L 系列支持多种低功耗模式：
+        </p>
+        <ul>
+          <li><strong>Wait/Active Halt</strong>：CPU 停止，外设继续运行，可被中断唤醒。</li>
+          <li><strong>Halt</strong>：所有时钟停止，最低功耗，只有外部中断或 RESET 唤醒。</li>
+          <li><strong>Auto Wake from Halt</strong>：AWU 在 Halt 模式下工作，定时唤醒。</li>
+        </ul>
+        <h3>6.2 STM8L 特色外设</h3>
+        <ul>
+          <li><strong>AWU</strong>：自动唤醒单元，可在 Halt 模式下周期性唤醒 CPU。</li>
+          <li><strong>LSI</strong>：内部低速振荡器（128kHz），用于 AWU 和看门狗。</li>
+          <li><strong>LSI</strong>：高精度内部参考电压（Vrefint）用于 ADC。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7.工程实践要点</h2>
+        <ul>
+          <li><strong>看门狗</strong>：STM8 的看门狗（IWDG）一旦使能无法关闭，必须周期性喂狗。WWDG（窗口看门狗）可设置窗口范围。</li>
+          <li><strong>GPIO 配置</strong>：每个 GPIO 端口有 DDR（方向）、ODR（输出）、IDR（输入）寄存器。配置输出时需设置 DDR=1。</li>
+          <li><strong>定时器</strong>：STM8 的 Timer1 是 16 位高级定时器，支持 PWM.输入捕获.输出比较。Timer2/3 是通用定时器。</li>
+          <li><strong>Flash 自编程</strong>：通过 IAP（In-Application Programming）可在运行时更新 Flash 内容，适合 OTA 升级或参数存储。</li>
+          <li><strong>熔丝位</strong>：STM8 有 OPT 字节选项，可设置看门狗使能/禁止-boot loader 入口等。与 PIC 的熔丝位类似。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#mcu-common">返回 MCU专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
+</body>
+</html>
