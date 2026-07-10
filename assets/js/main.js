@@ -359,6 +359,7 @@ function renderSectionInto(content, section) {
   content.scrollTop = 0;
   initCopyButtons(content);
   enhanceArticleTables(content);
+  enhanceArticleImageZoom(content);
 }
 
 function createSectionedArticleReader(articleRoot) {
@@ -764,10 +765,125 @@ function enhanceArticleTables(root = document) {
   });
 }
 
+function enhanceArticleImageZoom(root = document) {
+  const images = root.querySelectorAll('.article img');
+
+  images.forEach(image => {
+    if (image.closest('.article-image-zoom-container')) return;
+
+    const container = document.createElement('div');
+    container.className = 'article-image-zoom-container';
+    container.tabIndex = 0;
+    container.setAttribute('aria-label', '文章图片，可使用鼠标滚轮缩放');
+    container.title = '滚轮放大或缩小，放大后可拖拽查看';
+    image.parentNode.insertBefore(container, image);
+    container.appendChild(image);
+
+    const controls = document.createElement('div');
+    controls.className = 'article-image-zoom-controls';
+    const zoomOutButton = document.createElement('button');
+    const resetButton = document.createElement('button');
+    const zoomInButton = document.createElement('button');
+    zoomOutButton.type = 'button';
+    resetButton.type = 'button';
+    zoomInButton.type = 'button';
+    zoomOutButton.className = 'article-image-zoom-control';
+    resetButton.className = 'article-image-zoom-control article-image-zoom-reset';
+    zoomInButton.className = 'article-image-zoom-control';
+    zoomOutButton.textContent = '−';
+    resetButton.textContent = '100%';
+    zoomInButton.textContent = '+';
+    zoomOutButton.setAttribute('aria-label', '缩小图片');
+    resetButton.setAttribute('aria-label', '恢复图片原始大小');
+    zoomInButton.setAttribute('aria-label', '放大图片');
+    controls.append(zoomOutButton, resetButton, zoomInButton);
+    container.appendChild(controls);
+
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const applyTransform = () => {
+      image.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      container.classList.toggle('is-zoomed', scale > 1);
+      zoomOutButton.disabled = scale <= 1;
+      zoomInButton.disabled = scale >= 4;
+      resetButton.textContent = `${Math.round(scale * 100)}%`;
+    };
+
+    const setScale = (nextScale, clientX, clientY) => {
+      scale = Number(Math.min(4, Math.max(1, nextScale)).toFixed(2));
+      if (scale === 1) {
+        offsetX = 0;
+        offsetY = 0;
+        image.style.transformOrigin = 'center center';
+      } else if (clientX !== undefined && clientY !== undefined) {
+        const rect = container.getBoundingClientRect();
+        const originX = ((clientX - rect.left) / rect.width) * 100;
+        const originY = ((clientY - rect.top) / rect.height) * 100;
+        image.style.transformOrigin = `${originX}% ${originY}%`;
+      }
+      applyTransform();
+    };
+
+    container.addEventListener('wheel', event => {
+      const deltaY = event.deltaY || (event.wheelDelta ? -event.wheelDelta : 0);
+      if (!deltaY || (scale === 1 && deltaY > 0)) return;
+      event.preventDefault();
+      setScale(scale + (deltaY < 0 ? 0.2 : -0.2), event.clientX, event.clientY);
+    }, { passive: false });
+
+    zoomOutButton.addEventListener('click', () => setScale(scale - 0.2));
+    resetButton.addEventListener('click', () => setScale(1));
+    zoomInButton.addEventListener('click', () => setScale(scale + 0.2));
+
+    image.addEventListener('dblclick', event => {
+      event.preventDefault();
+      setScale(scale > 1 ? 1 : 2, event.clientX, event.clientY);
+    });
+
+    image.addEventListener('pointerdown', event => {
+      if (scale <= 1) return;
+      event.preventDefault();
+      isDragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      container.classList.add('is-dragging');
+      image.setPointerCapture(event.pointerId);
+    });
+
+    image.addEventListener('pointermove', event => {
+      if (!isDragging) return;
+      offsetX += event.clientX - lastX;
+      offsetY += event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      applyTransform();
+    });
+
+    const stopDragging = event => {
+      if (!isDragging) return;
+      isDragging = false;
+      container.classList.remove('is-dragging');
+      if (event.pointerId !== undefined && image.hasPointerCapture(event.pointerId)) {
+        image.releasePointerCapture(event.pointerId);
+      }
+    };
+
+    image.addEventListener('pointerup', stopDragging);
+    image.addEventListener('pointercancel', stopDragging);
+    applyTransform();
+  });
+}
+
 function initArticlePage(root = document) {
   buildArticleToc(root);
   initCopyButtons(root);
   enhanceArticleTables(root);
+  enhanceArticleImageZoom(root);
 }
 
 window.initArticlePage = initArticlePage;

@@ -227,3 +227,97 @@
     font-size: 11px;
   }
 }
+
+/* 文章图片：容器内使用鼠标滚轮缩放，放大后可拖拽查看。 */
+.article-image-zoom-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+  cursor: zoom-in;
+}
+
+.article-image-zoom-container > img {
+  display: block;
+  transform-origin: center center;
+  transition: transform 0.12s ease;
+  user-select: none;
+  cursor: zoom-in;
+}
+
+.article-image-zoom-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.article-image-zoom-container:hover .article-image-zoom-controls,
+.article-image-zoom-container:focus-within .article-image-zoom-controls,
+.article-image-zoom-container.is-zoomed .article-image-zoom-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.article-image-zoom-control {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 6px;
+  color: rgba(230, 240, 255, 0.92);
+  background: rgba(17, 24, 34, 0.86);
+  font: 700 14px/1 Consolas, "Microsoft YaHei", sans-serif;
+  cursor: pointer;
+}
+
+.article-image-zoom-reset {
+  min-width: 42px;
+  font-size: 11px;
+}
+
+.article-image-zoom-control:hover:not(:disabled) {
+  border-color: rgba(0, 230, 118, 0.64);
+  color: #b8f7d0;
+}
+
+.article-image-zoom-control:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.article-image-zoom-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.article-image-zoom-container.is-zoomed {
+  cursor: grab;
+}
+
+.article-image-zoom-container.is-zoomed > img {
+  cursor: grab;
+  touch-action: none;
+}
+
+.article-image-zoom-container.is-dragging,
+.article-image-zoom-container.is-dragging > img {
+  cursor: grabbing;
+}
+
+.article-image-zoom-container:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article-image-zoom-container > img,
+  .article-image-zoom-controls {
+    transition: none;
+  }
+}
