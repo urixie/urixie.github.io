@@ -17,18 +17,32 @@
     height: 100dvh !important;
     max-height: 100dvh !important;
     min-height: 0 !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    align-items: start !important;
     overflow: hidden !important;
   }
 
-  .primary-sidebar,
+  .primary-sidebar {
+    top: 8px !important;
+    height: calc(100dvh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+
   .secondary-sidebar {
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    top: 8px !important;
+    align-self: start !important;
+    height: auto !important;
+    max-height: calc(100dvh - 16px) !important;
+    min-height: 0 !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    overflow-y: auto !important;
   }
 
   .content.home-content {
-    height: calc(100dvh - 48px) !important;
-    max-height: calc(100dvh - 48px) !important;
+    height: calc(100dvh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
     min-height: 0 !important;
     overflow: hidden !important;
   }
@@ -38,6 +52,7 @@
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
+    margin-top: 0 !important;
     display: grid !important;
     grid-template-rows: auto minmax(0, 1fr) !important;
     overflow: hidden !important;
@@ -46,9 +61,15 @@
   .home-content .section-title {
     position: relative !important;
     z-index: 2 !important;
+    margin-top: 0 !important;
     margin-bottom: 0 !important;
-    padding-bottom: 8px !important;
+    padding-top: 0 !important;
+    padding-bottom: 4px !important;
     flex: 0 0 auto !important;
+  }
+
+  .home-content .section-title h2 {
+    line-height: 1.12 !important;
   }
 
   .home-content .article-list {
@@ -63,11 +84,12 @@
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
+    margin-top: 0 !important;
     overflow: hidden !important;
     display: grid !important;
     grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) !important;
     align-items: stretch !important;
-    padding-top: 4px !important;
+    padding-top: 0 !important;
   }
 
   .inline-section-content {
@@ -78,10 +100,13 @@
     overflow-x: hidden !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
-    padding-top: 16px !important;
+    padding-top: 10px !important;
   }
 
+  .inline-section-content.article > h1:first-child,
   .inline-section-content.article > h2:first-child,
+  .inline-section-content.article > section:first-child,
+  .inline-section-content.article > section:first-child > h1:first-child,
   .inline-section-content.article > section:first-child > h2:first-child {
     margin-top: 0 !important;
   }
