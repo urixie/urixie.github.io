@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 250" role="img" aria-labelledby="title desc">
+  <title id="title">嵌入式 C 数据处理流程</title>
+  <desc id="desc">从外设字节流到类型转换、校验、业务处理和输出的流程图</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker></defs>
+  <rect width="960" height="250" rx="22" fill="#0f172a"/>
+  <g font-family="Microsoft YaHei, Segoe UI, sans-serif" text-anchor="middle">
+    <rect x="35" y="78" width="150" height="86" rx="14" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="110" y="112" fill="#dbeafe" font-size="18">外设输入</text><text x="110" y="140" fill="#93c5fd" font-size="14">UART / SPI / ADC</text>
+    <rect x="225" y="78" width="150" height="86" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/><text x="300" y="112" fill="#d1fae5" font-size="18">类型转换</text><text x="300" y="140" fill="#86efac" font-size="14">宽度 / 符号 / 单位</text>
+    <rect x="415" y="78" width="150" height="86" rx="14" fill="#422006" stroke="#f59e0b" stroke-width="2"/><text x="490" y="112" fill="#fef3c7" font-size="18">边界校验</text><text x="490" y="140" fill="#fcd34d" font-size="14">长度 / 超时 / CRC</text>
+    <rect x="605" y="78" width="150" height="86" rx="14" fill="#3b0764" stroke="#c084fc" stroke-width="2"/><text x="680" y="112" fill="#f3e8ff" font-size="18">业务状态</text><text x="680" y="140" fill="#d8b4fe" font-size="14">状态机 / 错误码</text>
+    <rect x="795" y="78" width="130" height="86" rx="14" fill="#164e63" stroke="#22d3ee" stroke-width="2"/><text x="860" y="112" fill="#cffafe" font-size="18">输出</text><text x="860" y="140" fill="#67e8f9" font-size="14">寄存器 / UI / 回复帧</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"><path d="M185 121H215"/><path d="M375 121H405"/><path d="M565 121H595"/><path d="M755 121H785"/></g>
+</svg>

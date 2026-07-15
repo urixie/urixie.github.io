@@ -8,13 +8,13 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言数据存储与指针整理 - XYJ</title>
   <meta name="description" content="整理 C 语言数据存储与指针，包括大小端.有符号无符号.溢出.类型转换.数据对齐.size_t.typedef.enum.常量变量.数组与指针.多级指针.函数指针和 void。">
-  <link rel="stylesheet" href="../../../assets/css/style.css?v=ef7caca13ac7">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=bc26d38b1d83">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../../index.html?v=ef7caca13ac7">← 返回首页</a>
-      <a href="../../../index.html?v=ef7caca13ac7#c-data-storage">返回 C语言专题</a>
+      <a href="../../../index.html?v=bc26d38b1d83">← 返回首页</a>
+      <a href="../../../index.html?v=bc26d38b1d83#c-data-storage">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -469,7 +469,49 @@ void *memcpy(void *dst, const void *src, size_t n);</code></pre>
       </section>
 
       <section>
-        <h2>14.工程检查清单</h2>
+        <h2>14.完整案例：把配置结构序列化为稳定字节</h2>
+        <p>
+          下面的配置包含版本号、温度设定值和工作模式。它可以写入 Flash，也可以通过串口发送给上位机。示例故意不使用 <code>memcpy</code> 直接复制结构体，而是逐字段写入字节数组，这样填充字节、编译器对齐方式和 CPU 大小端都不会偷偷改变数据格式。
+        </p>
+        <figure class="article-figure">
+          <img src="images/c-data-layout.svg?v=bc26d38b1d83" alt="业务字段经过显式序列化转换为协议和 Flash 字节流的示意图">
+          <figcaption>图 1：内部数据结构与外部字节格式之间必须有明确的序列化边界。</figcaption>
+        </figure>
+        <pre><code>#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+
+typedef struct {
+    uint8_t version;
+    int16_t temperature_x10;
+    uint8_t mode;
+} device_config_t;
+
+static void put_le16(uint8_t *dst, uint16_t value)
+{
+    dst[0] = (uint8_t)(value &amp; 0xFFU);
+    dst[1] = (uint8_t)(value &gt;&gt; 8);
+}
+
+size_t config_encode(const device_config_t *cfg,
+                     uint8_t *out,
+                     size_t capacity)
+{
+    if (cfg == NULL || out == NULL || capacity &lt; 4U) {
+        return 0U;
+    }
+
+    out[0] = cfg-&gt;version;
+    put_le16(&amp;out[1], (uint16_t)cfg-&gt;temperature_x10);
+    out[3] = cfg-&gt;mode;
+    return 4U;
+}</code></pre>
+        <p>
+          这里的长度返回值同时承担“成功输出了多少字节”的作用，调用者可以继续追加 CRC 或写入 Flash。读取时应检查版本、总长度、温度范围和模式枚举值；如果配置格式会长期演进，还应增加 magic、长度和 CRC，而不是只依赖结构体大小。
+        </p>
+      </section>
+
+      <section>
+        <h2>15.工程检查清单</h2>
         <ul>
           <li>跨设备数据是否使用固定宽度类型。</li>
           <li>协议解析是否明确大小端。</li>
@@ -486,11 +528,11 @@ void *memcpy(void *dst, const void *src, size_t n);</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../index.html?v=ef7caca13ac7#c-data-storage">返回 C语言专题</a>
+        <a href="../../../index.html?v=bc26d38b1d83#c-data-storage">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../assets/js/main.js?v=ef7caca13ac7"></script>
+  <script src="../../../assets/js/main.js?v=bc26d38b1d83"></script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+  <title id="title">协议数据从字段到字节流</title>
+  <desc id="desc">展示显式大小端序列化与解析的双向过程</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker></defs>
+  <rect width="960" height="300" rx="22" fill="#0f172a"/>
+  <g font-family="Microsoft YaHei, Segoe UI, sans-serif">
+    <text x="480" y="40" fill="#e2e8f0" font-size="20" text-anchor="middle">设备配置：温度 25.6°C，模式 2</text>
+    <rect x="55" y="86" width="190" height="100" rx="14" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="150" y="122" fill="#dbeafe" font-size="18" text-anchor="middle">业务字段</text><text x="150" y="152" fill="#93c5fd" font-size="14" text-anchor="middle">temp_x10 = 256</text>
+    <rect x="310" y="86" width="190" height="100" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/><text x="405" y="122" fill="#d1fae5" font-size="18" text-anchor="middle">序列化规则</text><text x="405" y="152" fill="#86efac" font-size="14" text-anchor="middle">LE: 00 01 02</text>
+    <rect x="565" y="86" width="340" height="100" rx="14" fill="#422006" stroke="#f59e0b" stroke-width="2"/><text x="735" y="122" fill="#fef3c7" font-size="18" text-anchor="middle">通信 / Flash 字节</text><text x="735" y="154" fill="#fcd34d" font-size="17" text-anchor="middle">A5 02 00 01 02 CRC</text>
+    <path d="M245 136H300" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/><path d="M500 136H555" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M735 205V240H150V205" fill="none" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="440" y="266" fill="#d8b4fe" font-size="15" text-anchor="middle">解析时沿同一规则反向读取，不能直接把 struct 内存当作协议格式</text>
+  </g>
+</svg>

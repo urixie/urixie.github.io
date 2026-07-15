@@ -8,13 +8,13 @@
   <meta name='bingbot' content='noindex, nofollow, noarchive, nosnippet, noimageindex'>
   <title>嵌入式 C 关键语法与 GNU C 扩展实践 - XYJ</title>
   <meta name='description' content='整理嵌入式 C 与 GNU C 扩展语法，包括指定初始化.语句表达式.typeof.container_of.零长度数组.section.aligned.packed.format.weak.alias.inline.内建函数和可变参数宏。'>
-  <link rel='stylesheet' href='../../../assets/css/style.css?v=ef7caca13ac7'>
+  <link rel='stylesheet' href='../../../assets/css/style.css?v=bc26d38b1d83'>
 </head>
 <body>
   <main class='article-page-shell'>
     <div class='article-topbar'>
-      <a href='../../../index.html?v=ef7caca13ac7'>← 返回首页</a>
-      <a href='../../../index.html?v=ef7caca13ac7#c-embedded'>返回 C语言专题</a>
+      <a href='../../../index.html?v=bc26d38b1d83'>← 返回首页</a>
+      <a href='../../../index.html?v=bc26d38b1d83#c-embedded'>返回 C语言专题</a>
     </div>
 
     <article class='article card'>
@@ -450,7 +450,61 @@ if (__builtin_expect(error_code != 0, 0)) {
       </section>
 
       <section>
-        <h2>18.GNU C 扩展使用检查清单</h2>
+        <h2>18.综合案例：中断采样与业务任务协作</h2>
+        <p>
+          在传感器或 UART 场景中，中断服务程序只适合快速确认硬件事件、保存少量数据并通知任务；协议解析、日志输出和复杂计算应放到主循环或 RTOS 任务中。<code>volatile</code> 只能保证编译器每次重新读取变量，不能自动提供多字节原子性和线程安全。
+        </p>
+        <figure class="article-figure">
+          <img src="images/c-embedded-concurrency.svg?v=bc26d38b1d83" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图">
+          <figcaption>图 1：中断与业务任务之间要有清楚的数据交接边界。</figcaption>
+        </figure>
+        <pre><code>#include &lt;stdbool.h&gt;
+#include &lt;stdint.h&gt;
+
+static volatile bool s_sample_ready;
+static volatile uint16_t s_sample_value;
+
+void adc_irq_handler(uint16_t raw)
+{
+    s_sample_value = raw;      // 确认写入宽度和硬件约束
+    s_sample_ready = true;     // 只发布事件，不做耗时处理
+}
+
+void app_poll(void)
+{
+    uint16_t sample;
+
+    if (!s_sample_ready) {
+        return;
+    }
+
+    sample = s_sample_value;
+    s_sample_ready = false;
+    app_update_filter(sample);
+}</code></pre>
+        <p>
+          如果中断可能连续到来，上面的单个标志会丢失事件，此时应改用环形队列、RTOS 消息队列或计数器；如果 CPU 是多核或共享数据超过一个机器字，还要使用项目提供的原子操作或临界区。判断扩展是否值得使用时，要同时看性能收益、编译器依赖和调试成本。
+        </p>
+      </section>
+
+      <section>
+        <h2>19.场景化选择：标准 C 还是 GNU C</h2>
+        <table>
+          <thead><tr><th>需求</th><th>优先选择</th><th>原因</th><th>验证方式</th></tr></thead>
+          <tbody>
+            <tr><td>跨编译器公共模块</td><td>标准 C + 固定宽度类型</td><td>减少工具链绑定</td><td>至少用两套编译器构建</td></tr>
+            <tr><td>启动段 / DMA / 链接布局</td><td><code>section</code>、<code>aligned</code></td><td>表达硬件放置要求</td><td>查看 map 和链接脚本</td></tr>
+            <tr><td>内核式容器代码</td><td><code>typeof</code>、<code>container_of</code></td><td>减少重复类型书写</td><td>限制在底层框架并做静态检查</td></tr>
+            <tr><td>日志与断言</td><td><code>format</code>、可变参数宏</td><td>保留调用点并检查格式串</td><td>构造缺失参数和类型错误测试</td></tr>
+          </tbody>
+        </table>
+        <p>
+          扩展不是越多越好。每使用一个 GNU C 特性，都应在项目文档中写明编译选项、替代方案和适用边界，避免未来把驱动代码迁移到另一套工具链时才发现整个模块无法编译。
+        </p>
+      </section>
+
+      <section>
+        <h2>20.GNU C 扩展使用检查清单</h2>
         <ul>
           <li>是否明确知道当前项目使用的是 <code>-std=c*</code> 还是 <code>-std=gnu*</code>。</li>
           <li>指定初始化是否能替代容易错位的顺序初始化。</li>
@@ -468,11 +522,11 @@ if (__builtin_expect(error_code != 0, 0)) {
       </section>
 
       <div class='article-footer'>
-        <a href='../../../index.html?v=ef7caca13ac7#c-embedded'>返回 C语言专题</a>
+        <a href='../../../index.html?v=bc26d38b1d83#c-embedded'>返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src='../../../assets/js/main.js?v=ef7caca13ac7'></script>
+  <script src='../../../assets/js/main.js?v=bc26d38b1d83'></script>
 </body>
 </html>

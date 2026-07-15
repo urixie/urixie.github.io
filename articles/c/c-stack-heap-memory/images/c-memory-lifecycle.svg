@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+  <title id="title">不同内存区域的生命周期</title>
+  <desc id="desc">比较栈、静态区和堆的生命周期与适用场景</desc>
+  <rect width="960" height="300" rx="22" fill="#0f172a"/>
+  <g font-family="Microsoft YaHei, Segoe UI, sans-serif">
+    <line x1="145" y1="235" x2="865" y2="235" stroke="#94a3b8" stroke-width="2"/><text x="865" y="265" fill="#cbd5e1" font-size="14" text-anchor="end">程序运行时间 →</text>
+    <g text-anchor="middle"><text x="235" y="46" fill="#dbeafe" font-size="19">栈</text><text x="235" y="70" fill="#93c5fd" font-size="14">进入函数创建</text><rect x="170" y="105" width="130" height="100" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="235" y="160" fill="#bfdbfe" font-size="17">短生命周期</text><text x="235" y="186" fill="#93c5fd" font-size="13">局部变量 / 小对象</text>
+    <text x="480" y="46" fill="#d1fae5" font-size="19">静态区</text><text x="480" y="70" fill="#86efac" font-size="14">程序启动时创建</text><rect x="390" y="105" width="180" height="100" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="2"/><text x="480" y="160" fill="#bbf7d0" font-size="17">贯穿全程</text><text x="480" y="186" fill="#86efac" font-size="13">全局 / static / 常量</text>
+    <text x="740" y="46" fill="#fef3c7" font-size="19">堆</text><text x="740" y="70" fill="#fcd34d" font-size="14">运行时申请</text><rect x="650" y="105" width="180" height="100" rx="10" fill="#422006" stroke="#f59e0b" stroke-width="2"/><text x="740" y="160" fill="#fde68a" font-size="17">手动管理</text><text x="740" y="186" fill="#fcd34d" font-size="13">对象池 / malloc</text></g>
+    <path d="M170 220V235M300 220V235M390 220V235M570 220V235M650 220V235M830 220V235" stroke="#64748b" stroke-width="2"/>
+  </g>
+</svg>

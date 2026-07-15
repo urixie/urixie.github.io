@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+  <title id="title">指针接口的三件事</title>
+  <desc id="desc">指针接口必须同时说明地址、长度和所有权</desc>
+  <rect width="960" height="300" rx="22" fill="#0f172a"/>
+  <g font-family="Microsoft YaHei, Segoe UI, sans-serif" text-anchor="middle">
+    <text x="480" y="42" fill="#e2e8f0" font-size="21">每一个 buffer 指针都要回答三个问题</text>
+    <circle cx="205" cy="145" r="76" fill="#172554" stroke="#60a5fa" stroke-width="3"/><text x="205" y="140" fill="#dbeafe" font-size="20">指向哪里</text><text x="205" y="169" fill="#93c5fd" font-size="14">有效地址 / 生命周期</text>
+    <circle cx="480" cy="145" r="76" fill="#064e3b" stroke="#34d399" stroke-width="3"/><text x="480" y="140" fill="#d1fae5" font-size="20">有多长</text><text x="480" y="169" fill="#86efac" font-size="14">len / capacity / 边界</text>
+    <circle cx="755" cy="145" r="76" fill="#422006" stroke="#f59e0b" stroke-width="3"/><text x="755" y="140" fill="#fef3c7" font-size="20">谁负责</text><text x="755" y="169" fill="#fcd34d" font-size="14">借用 / 转移 / 释放</text>
+    <path d="M281 145H403M557 145H679" stroke="#94a3b8" stroke-width="2"/>
+    <text x="480" y="260" fill="#cbd5e1" font-size="16">缺少任意一项，都可能变成越界访问、悬空指针或重复释放</text>
+  </g>
+</svg>

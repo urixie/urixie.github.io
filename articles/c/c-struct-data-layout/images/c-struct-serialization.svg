@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+  <title id="title">结构体与外部数据格式的边界</title>
+  <desc id="desc">展示内部结构体通过序列化函数转换为稳定字节格式</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker></defs>
+  <rect width="960" height="300" rx="22" fill="#0f172a"/>
+  <g font-family="Microsoft YaHei, Segoe UI, sans-serif" text-anchor="middle">
+    <rect x="60" y="72" width="230" height="150" rx="14" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="175" y="108" fill="#dbeafe" font-size="19">内部 struct</text><text x="175" y="142" fill="#93c5fd" font-size="14">便于业务访问</text><text x="175" y="168" fill="#93c5fd" font-size="14">可能有填充 / 对齐</text><text x="175" y="194" fill="#fca5a5" font-size="14">不能直接发送</text>
+    <rect x="365" y="72" width="230" height="150" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/><text x="480" y="108" fill="#d1fae5" font-size="19">encode / decode</text><text x="480" y="142" fill="#86efac" font-size="14">字段顺序</text><text x="480" y="168" fill="#86efac" font-size="14">宽度 / 大小端</text><text x="480" y="194" fill="#fcd34d" font-size="14">长度 / CRC / 版本</text>
+    <rect x="670" y="72" width="230" height="150" rx="14" fill="#422006" stroke="#f59e0b" stroke-width="2"/><text x="785" y="108" fill="#fef3c7" font-size="19">外部字节格式</text><text x="785" y="142" fill="#fcd34d" font-size="14">协议 / Flash / 文件</text><text x="785" y="168" fill="#fcd34d" font-size="14">跨编译器仍稳定</text><text x="785" y="194" fill="#d8b4fe" font-size="14">可做版本兼容</text>
+    <path d="M290 147H355" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/><path d="M595 147H660" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  </g>
+</svg>
