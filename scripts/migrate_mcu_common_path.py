@@ -11,6 +11,8 @@ SOURCE = ROOT / "articles/mcu/mcu"
 TARGET = ROOT / "articles/mcu/common"
 OLD_PREFIX = "articles/mcu/mcu/"
 NEW_PREFIX = "articles/mcu/common/"
+VALIDATOR = ROOT / "scripts/validate_site_structure.py"
+SELF = Path(__file__).resolve()
 EXPECTED_DIRS = {
     "8051-architecture",
     "arm-cortex-m0",
@@ -24,6 +26,19 @@ EXPECTED_DIRS = {
     "stm8-architecture",
 }
 TEXT_SUFFIXES = {".html", ".js", ".py", ".md", ".yml", ".yaml"}
+
+
+def update_validator() -> None:
+    text = VALIDATOR.read_text(encoding="utf-8")
+    legacy_block = (
+        '        "articles/mcu/mcu/microchip",\n'
+        '        "articles/mcu/mcu/silicon-labs",\n'
+        '        "articles/mcu/mcu/wh",\n'
+    )
+    if legacy_block not in text:
+        raise RuntimeError("expected legacy MCU validator block not found")
+    text = text.replace(legacy_block, '        "articles/mcu/mcu",\n', 1)
+    VALIDATOR.write_text(text, encoding="utf-8")
 
 
 def main() -> None:
@@ -43,19 +58,24 @@ def main() -> None:
     if loose_files:
         raise RuntimeError(f"unexpected files under articles/mcu/mcu: {loose_files}")
 
+    update_validator()
     shutil.move(str(SOURCE), str(TARGET))
 
     changed_files = []
     replacements = 0
     for path in ROOT.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES or ".git" in path.parts:
+        if (
+            not path.is_file()
+            or path.suffix.lower() not in TEXT_SUFFIXES
+            or ".git" in path.parts
+            or path.resolve() in {SELF, VALIDATOR.resolve()}
+        ):
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         count = text.count(OLD_PREFIX)
         if not count:
             continue
-        updated = text.replace(OLD_PREFIX, NEW_PREFIX)
-        path.write_text(updated, encoding="utf-8")
+        path.write_text(text.replace(OLD_PREFIX, NEW_PREFIX), encoding="utf-8")
         changed_files.append(path.relative_to(ROOT).as_posix())
         replacements += count
 
@@ -63,17 +83,18 @@ def main() -> None:
     if OLD_PREFIX in home_data.read_text(encoding="utf-8"):
         raise RuntimeError("old MCU common path still appears in home-data.js")
 
-    validator = ROOT / "scripts/validate_site_structure.py"
-    validator_text = validator.read_text(encoding="utf-8")
-    marker = '        "articles/mcu/mcu/microchip",\n'
-    if marker not in validator_text:
-        raise RuntimeError("validator insertion marker not found")
-    validator_text = validator_text.replace(
-        marker,
-        '        "articles/mcu/mcu",\n' + marker,
-        1,
-    )
-    validator.write_text(validator_text, encoding="utf-8")
+    validator_text = VALIDATOR.read_text(encoding="utf-8")
+    if '"articles/mcu/mcu",' not in validator_text:
+        raise RuntimeError("validator no longer forbids the legacy MCU root")
+    if any(
+        old in validator_text
+        for old in (
+            '"articles/mcu/mcu/microchip",',
+            '"articles/mcu/mcu/silicon-labs",',
+            '"articles/mcu/mcu/wh",',
+        )
+    ):
+        raise RuntimeError("redundant MCU subpath validator entries remain")
 
     if not TARGET.is_dir() or SOURCE.exists():
         raise RuntimeError("MCU common directory move did not complete cleanly")
