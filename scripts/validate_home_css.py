@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate home.css for dead declarations hidden by later identical selectors."""
+"""Validate home.css cascade hygiene and intentional breakpoint structure."""
 
 from __future__ import annotations
 
@@ -175,6 +175,21 @@ def main() -> int:
                         )
                         break
 
+    breakpoint_expectations = {
+        "@media (min-width: 901px) {": 1,
+        "@media (min-width: 981px) {": 1,
+        # Two <=640px blocks are intentional: the later one follows the base copy-button
+        # rule, so merging it upward would change cascade order.
+        "@media (max-width: 640px) {": 2,
+    }
+    for media_header, expected_count in breakpoint_expectations.items():
+        actual_count = text.count(media_header)
+        if actual_count != expected_count:
+            errors.append(
+                f"breakpoint structure: expected {expected_count} occurrence(s) of '{media_header[:-2]}', "
+                f"found {actual_count}"
+            )
+
     if "Consolidated from " in text:
         errors.append("home.css still contains migration-history comments ('Consolidated from ...')")
 
@@ -184,7 +199,7 @@ def main() -> int:
             print(f"  - {error}")
         return 1
 
-    print("Home CSS validation passed: no dead same-selector declarations found.")
+    print("Home CSS validation passed: cascade and breakpoint structure are clean.")
     return 0
 
 
