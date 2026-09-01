@@ -121,9 +121,9 @@ def update_validator(text: str) -> str:
         '        errors.append("javascript layout: home.js must consume legacy-routes.js instead of duplicating legacy routes")\n',
         '    if "legacyHomeHashMap" in home_js:\n'
         '        errors.append("javascript layout: home.js must consume legacy-routes.js instead of duplicating legacy routes")\n'
-        '    if "fetchInlineArticleRoot" in home_js or "extractArticleSections" in home_js:\n'
+        '    if "function fetchInlineArticleRoot" in home_js or "function extractArticleSections" in home_js:\n'
         '        errors.append("javascript layout: home.js must not contain article reader implementation")\n'
-        '    if "window.articleReader" not in reader_js or "createSectionedArticleReader" not in reader_js:\n'
+        '    if "window.articleReader" not in reader_js or "function createSectionedArticleReader" not in reader_js:\n'
         '        errors.append("javascript layout: article-reader.js must own inline article reader implementation")\n'
         '    if "initCopyButtons" not in reader_js or "enhanceArticleImageZoom" not in reader_js:\n'
         '        errors.append("javascript layout: article-reader.js must reuse article enhancements from main.js")\n',
