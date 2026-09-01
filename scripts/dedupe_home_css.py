@@ -125,7 +125,7 @@ def dedupe_css(css: str) -> tuple[str, int]:
 
 def remove_dead_home_state(text: str) -> tuple[str, int]:
     patterns = [
-        r"^\s*articleHref:\s*'',\s*\n",
+        r"^\s*articleHref:\s*'',?\s*\n",
         r"^\s*homeState\.articleHref\s*=\s*article\.href;\s*\n",
         r"^\s*homeState\.articleHref\s*=\s*article\?\.href\s*\|\|\s*'';\s*\n",
     ]
