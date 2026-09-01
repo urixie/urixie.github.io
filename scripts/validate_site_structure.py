@@ -41,6 +41,7 @@ def validate_index(errors: list[str]) -> None:
         "assets/js/legacy-routes.js",
         "assets/js/hash-compat.js",
         "assets/js/main.js",
+        "assets/js/home.js",
         "assets/js/inline-reader-guard.js",
     ]
     positions = []
@@ -54,6 +55,15 @@ def validate_index(errors: list[str]) -> None:
 
     if any("article-path-map.js" in script for script in scripts):
         errors.append("index script: article-path-map.js must not be loaded")
+
+    main_js = (ROOT / "assets/js/main.js").read_text(encoding="utf-8")
+    home_js = (ROOT / "assets/js/home.js").read_text(encoding="utf-8")
+    if "homeState" in main_js or "renderPrimaryNav" in main_js:
+        errors.append("javascript layout: main.js must not contain home navigation state/rendering")
+    if "window.homeNav" not in home_js or "initHome();" not in home_js:
+        errors.append("javascript layout: home.js must own and initialize home navigation")
+    if "legacyHomeHashMap" in home_js:
+        errors.append("javascript layout: home.js must consume legacy-routes.js instead of duplicating legacy routes")
 
 
 def validate_home_data(errors: list[str]) -> None:

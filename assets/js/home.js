@@ -1,0 +1,629 @@
+const homeState = {
+  topicId: '',
+  categoryId: '',
+  articleSlug: '',
+  articleHref: ''
+};
+
+function getHomeTopics() {
+  return Array.isArray(window.siteMap) ? window.siteMap : [];
+}
+
+function getArticleCount(category) {
+  return Array.isArray(category?.articles) ? category.articles.length : 0;
+}
+
+function getTopicArticleCount(topic) {
+  if (!Array.isArray(topic?.children)) return 0;
+  return topic.children.reduce((total, category) => total + getArticleCount(category), 0);
+}
+
+function findTopic(topicId) {
+  return getHomeTopics().find(topic => topic.id === topicId) || getHomeTopics()[0] || null;
+}
+
+function findCategory(topic, categoryId) {
+  if (!Array.isArray(topic?.children) || topic.children.length === 0) return null;
+  return topic.children.find(category => category.id === categoryId) || topic.children[0];
+}
+
+function getArticleSlug(article) {
+  if (!article?.href) return '';
+  const cleanHref = article.href.split('#')[0].split('?')[0];
+  const filename = cleanHref.split('/').filter(Boolean).pop() || '';
+  return filename.replace(/\.html$/i, '');
+}
+
+function findArticle(category, articleSlug) {
+  const articles = Array.isArray(category?.articles) ? category.articles : [];
+  if (!articles.length) return null;
+  return articles.find(article => getArticleSlug(article) === articleSlug) || articles[0];
+}
+
+function buildHomeHash(topic, category, article) {
+  if (!topic) return '#foundation/c-basic';
+  if (category && article) return `#${topic.id}/${category.id}/${getArticleSlug(article)}`;
+  if (category) return `#${topic.id}/${category.id}`;
+  return `#${topic.id}`;
+}
+
+function updateHomeHash(topic, category, article, options = {}) {
+  if (options.skipHash) return;
+  const nextHash = buildHomeHash(topic, category, article);
+  if (window.location.hash === nextHash) return;
+  const method = options.replace ? 'replaceState' : 'pushState';
+  window.history[method](null, '', nextHash);
+}
+
+function parseHomeHash() {
+  const rawHash = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
+  if (!rawHash) return { topicId: 'foundation', categoryId: 'c-basic', articleSlug: '' };
+
+  const canonicalHash = window.resolveLegacyHomeRoute?.(rawHash) || rawHash;
+  const [topicId, categoryId, articleSlug] = canonicalHash.split('/').filter(Boolean);
+  return { topicId: topicId || 'foundation', categoryId: categoryId || null, articleSlug: articleSlug || '' };
+}
+
+function scrollHomeToTop() {
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+
+function createCountLabel(count) {
+  return count > 0 ? `${count}篇` : '暂无';
+}
+
+function isAbsoluteOrSpecialUrl(value) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#|mailto:|tel:)/i.test(value);
+}
+
+function getDirectoryPath(path) {
+  return String(path || '').split('#')[0].split('?')[0].replace(/[^/]*$/, '');
+}
+
+function resolveRelativeUrl(base, value) {
+  if (!value || isAbsoluteOrSpecialUrl(value)) return value;
+  try {
+    return new URL(value, new URL(base, window.location.href)).pathname.replace(/^\//, '');
+  } catch (error) {
+    return `${base}${value}`;
+  }
+}
+
+function createLoadingCard(message = '正在加载文章...') {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'inline-article-placeholder card';
+  wrapper.innerHTML = `<p>${message}</p>`;
+  return wrapper;
+}
+
+function createErrorCard(message) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'inline-article-placeholder card is-error';
+  const title = document.createElement('h2');
+  title.textContent = '文章加载失败';
+  const desc = document.createElement('p');
+  desc.textContent = message || '请稍后刷新页面重试。';
+  wrapper.append(title, desc);
+  return wrapper;
+}
+
+function createArticleWelcome(topic, category) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'inline-article-placeholder card';
+
+  const eyebrow = document.createElement('span');
+  eyebrow.className = 'inline-article-eyebrow';
+  eyebrow.textContent = topic?.title || '文章阅读';
+
+  const title = document.createElement('h2');
+  title.textContent = category ? category.title : '选择左侧文章开始阅读';
+
+  const desc = document.createElement('p');
+  desc.textContent = category?.desc || topic?.desc || '左侧二级导航已经整合文章索引，点击任意文章后将在这里直接加载正文。';
+
+  wrapper.append(eyebrow, title, desc);
+  return wrapper;
+}
+
+function extractArticleSourceFromRoute(html, routeHref) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const body = doc.body;
+  const source = body?.dataset.articleSource;
+  if (!source) return null;
+  const routeBase = getDirectoryPath(routeHref);
+  return resolveRelativeUrl(routeBase, source);
+}
+
+function getCleanArticleRoot(html, sourceHref) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const sourceBase = getDirectoryPath(sourceHref);
+
+  doc.querySelectorAll('script').forEach(script => script.remove());
+  doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
+  doc.querySelectorAll('.topbar, .article-topbar, #articleToc, .article-toc, .article-toc-panel').forEach(nav => nav.remove());
+
+  doc.querySelectorAll('[src]').forEach(node => {
+    const value = node.getAttribute('src');
+    const nextValue = resolveRelativeUrl(sourceBase, value);
+    if (nextValue) node.setAttribute('src', nextValue);
+  });
+
+  doc.querySelectorAll('[href]').forEach(node => {
+    const value = node.getAttribute('href');
+    if (!value || value.includes('index.html')) return;
+    const nextValue = resolveRelativeUrl(sourceBase, value);
+    if (nextValue) node.setAttribute('href', nextValue);
+  });
+
+  return doc.querySelector('article') || doc.querySelector('main') || doc.body;
+}
+
+async function fetchInlineArticleRoot(article) {
+  const routeHref = article.href;
+  const routeResponse = await fetch(routeHref, { cache: 'no-cache' });
+  if (!routeResponse.ok) {
+    throw new Error(`无法读取文章入口：${routeHref}`);
+  }
+
+  const routeHtml = await routeResponse.text();
+  const sourceHref = extractArticleSourceFromRoute(routeHtml, routeHref) || routeHref;
+  const sourceResponse = await fetch(sourceHref, { cache: 'no-cache' });
+  if (!sourceResponse.ok) {
+    throw new Error(`无法读取文章源文件：${sourceHref}`);
+  }
+
+  return getCleanArticleRoot(await sourceResponse.text(), sourceHref);
+}
+
+function isSkippableArticleNode(node) {
+  return node.matches?.('.article-footer, .article-topbar, .topbar, script, style, link');
+}
+
+function getSectionTitle(heading, index) {
+  return heading?.textContent?.trim() || `章节 ${index + 1}`;
+}
+
+function getSectionId(container, heading, index) {
+  if (heading?.id) return heading.id;
+  if (container?.id) return container.id;
+  return `article-section-${index + 1}`;
+}
+
+function cloneNodes(nodes) {
+  return nodes.map(node => node.cloneNode(true));
+}
+
+function createSectionFromContainer(container, index) {
+  const heading = container.matches?.('h2') ? container : container.querySelector?.('h2');
+  return {
+    id: getSectionId(container, heading, index),
+    title: getSectionTitle(heading, index),
+    nodes: [container.cloneNode(true)]
+  };
+}
+
+function extractDirectSectionBlocks(children) {
+  const sections = [];
+
+  children.forEach(node => {
+    if (isSkippableArticleNode(node)) return;
+    if (node.matches?.('section') && node.querySelector('h2')) {
+      sections.push(createSectionFromContainer(node, sections.length));
+    }
+  });
+
+  return sections;
+}
+
+function extractSiblingSections(children) {
+  const sections = [];
+  let current = null;
+
+  children.forEach(node => {
+    if (isSkippableArticleNode(node)) return;
+
+    if (node.matches?.('h2')) {
+      current = {
+        id: getSectionId(node, node, sections.length),
+        title: getSectionTitle(node, sections.length),
+        nodes: [node.cloneNode(true)]
+      };
+      sections.push(current);
+      return;
+    }
+
+    if (current) {
+      current.nodes.push(node.cloneNode(true));
+    }
+  });
+
+  return sections;
+}
+
+function extractDeepSections(articleRoot) {
+  const sections = [];
+  const headings = Array.from(articleRoot.querySelectorAll('h2'));
+
+  headings.forEach(heading => {
+    const container = heading.closest('section') || heading.parentElement || heading;
+    if (!container || isSkippableArticleNode(container)) return;
+    if (sections.some(section => section.source === container)) return;
+
+    const section = createSectionFromContainer(container, sections.length);
+    section.source = container;
+    sections.push(section);
+  });
+
+  return sections.map(({ source, ...section }) => section);
+}
+
+function extractFullArticle(articleRoot) {
+  const nodes = Array.from(articleRoot.children).filter(node => !isSkippableArticleNode(node));
+  return [{
+    id: 'article-full',
+    title: '全文',
+    nodes: cloneNodes(nodes)
+  }];
+}
+
+function extractArticleSections(articleRoot) {
+  const children = Array.from(articleRoot.children).filter(node => !isSkippableArticleNode(node));
+
+  const directSectionBlocks = extractDirectSectionBlocks(children);
+  if (directSectionBlocks.length > 0) return directSectionBlocks;
+
+  const siblingSections = extractSiblingSections(children);
+  if (siblingSections.length > 0) return siblingSections;
+
+  const deepSections = extractDeepSections(articleRoot);
+  if (deepSections.length > 0) return deepSections;
+
+  return extractFullArticle(articleRoot);
+}
+
+function renderSectionInto(content, section) {
+  content.replaceChildren();
+  section.nodes.forEach(node => content.appendChild(node.cloneNode(true)));
+  content.scrollTop = 0;
+  initCopyButtons(content);
+  enhanceArticleTables(content);
+  enhanceArticleImageZoom(content);
+}
+
+function createSectionedArticleReader(articleRoot) {
+  const sections = extractArticleSections(articleRoot);
+  const reader = document.createElement('div');
+  reader.className = 'inline-article-reader card';
+
+  const nav = document.createElement('aside');
+  nav.className = 'inline-section-nav';
+
+  const navTitle = document.createElement('div');
+  navTitle.className = 'inline-section-nav-title';
+  navTitle.textContent = '文章目录';
+  nav.appendChild(navTitle);
+
+  const navList = document.createElement('div');
+  navList.className = 'inline-section-list';
+  nav.appendChild(navList);
+
+  const content = document.createElement('article');
+  content.className = 'inline-section-content article';
+
+  const buttons = sections.map((section, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'inline-section-button';
+    button.textContent = section.title;
+    button.dataset.sectionId = section.id;
+    button.addEventListener('click', () => {
+      buttons.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      renderSectionInto(content, section);
+    });
+    navList.appendChild(button);
+    return button;
+  });
+
+  if (buttons[0]) buttons[0].classList.add('active');
+  renderSectionInto(content, sections[0]);
+
+  reader.append(nav, content);
+  return reader;
+}
+
+async function renderInlineArticle(topic, category, article, options = {}) {
+  const articleList = document.querySelector('#articleList');
+  const articleEmpty = document.querySelector('#articleEmpty');
+  const contentTitle = document.querySelector('#contentTitle');
+
+  if (!articleList || !article) return;
+
+  homeState.topicId = topic?.id || '';
+  homeState.categoryId = category?.id || '';
+  homeState.articleSlug = getArticleSlug(article);
+  homeState.articleHref = article.href;
+
+  if (contentTitle) contentTitle.textContent = article.title;
+  if (articleEmpty) articleEmpty.classList.add('hidden');
+
+  articleList.replaceChildren(createLoadingCard());
+  renderPrimaryNav();
+  renderSecondaryNav(topic);
+  updateHomeHash(topic, category, article, options);
+
+  try {
+    const articleRoot = await fetchInlineArticleRoot(article);
+    articleList.replaceChildren(createSectionedArticleReader(articleRoot));
+  } catch (error) {
+    articleList.replaceChildren(createErrorCard(error.message));
+  }
+
+  if (options.scroll !== false) {
+    scrollHomeToTop();
+  }
+}
+
+function renderPrimaryNav() {
+  const primaryNav = document.querySelector('#primaryNav');
+  if (!primaryNav) return;
+
+  primaryNav.replaceChildren();
+
+  getHomeTopics().forEach((topic, index) => {
+    const button = document.createElement('button');
+    const active = topic.id === homeState.topicId;
+    button.type = 'button';
+    button.className = 'primary-nav-button';
+    button.dataset.topicId = topic.id;
+    button.title = topic.title;
+    button.setAttribute('aria-current', active ? 'page' : 'false');
+    button.setAttribute('aria-selected', String(active));
+    button.classList.toggle('active', active);
+
+    const code = document.createElement('span');
+    code.className = 'primary-nav-code';
+    code.textContent = topic.shortTitle || String(index + 1).padStart(2, '0');
+
+    const title = document.createElement('span');
+    title.className = 'primary-nav-title';
+    title.textContent = topic.title;
+
+    const count = document.createElement('span');
+    count.className = 'primary-nav-count';
+    count.textContent = topic.id === 'about' ? 'INFO' : createCountLabel(getTopicArticleCount(topic));
+
+    button.append(code, title, count);
+    button.addEventListener('click', () => switchTopic(topic.id));
+    primaryNav.appendChild(button);
+  });
+}
+
+function renderSecondaryNav(topic) {
+  const homeShell = document.querySelector('.home-shell');
+  const secondarySidebar = document.querySelector('.secondary-sidebar');
+  const secondaryNav = document.querySelector('#secondaryNav');
+
+  if (!topic || !homeShell || !secondarySidebar || !secondaryNav) return;
+
+  const hasChildren = Array.isArray(topic.children) && topic.children.length > 0;
+  homeShell.classList.toggle('is-about', !hasChildren);
+  secondarySidebar.hidden = !hasChildren;
+
+  secondaryNav.replaceChildren();
+  if (!hasChildren) return;
+
+  topic.children.forEach(category => {
+    const card = document.createElement('section');
+    const active = category.id === homeState.categoryId;
+    card.className = 'secondary-nav-card';
+    card.classList.toggle('active', active);
+    card.dataset.categoryId = category.id;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary-nav-button';
+    button.dataset.categoryId = category.id;
+    button.setAttribute('aria-current', active ? 'page' : 'false');
+    button.setAttribute('aria-selected', String(active));
+    button.classList.toggle('active', active);
+
+    const title = document.createElement('span');
+    title.className = 'secondary-nav-title';
+    title.textContent = category.title;
+
+    const count = document.createElement('span');
+    count.className = 'secondary-nav-count';
+    count.textContent = createCountLabel(getArticleCount(category));
+
+    button.append(title, count);
+    button.addEventListener('click', () => switchCategory(category.id));
+    card.appendChild(button);
+
+    const articles = Array.isArray(category.articles) ? category.articles : [];
+    if (articles.length > 0) {
+      const list = document.createElement('div');
+      list.className = 'secondary-article-list';
+
+      articles.forEach(article => {
+        const link = document.createElement('a');
+        const slug = getArticleSlug(article);
+        const selected = active && slug === homeState.articleSlug;
+        link.className = 'secondary-article-link';
+        link.classList.toggle('active', selected);
+        link.href = article.href;
+        link.dataset.articleSlug = slug;
+        link.setAttribute('aria-current', selected ? 'page' : 'false');
+        link.textContent = article.title;
+
+        link.addEventListener('click', event => {
+          event.preventDefault();
+          selectArticle(topic.id, category.id, slug);
+        });
+        list.appendChild(link);
+      });
+
+      card.appendChild(list);
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'secondary-article-empty';
+      empty.textContent = Array.isArray(category.placeholders) && category.placeholders.length > 0
+        ? `${category.placeholders.join('、')} 后续补充。`
+        : '暂无文章，后续补充。';
+      card.appendChild(empty);
+    }
+
+    secondaryNav.appendChild(card);
+  });
+}
+
+function renderAboutContent(topic) {
+  const articleList = document.querySelector('#articleList');
+  if (!articleList) return;
+
+  const aboutCard = document.createElement('div');
+  aboutCard.className = 'about-card card';
+
+  (topic.content || [topic.desc]).forEach(text => {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    aboutCard.appendChild(paragraph);
+  });
+
+  articleList.appendChild(aboutCard);
+}
+
+function renderArticles(topic, category) {
+  const contentTitle = document.querySelector('#contentTitle');
+  const articleList = document.querySelector('#articleList');
+  const articleEmpty = document.querySelector('#articleEmpty');
+
+  if (!topic || !articleList || !articleEmpty) return;
+
+  articleList.replaceChildren();
+  articleEmpty.classList.add('hidden');
+
+  if (!category) {
+    if (contentTitle) contentTitle.textContent = topic.title;
+    renderAboutContent(topic);
+    return;
+  }
+
+  const article = findArticle(category, homeState.articleSlug);
+
+  if (!article) {
+    if (contentTitle) contentTitle.textContent = category.title;
+    articleList.appendChild(createArticleWelcome(topic, category));
+    return;
+  }
+
+  renderInlineArticle(topic, category, article, { replace: true, scroll: false });
+}
+
+function switchTopic(topicId, options = {}) {
+  const topic = findTopic(topicId) || findTopic('foundation');
+  if (!topic) return;
+
+  const category = findCategory(topic, options.categoryId);
+  const article = options.articleSlug ? findArticle(category, options.articleSlug) : findArticle(category, '');
+
+  homeState.topicId = topic.id;
+  homeState.categoryId = category?.id || '';
+  homeState.articleSlug = article ? getArticleSlug(article) : '';
+  homeState.articleHref = article?.href || '';
+
+  renderPrimaryNav();
+  renderSecondaryNav(topic);
+
+  if (!category) {
+    renderArticles(topic, null);
+    updateHomeHash(topic, null, null, options);
+    return;
+  }
+
+  if (article) {
+    renderInlineArticle(topic, category, article, options);
+  } else {
+    renderArticles(topic, category);
+    updateHomeHash(topic, category, null, options);
+  }
+
+  if (options.scroll !== false) {
+    scrollHomeToTop();
+  }
+}
+
+function switchCategory(categoryId, options = {}) {
+  const topic = findTopic(homeState.topicId);
+  if (!topic) return;
+
+  const category = findCategory(topic, categoryId);
+  const article = findArticle(category, options.articleSlug || '');
+
+  homeState.categoryId = category?.id || '';
+  homeState.articleSlug = article ? getArticleSlug(article) : '';
+  homeState.articleHref = article?.href || '';
+
+  renderSecondaryNav(topic);
+
+  if (article) {
+    renderInlineArticle(topic, category, article, options);
+  } else {
+    renderArticles(topic, category);
+    updateHomeHash(topic, category, null, options);
+  }
+
+  if (options.scroll !== false) {
+    scrollHomeToTop();
+  }
+}
+
+function selectArticle(topicId, categoryId, articleSlug, options = {}) {
+  const topic = findTopic(topicId);
+  const category = findCategory(topic, categoryId);
+  const article = findArticle(category, articleSlug);
+  if (!topic || !category || !article) return;
+  renderInlineArticle(topic, category, article, options);
+}
+
+function restoreHomeFromHash(options = {}) {
+  const parsed = parseHomeHash();
+  switchTopic(parsed.topicId, {
+    categoryId: parsed.categoryId,
+    articleSlug: parsed.articleSlug,
+    replace: options.replace,
+    skipHash: options.skipHash,
+    scroll: options.scroll
+  });
+}
+
+function initHome() {
+  const homeShell = document.querySelector('.home-shell');
+  if (!homeShell || getHomeTopics().length === 0) return;
+
+  restoreHomeFromHash({ replace: true, scroll: false });
+
+  window.addEventListener('popstate', () => {
+    restoreHomeFromHash({ skipHash: true, scroll: false });
+  });
+
+  window.addEventListener('hashchange', () => {
+    restoreHomeFromHash({ skipHash: true, scroll: false });
+  });
+}
+
+window.homeNav = {
+  renderPrimaryNav,
+  renderSecondaryNav,
+  renderArticles,
+  switchTopic,
+  switchCategory,
+  selectArticle,
+  initHome
+};
+window.switchTopic = switchTopic;
+window.switchCategory = switchCategory;
+window.selectArticle = selectArticle;
+
+initHome();
