@@ -10,6 +10,7 @@ import re
 import shutil
 import socketserver
 import subprocess
+import tempfile
 import threading
 from pathlib import Path
 from urllib.parse import urlencode
@@ -26,6 +27,8 @@ ARTICLE_SCENARIOS = (
     {"mode": "article-desktop", "width": 1280, "height": 900},
     {"mode": "article-mobile", "width": 390, "height": 844},
 )
+CHROME_TIMEOUT_SECONDS = 35
+CHROME_TIMEOUT_ATTEMPTS = 2
 
 
 def find_chrome() -> str:
@@ -85,33 +88,58 @@ def run_scenario(
 ) -> tuple[bool, str]:
     query = urlencode(scenario)
     url = f"http://127.0.0.1:{port}/{harness}?{query}"
-    command = [
-        chrome,
-        "--headless=new",
-        "--no-sandbox",
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
-        "--run-all-compositor-stages-before-draw",
-        "--window-size=1800,1200",
-        "--virtual-time-budget=15000",
-        "--dump-dom",
-        url,
-    ]
-    completed = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=35,
-    )
-    if completed.returncode != 0:
-        stderr = completed.stderr.strip()
-        return False, f"Chrome exited with {completed.returncode}: {stderr[-2000:]}"
 
-    status, report = extract_result(completed.stdout)
-    if status != "pass":
-        return False, report or f"layout harness returned status={status}"
-    return True, report
+    for attempt in range(1, CHROME_TIMEOUT_ATTEMPTS + 1):
+        with tempfile.TemporaryDirectory(prefix="layout-chrome-") as profile_dir:
+            command = [
+                chrome,
+                "--headless=new",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--disable-background-networking",
+                "--disable-extensions",
+                "--no-first-run",
+                "--no-default-browser-check",
+                f"--user-data-dir={profile_dir}",
+                "--run-all-compositor-stages-before-draw",
+                "--window-size=1800,1200",
+                "--virtual-time-budget=15000",
+                "--dump-dom",
+                url,
+            ]
+            try:
+                completed = subprocess.run(
+                    command,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=CHROME_TIMEOUT_SECONDS,
+                )
+            except subprocess.TimeoutExpired:
+                if attempt < CHROME_TIMEOUT_ATTEMPTS:
+                    print(
+                        f"RETRY Chrome timeout for {scenario['mode']} "
+                        f"after {CHROME_TIMEOUT_SECONDS}s "
+                        f"(attempt {attempt}/{CHROME_TIMEOUT_ATTEMPTS})"
+                    )
+                    continue
+                return (
+                    False,
+                    f"Chrome timed out after {CHROME_TIMEOUT_SECONDS}s "
+                    f"for {CHROME_TIMEOUT_ATTEMPTS} attempt(s)",
+                )
+
+            if completed.returncode != 0:
+                stderr = completed.stderr.strip()
+                return False, f"Chrome exited with {completed.returncode}: {stderr[-2000:]}"
+
+            status, report = extract_result(completed.stdout)
+            if status != "pass":
+                return False, report or f"layout harness returned status={status}"
+            return True, report
+
+    return False, "Chrome layout scenario did not produce a result"
 
 
 def main() -> int:
