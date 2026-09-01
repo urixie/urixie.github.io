@@ -404,12 +404,11 @@
   line-height: 1.55;
 }
 
-.home-content,
-.content {
+.home-content {
   max-width: none;
 }
 
-.home-content .home-panel {
+.home-panel {
   min-height: calc(100vh - 48px);
 }
 
