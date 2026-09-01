@@ -19,7 +19,6 @@ INDEX = ROOT / "index.html"
 HOME_HREF_RE = re.compile(r"href\s*:\s*withVersion\(\s*['\"]([^'\"]+)['\"]\s*\)")
 LEGACY_ROUTE_RE = re.compile(r"^\s*['\"]([^'\"]+)['\"]\s*:\s*['\"]([^'\"]+)['\"]\s*,?\s*$", re.MULTILINE)
 SCRIPT_RE = re.compile(r"<script\s+[^>]*src=['\"]([^'\"]+)['\"][^>]*>", re.IGNORECASE)
-ARTICLE_SOURCE_RE = re.compile(r"data-article-source=['\"]([^'\"]+)['\"]", re.IGNORECASE)
 
 
 def local_path(value: str) -> Path:
@@ -88,6 +87,8 @@ def validate_index(errors: list[str]) -> None:
         errors.append("javascript layout: article-reader.js must own inline article reader implementation")
     if "initCopyButtons" not in reader_js or "enhanceArticleImageZoom" not in reader_js:
         errors.append("javascript layout: article-reader.js must reuse article enhancements from main.js")
+    if "extractArticleSourceFromRoute" in reader_js or "articleSource" in reader_js:
+        errors.append("javascript layout: article-reader.js must fetch canonical articles directly without proxy-source parsing")
 
 
 def validate_home_data(errors: list[str]) -> None:
@@ -105,24 +106,12 @@ def validate_home_data(errors: list[str]) -> None:
         require_file(local_path(href), errors, "home-data route")
 
 
-def validate_proxy_sources(errors: list[str]) -> None:
+def validate_no_article_proxies(errors: list[str]) -> None:
     for html_file in sorted((ROOT / "articles").glob("**/*.html")):
         text = html_file.read_text(encoding="utf-8")
-        match = ARTICLE_SOURCE_RE.search(text)
-        if not match:
-            continue
-        source = match.group(1)
-        resolved = (html_file.parent / urlsplit(source).path).resolve()
-        try:
-            resolved.relative_to(ROOT.resolve())
-        except ValueError:
+        if "data-article-source" in text:
             errors.append(
-                f"article proxy: source escapes repository: {html_file.relative_to(ROOT).as_posix()} -> {source}"
-            )
-            continue
-        if not resolved.is_file():
-            errors.append(
-                f"article proxy: missing source: {html_file.relative_to(ROOT).as_posix()} -> {source}"
+                f"article layout: proxy wrapper marker must not exist: {html_file.relative_to(ROOT).as_posix()}"
             )
 
 
@@ -196,7 +185,7 @@ def main() -> int:
     if not errors:
         validate_index(errors)
         validate_home_data(errors)
-        validate_proxy_sources(errors)
+        validate_no_article_proxies(errors)
         validate_legacy_routes(errors)
         validate_canonical_layout(errors)
 
