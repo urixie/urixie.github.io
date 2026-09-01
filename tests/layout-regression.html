@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Layout regression harness</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #111; color: #eee; font-family: monospace; }
+    iframe { display: block; border: 0; background: #fff; }
+    #layout-result { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <iframe id="siteFrame" title="layout regression target"></iframe>
+  <pre id="layout-result" data-status="pending">pending</pre>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const width = Number(params.get('width') || 1440);
+      const height = Number(params.get('height') || 900);
+      const mode = params.get('mode') || 'desktop';
+      const frame = document.querySelector('#siteFrame');
+      const result = document.querySelector('#layout-result');
+      frame.style.width = `${width}px`;
+      frame.style.height = `${height}px`;
+      frame.src = '../index.html#foundation/c-basic/c-basic-syntax';
+
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+      const closeEnough = (a, b, tolerance = 3) => Math.abs(a - b) <= tolerance;
+
+      async function waitForArticle(doc) {
+        const deadline = Date.now() + 10000;
+        while (Date.now() < deadline) {
+          if (doc.querySelector('.inline-article-reader .inline-section-content')) return;
+          const error = doc.querySelector('.inline-article-placeholder.is-error');
+          if (error) throw new Error(`article load failed: ${error.textContent.trim()}`);
+          await sleep(80);
+        }
+        throw new Error('timed out waiting for inline article reader');
+      }
+
+      function runAssertions(doc) {
+        const failures = [];
+        const assert = (condition, message) => {
+          if (!condition) failures.push(message);
+        };
+        const element = selector => doc.querySelector(selector);
+        const rect = selector => {
+          const node = element(selector);
+          if (!node) return null;
+          const value = node.getBoundingClientRect();
+          return {
+            top: value.top,
+            right: value.right,
+            bottom: value.bottom,
+            left: value.left,
+            width: value.width,
+            height: value.height,
+          };
+        };
+        const style = (selector, property) => {
+          const node = element(selector);
+          return node ? doc.defaultView.getComputedStyle(node)[property] : '';
+        };
+
+        const shell = rect('.home-shell');
+        const primary = rect('.primary-sidebar');
+        const secondary = rect('.secondary-sidebar');
+        const content = rect('.home-content');
+        const reader = rect('.inline-article-reader');
+        const sectionNav = rect('.inline-section-nav');
+        const sectionContent = rect('.inline-section-content');
+        const copyButton = rect('.copy-code-button');
+
+        assert(Boolean(element('.primary-nav-button.active')), 'missing active primary navigation item');
+        assert(Boolean(element('.secondary-article-link.active')), 'missing active article navigation item');
+        assert(Boolean(reader && sectionNav && sectionContent), 'inline reader structure is incomplete');
+        assert(!element('.inline-article-placeholder.is-error'), 'article reader rendered an error placeholder');
+
+        if (mode === 'desktop') {
+          assert(style('.home-shell', 'display') === 'grid', 'desktop home shell must use grid layout');
+          assert(primary && primary.width >= 220 && primary.width <= 234, `desktop primary width out of range: ${primary?.width}`);
+          assert(primary && secondary && closeEnough(primary.width, secondary.width, 2), 'desktop sidebars must keep equal width');
+          assert(primary && secondary && closeEnough(primary.right, secondary.left, 2), 'desktop sidebars must remain adjacent');
+          assert(secondary && content && closeEnough(secondary.right, content.left, 3), 'desktop content must touch secondary sidebar');
+          assert(style('body', 'overflowY') === 'hidden', `desktop body overflowY must be hidden, got ${style('body', 'overflowY')}`);
+          assert(sectionNav && sectionContent && sectionNav.right <= sectionContent.left + 1, 'desktop reader navigation/content must be side-by-side');
+          assert(style('.inline-section-content', 'overflowY') === 'auto', 'desktop article body must own vertical scrolling');
+          assert(reader && reader.height <= height + 1, 'desktop reader must stay inside viewport height');
+        } else if (mode === 'narrow') {
+          assert(style('.home-shell', 'display') === 'grid', 'narrow home shell must keep desktop grid navigation');
+          assert(primary && primary.width >= 205 && primary.width <= 217, `narrow primary width out of range: ${primary?.width}`);
+          assert(primary && secondary && closeEnough(primary.width, secondary.width, 2), 'narrow sidebars must keep equal width');
+          assert(primary && secondary && closeEnough(primary.right, secondary.left, 2), 'narrow sidebars must remain adjacent');
+          if (secondary && content) {
+            const gap = content.left - secondary.right;
+            assert(gap >= 15 && gap <= 25, `narrow content gap must remain near 20px, got ${gap}`);
+          }
+          assert(style('body', 'overflowY') !== 'hidden', 'narrow body must remain page-scrollable');
+          assert(sectionNav && sectionContent && sectionContent.top >= sectionNav.bottom - 1, 'narrow reader must stack navigation above content');
+          assert(style('.inline-section-content', 'overflowY') === 'visible', `narrow content overflowY must be visible, got ${style('.inline-section-content', 'overflowY')}`);
+        } else if (mode === 'mobile') {
+          assert(style('.home-shell', 'display') === 'block', 'mobile home shell must switch to block layout');
+          assert(style('.primary-sidebar', 'position') === 'static', 'mobile primary sidebar must be static');
+          assert(style('.secondary-sidebar', 'position') === 'static', 'mobile secondary sidebar must be static');
+          assert(primary && secondary && secondary.top >= primary.bottom - 1, 'mobile secondary sidebar must follow primary sidebar');
+          assert(secondary && content && content.top >= secondary.bottom - 1, 'mobile content must follow secondary sidebar');
+          assert(sectionNav && sectionContent && sectionContent.top >= sectionNav.bottom - 1, 'mobile reader must stack navigation above content');
+          assert(doc.documentElement.scrollWidth <= doc.documentElement.clientWidth + 3, `mobile layout has horizontal overflow: ${doc.documentElement.scrollWidth}/${doc.documentElement.clientWidth}`);
+          if (copyButton) {
+            assert(copyButton.right <= width + 2, `mobile copy button exceeds viewport: right=${copyButton.right}`);
+            assert(copyButton.width >= 40, `mobile copy button unexpectedly small: ${copyButton.width}`);
+          }
+        } else {
+          failures.push(`unknown mode: ${mode}`);
+        }
+
+        return {
+          mode,
+          width,
+          height,
+          failures,
+          metrics: {
+            shell,
+            primary,
+            secondary,
+            content,
+            reader,
+            sectionNav,
+            sectionContent,
+            bodyOverflowY: style('body', 'overflowY'),
+            sectionOverflowY: style('.inline-section-content', 'overflowY'),
+            shellDisplay: style('.home-shell', 'display'),
+            rootScrollWidth: doc.documentElement.scrollWidth,
+            rootClientWidth: doc.documentElement.clientWidth,
+          },
+        };
+      }
+
+      frame.addEventListener('load', async () => {
+        try {
+          const doc = frame.contentDocument;
+          await waitForArticle(doc);
+          await sleep(120);
+          const report = runAssertions(doc);
+          result.dataset.status = report.failures.length ? 'fail' : 'pass';
+          result.textContent = JSON.stringify(report, null, 2);
+          document.title = report.failures.length ? 'LAYOUT_FAIL' : 'LAYOUT_PASS';
+        } catch (error) {
+          result.dataset.status = 'fail';
+          result.textContent = JSON.stringify({ mode, width, height, failures: [String(error)] }, null, 2);
+          document.title = 'LAYOUT_FAIL';
+        }
+      }, { once: true });
+    })();
+  </script>
+</body>
+</html>
