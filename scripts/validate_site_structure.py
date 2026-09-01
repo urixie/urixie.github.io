@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME_DATA = ROOT / "assets/js/home-data.js"
+ARTICLE_READER = ROOT / "assets/js/article-reader.js"
 ARTICLE_PATH_MAP = ROOT / "assets/js/article-path-map.js"
 LEGACY_ROUTES = ROOT / "assets/js/legacy-routes.js"
 INDEX = ROOT / "index.html"
@@ -54,6 +55,7 @@ def validate_index(errors: list[str]) -> None:
         "assets/js/legacy-routes.js",
         "assets/js/hash-compat.js",
         "assets/js/main.js",
+        "assets/js/article-reader.js",
         "assets/js/home.js",
         "assets/js/inline-reader-guard.js",
     ]
@@ -70,6 +72,7 @@ def validate_index(errors: list[str]) -> None:
         errors.append("index script: article-path-map.js must not be loaded")
 
     main_js = (ROOT / "assets/js/main.js").read_text(encoding="utf-8")
+    reader_js = ARTICLE_READER.read_text(encoding="utf-8") if ARTICLE_READER.is_file() else ""
     home_js = (ROOT / "assets/js/home.js").read_text(encoding="utf-8")
     if "homeState" in main_js or "renderPrimaryNav" in main_js:
         errors.append("javascript layout: main.js must not contain home navigation state/rendering")
@@ -77,6 +80,12 @@ def validate_index(errors: list[str]) -> None:
         errors.append("javascript layout: home.js must own and initialize home navigation")
     if "legacyHomeHashMap" in home_js:
         errors.append("javascript layout: home.js must consume legacy-routes.js instead of duplicating legacy routes")
+    if "function fetchInlineArticleRoot" in home_js or "function extractArticleSections" in home_js:
+        errors.append("javascript layout: home.js must not contain article reader implementation")
+    if "window.articleReader" not in reader_js or "function createSectionedArticleReader" not in reader_js:
+        errors.append("javascript layout: article-reader.js must own inline article reader implementation")
+    if "initCopyButtons" not in reader_js or "enhanceArticleImageZoom" not in reader_js:
+        errors.append("javascript layout: article-reader.js must reuse article enhancements from main.js")
 
 
 def validate_home_data(errors: list[str]) -> None:
@@ -181,7 +190,7 @@ def validate_canonical_layout(errors: list[str]) -> None:
 def main() -> int:
     errors: list[str] = []
 
-    for required in (HOME_DATA, LEGACY_ROUTES, INDEX):
+    for required in (HOME_DATA, ARTICLE_READER, LEGACY_ROUTES, INDEX):
         require_file(required, errors, "site structure")
 
     if not errors:
