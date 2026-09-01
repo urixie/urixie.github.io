@@ -12,3 +12,15 @@ if ! python scripts/validate_site_structure.py; then
   echo "请根据上方检查结果修复后再提交。"
   exit 1
 fi
+
+if ! python scripts/validate_home_css.py; then
+  echo "提交已阻止：首页 CSS 存在无效覆盖、优先级或分层问题。"
+  echo "请根据上方检查结果修复后再提交。"
+  exit 1
+fi
+
+if ! python scripts/validate_style_css_usage.py; then
+  echo "提交已阻止：公共 style.css 存在无生产引用规则或死 selector 分支。"
+  echo "请删除无效规则或补齐实际 HTML/JS 引用后再提交。"
+  exit 1
+fi
