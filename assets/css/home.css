@@ -1,4 +1,3 @@
-/* Consolidated from home-layout-tuning.css; keep section order stable. */
 /* 首页布局微调：一级导航恢复早期个人侧栏布局，二级导航作为当前专题目录。 */
 .home-shell {
   grid-template-columns: 280px 252px minmax(0, 980px);
@@ -191,11 +190,6 @@
 
 .secondary-nav-button {
   min-height: 45px;
-}
-
-.home-content,
-.content {
-  max-width: 980px;
 }
 
 .article-list {
@@ -398,7 +392,6 @@
 }
 
 .secondary-article-link {
-  display: grid;
   gap: 5px;
   padding: 10px 12px;
   border-radius: 14px;
@@ -520,7 +513,6 @@
   }
 }
 
-/* Consolidated from inline-section-reader.css; keep section order stable. */
 /* 内联章节阅读器：右侧文章区域拆为左目录、右章节内容。 */
 .secondary-article-link {
   display: block;
@@ -536,23 +528,7 @@
 
 @media (min-width: 981px) {
   .home-content .home-panel {
-    height: calc(100dvh - 48px);
-    min-height: 0;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
     gap: 0;
-    overflow: hidden;
-  }
-
-  .home-content .section-title {
-    flex: 0 0 auto;
-    margin-bottom: 0;
-    padding-bottom: 18px;
-  }
-
-  .home-content .article-list {
-    min-height: 0;
-    overflow: hidden;
   }
 }
 
@@ -683,7 +659,6 @@
   }
 }
 
-/* Consolidated from nav-compact-layout.css; keep section order stable. */
 /* 一级导航与二级导航紧贴布局：两侧导航栏保持相同宽度。 */
 @media (min-width: 901px) {
   .home-shell {
@@ -747,7 +722,6 @@
   }
 }
 
-/* Consolidated from article-fixed-scroll-override.css; keep section order stable. */
 /* 首页：二级导航目录整体上移，删除 secondary-head 占用的间距。 */
 @media (min-width: 901px) {
   .secondary-nav {
