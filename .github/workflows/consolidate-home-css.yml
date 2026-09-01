@@ -1,0 +1,36 @@
+name: Consolidate home CSS
+
+on:
+  push:
+    paths:
+      - '.github/workflows/consolidate-home-css.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 合并首页样式
+        run: python scripts/consolidate_home_css.py
+      - name: 校验隐私配置
+        run: python scripts/website_privacy_guard.py --check
+      - name: 校验目录与样式结构
+        run: python scripts/validate_site_structure.py
+      - name: 提交样式收敛结果
+        shell: bash
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo 'No CSS consolidation changes to commit.'
+            exit 0
+          fi
+          git config user.name 'xyj'
+          git config user.email '64504526+urixie@users.noreply.github.com'
+          git add -A
+          git commit -m 'refactor: consolidate home styles'
+          git push origin HEAD:main
