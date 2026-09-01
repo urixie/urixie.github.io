@@ -1,4 +1,4 @@
-name: Audit article proxies
+name: Verify article proxy cleanup
 
 on:
   push:
@@ -11,67 +11,25 @@ permissions:
   contents: read
 
 jobs:
-  audit:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: 检出仓库
         uses: actions/checkout@v4
-      - name: 扫描文章代理页
+      - name: 检查 HTML noindex 配置
+        run: python scripts/website_privacy_guard.py --check
+      - name: 检查站点目录与路由一致性
+        run: python scripts/validate_site_structure.py
+      - name: 检查首页 CSS
+        run: python scripts/validate_home_css.py
+      - name: 检查公共 CSS 生产引用
+        run: python scripts/validate_style_css_usage.py
+      - name: 检查 JavaScript 语法
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          from urllib.parse import urlsplit
-          import re
-
-          root = Path('.')
-          source_re = re.compile(r'data-article-source=[\'\"]([^\'\"]+)[\'\"]', re.I)
-          home_text = (root / 'assets/js/home-data.js').read_text(encoding='utf-8')
-          legacy_text = (root / 'assets/js/legacy-routes.js').read_text(encoding='utf-8')
-          rows = []
-          for html in sorted((root / 'articles').glob('**/*.html')):
-              text = html.read_text(encoding='utf-8', errors='ignore')
-              match = source_re.search(text)
-              if not match:
-                  continue
-              raw = match.group(1)
-              target = (html.parent / urlsplit(raw).path).resolve()
-              try:
-                  target_rel = target.relative_to(root.resolve()).as_posix()
-              except ValueError:
-                  target_rel = '<outside-repo>'
-              html_rel = html.as_posix()
-              rows.append((html_rel, raw, target_rel, target.is_file(), html_rel in home_text, target_rel in home_text, html_rel in legacy_text, target_rel in legacy_text))
-
-          print(f'PROXY_COUNT={len(rows)}')
-          for idx, row in enumerate(rows, 1):
-              wrapper, raw, target, exists, wrapper_home, target_home, wrapper_legacy, target_legacy = row
-              print(f'PROXY[{idx}] wrapper={wrapper}')
-              print(f'  source_raw={raw}')
-              print(f'  source_resolved={target}')
-              print(f'  source_exists={exists}')
-              print(f'  wrapper_in_home_data={wrapper_home}')
-              print(f'  source_in_home_data={target_home}')
-              print(f'  wrapper_in_legacy_routes={wrapper_legacy}')
-              print(f'  source_in_legacy_routes={target_legacy}')
-
-          old_roots = [
-              'articles/c/', 'articles/linux/', 'articles/freertos/', 'articles/windows/',
-              'articles/mcu/mcu/', 'articles/fpga/fpga/', 'articles/dev-tools/dev-tools/',
-              'articles/realtime/realtime/', 'articles/soc/linux', 'articles/host/tools'
-          ]
-          for prefix in old_roots:
-              hits = []
-              for path in sorted(root.rglob('*')):
-                  if not path.is_file() or '.git' in path.parts:
-                      continue
-                  if path.suffix.lower() not in {'.html', '.js', '.py', '.md', '.yml', '.yaml', '.css'}:
-                      continue
-                  text = path.read_text(encoding='utf-8', errors='ignore')
-                  if prefix in text:
-                      hits.append(path.as_posix())
-              if hits:
-                  print(f'LEGACY_PREFIX {prefix}: {len(hits)} file(s)')
-                  for hit in hits[:30]:
-                      print(f'  - {hit}')
-          PY
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find assets/js -type f -name '*.js' -print0 | sort -z)
+      - name: 检查首页与独立文章页布局
+        run: python scripts/browser_layout_guard.py
