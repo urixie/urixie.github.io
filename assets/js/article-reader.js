@@ -17,18 +17,9 @@ function resolveRelativeUrl(base, value) {
   }
 }
 
-function extractArticleSourceFromRoute(html, routeHref) {
+function getCleanArticleRoot(html, articleHref) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const body = doc.body;
-  const source = body?.dataset.articleSource;
-  if (!source) return null;
-  const routeBase = getDirectoryPath(routeHref);
-  return resolveRelativeUrl(routeBase, source);
-}
-
-function getCleanArticleRoot(html, sourceHref) {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const sourceBase = getDirectoryPath(sourceHref);
+  const articleBase = getDirectoryPath(articleHref);
 
   doc.querySelectorAll('script').forEach(script => script.remove());
   doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
@@ -36,14 +27,14 @@ function getCleanArticleRoot(html, sourceHref) {
 
   doc.querySelectorAll('[src]').forEach(node => {
     const value = node.getAttribute('src');
-    const nextValue = resolveRelativeUrl(sourceBase, value);
+    const nextValue = resolveRelativeUrl(articleBase, value);
     if (nextValue) node.setAttribute('src', nextValue);
   });
 
   doc.querySelectorAll('[href]').forEach(node => {
     const value = node.getAttribute('href');
     if (!value || value.includes('index.html')) return;
-    const nextValue = resolveRelativeUrl(sourceBase, value);
+    const nextValue = resolveRelativeUrl(articleBase, value);
     if (nextValue) node.setAttribute('href', nextValue);
   });
 
@@ -51,20 +42,13 @@ function getCleanArticleRoot(html, sourceHref) {
 }
 
 async function fetchInlineArticleRoot(article) {
-  const routeHref = article.href;
-  const routeResponse = await fetch(routeHref, { cache: 'no-cache' });
-  if (!routeResponse.ok) {
-    throw new Error(`无法读取文章入口：${routeHref}`);
+  const articleHref = article.href;
+  const response = await fetch(articleHref, { cache: 'no-cache' });
+  if (!response.ok) {
+    throw new Error(`无法读取文章：${articleHref}`);
   }
 
-  const routeHtml = await routeResponse.text();
-  const sourceHref = extractArticleSourceFromRoute(routeHtml, routeHref) || routeHref;
-  const sourceResponse = await fetch(sourceHref, { cache: 'no-cache' });
-  if (!sourceResponse.ok) {
-    throw new Error(`无法读取文章源文件：${sourceHref}`);
-  }
-
-  return getCleanArticleRoot(await sourceResponse.text(), sourceHref);
+  return getCleanArticleRoot(await response.text(), articleHref);
 }
 
 function isSkippableArticleNode(node) {
