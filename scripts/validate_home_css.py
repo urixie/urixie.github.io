@@ -9,6 +9,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = ROOT / "assets/css/home.css"
+LEGACY_CLASS_SELECTORS = (
+    "article-card",
+    "article-lead",
+    "article-meta",
+    "inline-article",
+    "secondary-article-desc",
+    "secondary-article-title",
+)
 
 
 def skip_comment(text: str, index: int) -> int:
@@ -190,6 +198,10 @@ def main() -> int:
                 f"found {actual_count}"
             )
 
+    for class_name in LEGACY_CLASS_SELECTORS:
+        if re.search(rf"\.{re.escape(class_name)}(?![A-Za-z0-9_-])", text):
+            errors.append(f"legacy selector '.{class_name}' must not return to home.css")
+
     if "Consolidated from " in text:
         errors.append("home.css still contains migration-history comments ('Consolidated from ...')")
 
@@ -199,7 +211,7 @@ def main() -> int:
             print(f"  - {error}")
         return 1
 
-    print("Home CSS validation passed: cascade and breakpoint structure are clean.")
+    print("Home CSS validation passed: cascade, breakpoint structure, and legacy selectors are clean.")
     return 0
 
 
