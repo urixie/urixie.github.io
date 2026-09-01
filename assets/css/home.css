@@ -526,12 +526,6 @@
   display: none !important;
 }
 
-@media (min-width: 981px) {
-  .home-content .home-panel {
-    gap: 0;
-  }
-}
-
 .inline-article-reader {
   display: grid;
   grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
@@ -706,6 +700,10 @@
   .home-content {
     margin-left: 22px;
   }
+
+  .secondary-nav {
+    margin-top: 0 !important;
+  }
 }
 
 @media (min-width: 901px) and (max-width: 1400px) {
@@ -719,13 +717,6 @@
 
   .home-content {
     margin-left: 20px;
-  }
-}
-
-/* 首页：二级导航目录整体上移，删除 secondary-head 占用的间距。 */
-@media (min-width: 901px) {
-  .secondary-nav {
-    margin-top: 0 !important;
   }
 }
 
@@ -787,6 +778,7 @@
 
   .home-content .home-panel {
     box-sizing: border-box !important;
+    gap: 0;
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
@@ -860,10 +852,7 @@
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
   }
-}
 
-/* 桌面端让文章目录紧贴二级导航；目录与正文之间仍保持独立列间距。 */
-@media (min-width: 981px) {
   .content.home-content,
   .home-content {
     margin-left: 0 !important;
