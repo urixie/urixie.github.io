@@ -1,0 +1,40 @@
+name: Consolidate home CSS
+
+on:
+  push:
+    branches:
+      - refactor/home-css-semantic
+    paths:
+      - scripts/consolidate_home_css.py
+      - .github/workflows/consolidate-home-css.yml
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/home-css-semantic
+      - name: 收敛无效 CSS 覆盖
+        run: python scripts/consolidate_home_css.py
+      - name: 检查 HTML noindex 配置
+        run: python scripts/website_privacy_guard.py --check
+      - name: 检查站点目录与路由一致性
+        run: python scripts/validate_site_structure.py
+      - name: 检查首页 CSS 无效覆盖
+        run: python scripts/validate_home_css.py
+      - name: 提交收敛结果
+        run: |
+          if git diff --quiet; then
+            echo "No consolidation changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/home.css .github/workflows/noindex-check.yml
+          git commit -m "refactor: remove dead home css overrides"
+          git push origin HEAD:refactor/home-css-semantic
