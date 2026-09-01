@@ -1,0 +1,20 @@
+name: Audit home CSS
+
+on:
+  push:
+    branches:
+      - refactor/home-css-semantic
+    paths:
+      - scripts/audit_home_css.py
+      - .github/workflows/audit-home-css.yml
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/home-css-semantic
+      - name: 审计 home.css
+        run: python scripts/audit_home_css.py
