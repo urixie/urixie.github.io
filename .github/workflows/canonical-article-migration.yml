@@ -1,0 +1,36 @@
+name: Canonical article migration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/canonical-article-migration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 执行正文目录迁移
+        run: python scripts/migrate_canonical_articles.py
+      - name: 校验隐私配置
+        run: python scripts/website_privacy_guard.py --check
+      - name: 校验最终目录与路由
+        run: python scripts/validate_site_structure.py
+      - name: 提交迁移结果
+        shell: bash
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo 'No migration changes to commit.'
+            exit 0
+          fi
+          git config user.name 'xyj'
+          git config user.email '64504526+urixie@users.noreply.github.com'
+          git add -A
+          git commit -m 'refactor: canonicalize article storage'
+          git push origin HEAD:main
