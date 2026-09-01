@@ -164,6 +164,9 @@ def main() -> int:
         groups[(rule["scope"], rule["selector"])].append(rule)
 
     errors = []
+    if re.search(r"!important\b", text, flags=re.I):
+        errors.append("home.css must not use !important; resolve cascade order or specificity instead")
+
     for (scope, selector), occurrences in groups.items():
         if len(occurrences) < 2:
             continue
@@ -211,7 +214,7 @@ def main() -> int:
             print(f"  - {error}")
         return 1
 
-    print("Home CSS validation passed: cascade, breakpoint structure, and legacy selectors are clean.")
+    print("Home CSS validation passed: cascade, breakpoint structure, specificity, and legacy selectors are clean.")
     return 0
 
 
