@@ -17,6 +17,14 @@ LEGACY_CLASS_SELECTORS = (
     "secondary-article-desc",
     "secondary-article-title",
 )
+SHARED_ARTICLE_CLASS_SELECTORS = (
+    "code-block-wrap",
+    "copy-code-button",
+    "article-image-zoom-container",
+    "article-image-zoom-controls",
+    "article-image-zoom-control",
+    "article-image-zoom-reset",
+)
 LEGACY_HIGH_SPECIFICITY_PATTERNS = (
     r"\.content\.home-content\b",
     r"\.home-content\s+\.home-panel\b",
@@ -200,9 +208,7 @@ def main() -> int:
     breakpoint_expectations = {
         "@media (min-width: 901px) {": 1,
         "@media (min-width: 981px) {": 1,
-        # Two <=640px blocks are intentional: the later one follows the base copy-button
-        # rule, so merging it upward would change cascade order.
-        "@media (max-width: 640px) {": 2,
+        "@media (max-width: 640px) {": 1,
     }
     for media_header, expected_count in breakpoint_expectations.items():
         actual_count = text.count(media_header)
@@ -216,6 +222,12 @@ def main() -> int:
         if re.search(rf"\.{re.escape(class_name)}(?![A-Za-z0-9_-])", text):
             errors.append(f"legacy selector '.{class_name}' must not return to home.css")
 
+    for class_name in SHARED_ARTICLE_CLASS_SELECTORS:
+        if re.search(rf"\.{re.escape(class_name)}(?![A-Za-z0-9_-])", text):
+            errors.append(
+                f"shared article selector '.{class_name}' belongs in style.css, not home.css"
+            )
+
     if "Consolidated from " in text:
         errors.append("home.css still contains migration-history comments ('Consolidated from ...')")
 
@@ -225,7 +237,10 @@ def main() -> int:
             print(f"  - {error}")
         return 1
 
-    print("Home CSS validation passed: cascade, breakpoint structure, specificity, and legacy selectors are clean.")
+    print(
+        "Home CSS validation passed: cascade, breakpoint structure, specificity, "
+        "shared-article separation, and legacy selectors are clean."
+    )
     return 0
 
 
