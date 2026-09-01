@@ -6,6 +6,7 @@ on:
       - refactor/prune-style-css
     paths:
       - scripts/move_article_common_styles.py
+      - scripts/validate_home_css.py
       - .github/workflows/move-article-common-styles.yml
 
 permissions:
