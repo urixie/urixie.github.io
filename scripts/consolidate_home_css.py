@@ -7,7 +7,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = ROOT / "assets/css/home.css"
-WORKFLOW = ROOT / ".github/workflows/noindex-check.yml"
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -82,22 +81,10 @@ def update_css(text: str) -> str:
     return text
 
 
-def update_workflow(text: str) -> str:
-    if "python scripts/validate_home_css.py" in text:
-        return text
-    needle = "      - name: 检查站点目录与路由一致性\n        run: python scripts/validate_site_structure.py"
-    replacement = needle + "\n      - name: 检查首页 CSS 无效覆盖\n        run: python scripts/validate_home_css.py"
-    return replace_once(text, needle, replacement, "static workflow css validator insertion")
-
-
 def main() -> None:
     css_before = CSS.read_text(encoding="utf-8")
     css_after = update_css(css_before)
     CSS.write_text(css_after, encoding="utf-8")
-
-    workflow_before = WORKFLOW.read_text(encoding="utf-8")
-    workflow_after = update_workflow(workflow_before)
-    WORKFLOW.write_text(workflow_after, encoding="utf-8")
 
     print(f"home.css: {len(css_before.splitlines())} -> {len(css_after.splitlines())} lines")
     print("Removed only same-selector declarations proven dead by later rules in the same scope.")
