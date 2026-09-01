@@ -1,0 +1,44 @@
+name: Migrate MCU common path
+
+on:
+  push:
+    branches:
+      - refactor/mcu-common-path
+    paths:
+      - scripts/migrate_mcu_common_path.py
+      - .github/workflows/migrate-mcu-common-path.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/mcu-common-path
+      - name: 迁移 MCU 通用文章目录
+        run: python scripts/migrate_mcu_common_path.py
+      - name: 检查 HTML noindex 配置
+        run: python scripts/website_privacy_guard.py --check
+      - name: 检查站点目录与路由一致性
+        run: python scripts/validate_site_structure.py
+      - name: 检查首页 CSS
+        run: python scripts/validate_home_css.py
+      - name: 检查公共 CSS 生产引用
+        run: python scripts/validate_style_css_usage.py
+      - name: 检查首页与独立文章页布局
+        run: python scripts/browser_layout_guard.py
+      - name: 提交结果
+        run: |
+          if git diff --quiet; then
+            echo "No MCU path migration changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: canonicalize mcu common article path"
+          git push origin HEAD:refactor/mcu-common-path
