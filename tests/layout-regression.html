@@ -74,11 +74,23 @@
         const sectionNav = rect('.inline-section-nav');
         const sectionContent = rect('.inline-section-content');
         const copyButton = rect('.copy-code-button');
+        const articleLinks = Array.from(doc.querySelectorAll('.secondary-article-link'));
+        const nonCanonicalArticleLinks = articleLinks
+          .map(link => link.getAttribute('href') || '')
+          .filter(href => {
+            const parsed = new URL(href, doc.baseURI);
+            return Boolean(parsed.search || parsed.hash);
+          });
 
         assert(Boolean(element('.primary-nav-button.active')), 'missing active primary navigation item');
         assert(Boolean(element('.secondary-article-link.active')), 'missing active article navigation item');
         assert(Boolean(reader && sectionNav && sectionContent), 'inline reader structure is incomplete');
         assert(!element('.inline-article-placeholder.is-error'), 'article reader rendered an error placeholder');
+        assert(articleLinks.length > 0, 'article navigation must expose canonical links');
+        assert(
+          nonCanonicalArticleLinks.length === 0,
+          `article navigation hrefs must not contain query/fragment: ${nonCanonicalArticleLinks.join(', ')}`
+        );
 
         if (mode === 'desktop') {
           assert(style('.home-shell', 'display') === 'grid', 'desktop home shell must use grid layout');
@@ -131,6 +143,7 @@
             reader,
             sectionNav,
             sectionContent,
+            articleLinkCount: articleLinks.length,
             bodyOverflowY: style('body', 'overflowY'),
             sectionOverflowY: style('.inline-section-content', 'overflowY'),
             shellDisplay: style('.home-shell', 'display'),
