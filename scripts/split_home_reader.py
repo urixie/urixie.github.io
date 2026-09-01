@@ -76,8 +76,10 @@ def update_home(text: str) -> str:
         "    const articleRoot = await window.articleReader.fetchInlineArticleRoot(article);\n"
         "    articleList.replaceChildren(window.articleReader.createSectionedArticleReader(articleRoot));",
     )
-    if "fetchInlineArticleRoot(article)" in text or "createSectionedArticleReader(articleRoot)" in text:
-        raise RuntimeError("home.js still contains direct reader calls")
+    direct_fetch = re.search(r"(?<![.\w])fetchInlineArticleRoot\s*\(", text)
+    direct_create = re.search(r"(?<![.\w])createSectionedArticleReader\s*\(", text)
+    if direct_fetch or direct_create:
+        raise RuntimeError("home.js still contains unqualified reader calls")
     return text
 
 
