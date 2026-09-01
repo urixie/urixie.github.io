@@ -712,14 +712,14 @@
     overflow-x: hidden;
   }
 
-  .content.home-content {
+  .home-content {
     height: calc(100dvh - 16px);
     max-height: calc(100dvh - 16px);
     min-height: 0;
     overflow: hidden;
   }
 
-  .home-content .home-panel {
+  .home-panel {
     box-sizing: border-box;
     gap: 0;
     height: 100%;
@@ -731,7 +731,7 @@
     overflow: hidden;
   }
 
-  .home-content .section-title {
+  .section-title {
     position: relative;
     z-index: 2;
     margin-top: 0;
@@ -741,11 +741,11 @@
     flex: 0 0 auto;
   }
 
-  .home-content .section-title h2 {
+  .section-title h2 {
     line-height: 1.12;
   }
 
-  .home-content .article-list {
+  .article-list {
     min-height: 0;
     height: 100%;
     overflow: hidden;
@@ -796,7 +796,6 @@
     border-bottom-left-radius: 0;
   }
 
-  .content.home-content,
   .home-content {
     margin-left: 0;
   }
