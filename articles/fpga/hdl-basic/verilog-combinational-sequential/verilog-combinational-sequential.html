@@ -6,10 +6,172 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>Verilog 组合逻辑与时序逻辑 - XYJ</title>
+  <meta name="description" content="整理 Verilog 组合逻辑、时序逻辑、锁存器、寄存器、复位、计数器、边沿检测、流水线和 FPGA 时序设计注意事项。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=704b803539b3">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../verilog/verilog-combinational-sequential/verilog-combinational-sequential.html" data-topic-href="../../../../index.html#fpga/hdl-basic" data-topic-label="返回 FPGA开发">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=704b803539b3">← 返回首页</a>
+      <a href="../../../index.html?v=704b803539b3#verilog-logic">返回 Verilog专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">VERILOG · COMBINATIONAL · SEQUENTIAL · REGISTER</div>
+      <h1>Verilog 组合逻辑与时序逻辑</h1>
+
+      <p>
+        Verilog 电路设计中，最核心的分类就是组合逻辑和时序逻辑。组合逻辑只由当前输入决定输出；时序逻辑由时钟触发，输出和当前状态有关。把这两类逻辑分清楚，是写出稳定 FPGA 代码的基础。
+      </p>
+
+      <section>
+        <h2>一、组合逻辑</h2>
+        <p>
+          组合逻辑没有记忆能力，输出只取决于当前输入。常见组合逻辑包括选择器、译码器、比较器、加法器、优先级编码器等。
+        </p>
+        <pre><code>always @(*) begin
+    case (sel)
+        2'd0: y = a;
+        2'd1: y = b;
+        2'd2: y = c;
+        default: y = 8'd0;
+    endcase
+end</code></pre>
+        <p>
+          组合逻辑一定要给所有分支赋值，否则综合工具可能推断出锁存器。</p>
+      </section>
+
+      <section>
+        <h2>二、避免意外锁存器</h2>
+        <p>
+          如果组合逻辑中某些条件下没有给输出赋值，硬件为了保持之前的值，就可能生成 latch。大多数 FPGA 同步设计中应避免意外 latch。
+        </p>
+        <pre><code>// 错误示例：en 为 0 时 y 没有赋值，可能推断 latch
+always @(*) begin
+    if (en)
+        y = a;
+end
+
+// 推荐写法：先给默认值
+always @(*) begin
+    y = 8'd0;
+    if (en)
+        y = a;
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>三、时序逻辑</h2>
+        <p>
+          时序逻辑由时钟边沿触发，常用于寄存器、计数器、状态机、流水线和数据同步。时序逻辑的核心是“时钟边沿更新”。
+        </p>
+        <pre><code>always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        data_q &lt;= 8'd0;
+    else
+        data_q &lt;= data_d;
+end</code></pre>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 280" role="img" aria-label="时序逻辑寄存器示意图">
+            <rect x="300" y="90" width="150" height="86" rx="14" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="375" y="122" text-anchor="middle" font-size="16" font-weight="700">D触发器</text>
+            <text x="375" y="150" text-anchor="middle" font-size="13">posedge clk 更新</text>
+            <path d="M120 132 L300 132" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-seq)"/><text x="95" y="137" font-size="14">data_d</text>
+            <path d="M450 132 L640 132" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-seq-green)"/><text x="650" y="137" font-size="14">data_q</text>
+            <path d="M375 220 L375 176" stroke="#d97706" stroke-width="2" marker-end="url(#arrow-seq-orange)"/><text x="350" y="235" font-size="14">clk</text>
+            <defs>
+              <marker id="arrow-seq" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker>
+              <marker id="arrow-seq-green" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#16a34a"/></marker>
+              <marker id="arrow-seq-orange" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#d97706"/></marker>
+            </defs>
+          </svg>
+          <figcaption>图 1：时序逻辑在时钟边沿把 D 端数据更新到 Q 端。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>四、同步复位与异步复位</h2>
+        <p>
+          异步复位不依赖时钟，复位信号有效时立即复位；同步复位只在时钟边沿判断复位条件。工程中两种都常见，关键是整个项目风格要统一。
+        </p>
+        <pre><code>// 异步低有效复位
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        q &lt;= 1'b0;
+    else
+        q &lt;= d;
+end
+
+// 同步高有效复位
+always @(posedge clk) begin
+    if (rst)
+        q &lt;= 1'b0;
+    else
+        q &lt;= d;
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>五、计数器</h2>
+        <p>
+          计数器是最常见的时序逻辑。LED 闪烁、采样节拍、超时判断、波特率分频都可能用到计数器。</p>
+        <pre><code>reg [15:0] cnt;
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        cnt &lt;= 16'd0;
+    else if (cnt == 16'd999)
+        cnt &lt;= 16'd0;
+    else
+        cnt &lt;= cnt + 1'b1;
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>六、边沿检测</h2>
+        <p>
+          边沿检测通常通过打一拍实现。把当前信号和上一拍信号比较，就能得到上升沿或下降沿脉冲。</p>
+        <pre><code>reg trig_d;
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        trig_d &lt;= 1'b0;
+    else
+        trig_d &lt;= trig;
+end
+
+assign trig_rise = trig &amp; ~trig_d;</code></pre>
+      </section>
+
+      <section>
+        <h2>七、流水线</h2>
+        <p>
+          流水线通过插入寄存器把长组合路径拆短，提高时钟频率。代价是增加延迟，也就是数据要多等几个时钟周期才输出。</p>
+        <pre><code>always @(posedge clk) begin
+    stage1 &lt;= a + b;
+    stage2 &lt;= stage1 * c;
+    stage3 &lt;= stage2 + d;
+end</code></pre>
+      </section>
+
+      <section>
+        <h2>八、组合与时序检查清单</h2>
+        <ul>
+          <li>组合逻辑是否所有分支都有赋值。</li>
+          <li>时序逻辑是否使用非阻塞赋值。</li>
+          <li>复位极性和复位方式是否统一。</li>
+          <li>计数器最大值是否考虑位宽。</li>
+          <li>边沿检测信号是否已经同步到当前时钟域。</li>
+          <li>长组合路径是否需要加流水线。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=704b803539b3#verilog-logic">返回 Verilog专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=704b803539b3"></script>
 </body>
 </html>

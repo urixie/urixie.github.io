@@ -6,10 +6,172 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>Verilog 基础语法与硬件描述思维 - XYJ</title>
+  <meta name="description" content="整理 Verilog 基础语法、module、端口、wire、reg、assign、always、阻塞赋值、非阻塞赋值、参数化和硬件描述思维。">
+  <link rel="stylesheet" href="../../../assets/css/style.css?v=704b803539b3">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../verilog/verilog-basic-syntax/verilog-basic-syntax.html" data-topic-href="../../../../index.html#fpga/hdl-basic" data-topic-label="返回 FPGA开发">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../index.html?v=704b803539b3">← 返回首页</a>
+      <a href="../../../index.html?v=704b803539b3#verilog-basic">返回 Verilog专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">VERILOG · BASIC · HDL · FPGA</div>
+      <h1>Verilog 基础语法与硬件描述思维</h1>
+
+      <p>
+        Verilog 不是普通软件语言，而是硬件描述语言。写 Verilog 的重点不是“程序一行一行执行”，而是描述电路结构、寄存器行为、组合逻辑和时序逻辑。本文从最基础的语法开始，建立面向 FPGA 的硬件描述思维。
+      </p>
+
+      <div class="article-note">
+        初学 Verilog 最容易犯的错误，是把它当 C 语言写。C 语言描述的是 CPU 上顺序执行的指令，Verilog 描述的是并行存在的硬件电路。你写下的每个 always、assign、寄存器和连线，最终都要能对应到硬件结构。
+      </div>
+
+      <section>
+        <h2>一、Verilog工程的基本单位：module</h2>
+        <p>
+          <code>module</code> 是 Verilog 的基本设计单元，可以理解为一个硬件模块。模块有输入、输出和内部逻辑，综合后可能变成组合逻辑、触发器、RAM、DSP 或其它 FPGA 资源。
+        </p>
+        <pre><code>module led_blink (
+    input  wire clk,
+    input  wire rst_n,
+    output reg  led
+);
+
+endmodule</code></pre>
+        <p>
+          上面这个模块有一个时钟 <code>clk</code>、一个低有效复位 <code>rst_n</code> 和一个 LED 输出 <code>led</code>。端口方向决定信号从模块外进入还是从模块内输出。
+        </p>
+      </section>
+
+      <section>
+        <h2>二、wire 与 reg</h2>
+        <p>
+          <code>wire</code> 更像连线，常用于连续赋值和模块端口连接；<code>reg</code> 表示在过程块中被赋值的变量，综合后不一定都是寄存器，是否变成寄存器取决于 always 块写法。
+        </p>
+        <pre><code>wire a_and_b;
+reg  data_valid;
+
+assign a_and_b = a &amp; b;</code></pre>
+        <ul>
+          <li><code>assign</code> 左侧通常是 <code>wire</code>。</li>
+          <li><code>always</code> 块内赋值的信号通常声明为 <code>reg</code>。</li>
+          <li><code>reg</code> 不等于一定综合成触发器。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>三、assign连续赋值</h2>
+        <p>
+          <code>assign</code> 描述组合逻辑。只要右侧输入信号变化，左侧输出就会跟着变化，类似一根持续存在的硬件连线加组合门电路。
+        </p>
+        <pre><code>assign y = (sel == 1'b1) ? a : b;
+assign sum = data0 + data1;</code></pre>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 260" role="img" aria-label="assign组合逻辑示意图">
+            <rect x="290" y="85" width="180" height="80" rx="16" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="380" y="118" text-anchor="middle" font-size="15" font-weight="700">组合逻辑</text>
+            <text x="380" y="142" text-anchor="middle" font-size="13">assign y = sel ? a : b</text>
+            <text x="100" y="90" font-size="14">a</text><path d="M120 85 L290 110" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-v-basic)"/>
+            <text x="100" y="132" font-size="14">b</text><path d="M120 128 L290 130" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-v-basic)"/>
+            <text x="92" y="174" font-size="14">sel</text><path d="M120 170 L290 150" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-v-basic)"/>
+            <path d="M470 125 L640 125" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-v-basic-green)"/>
+            <text x="650" y="130" font-size="14">y</text>
+            <defs>
+              <marker id="arrow-v-basic" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker>
+              <marker id="arrow-v-basic-green" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#16a34a"/></marker>
+            </defs>
+          </svg>
+          <figcaption>图 1：assign 描述的是持续存在的组合逻辑，不是临时执行的一句代码。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>四、always块</h2>
+        <p>
+          <code>always</code> 用于描述过程逻辑。根据敏感列表不同，可以描述组合逻辑，也可以描述时序逻辑。
+        </p>
+        <pre><code>// 组合逻辑
+always @(*) begin
+    y = sel ? a : b;
+end
+
+// 时序逻辑
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        q &lt;= 1'b0;
+    else
+        q &lt;= d;
+end</code></pre>
+        <p>
+          <code>always @(*)</code> 常用于组合逻辑；<code>always @(posedge clk)</code> 常用于触发器和寄存器逻辑。
+        </p>
+      </section>
+
+      <section>
+        <h2>五、阻塞赋值与非阻塞赋值</h2>
+        <p>
+          阻塞赋值使用 <code>=</code>，语句按顺序立即更新；非阻塞赋值使用 <code>&lt;=</code>，通常在时钟边沿统一更新。工程中建议遵循：组合逻辑用阻塞赋值，时序逻辑用非阻塞赋值。
+        </p>
+        <pre><code>// 组合逻辑推荐用 =
+always @(*) begin
+    y = a &amp; b;
+end
+
+// 时序逻辑推荐用 &lt;=
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        q &lt;= 1'b0;
+    else
+        q &lt;= d;
+end</code></pre>
+        <div class="article-warning">
+          初学阶段不要在同一个 always 块中混用复杂的阻塞和非阻塞赋值。尤其是时序逻辑中误用阻塞赋值，仿真行为和综合后硬件理解都容易出错。
+        </div>
+      </section>
+
+      <section>
+        <h2>六、参数化设计</h2>
+        <p>
+          <code>parameter</code> 可以让模块更容易复用。例如计数器位宽、FIFO 深度、数据总线宽度都适合参数化。
+        </p>
+        <pre><code>module counter #(
+    parameter WIDTH = 16
+)(
+    input  wire             clk,
+    input  wire             rst_n,
+    output reg [WIDTH-1:0]  cnt
+);
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        cnt &lt;= {WIDTH{1'b0}};
+    else
+        cnt &lt;= cnt + 1'b1;
+end
+
+endmodule</code></pre>
+      </section>
+
+      <section>
+        <h2>七、基础编码检查清单</h2>
+        <ul>
+          <li>模块端口方向是否清晰。</li>
+          <li>组合逻辑是否覆盖所有分支，避免锁存器。</li>
+          <li>时序逻辑是否统一使用非阻塞赋值。</li>
+          <li>复位极性是否统一，例如 <code>rst_n</code> 表示低有效。</li>
+          <li>位宽是否明确，避免无意识截断或扩展。</li>
+          <li>参数化模块是否在边界值下验证过。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../index.html?v=704b803539b3#verilog-basic">返回 Verilog专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../assets/js/main.js?v=704b803539b3"></script>
 </body>
 </html>
