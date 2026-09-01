@@ -1,0 +1,20 @@
+name: Audit style css usage
+
+on:
+  push:
+    branches:
+      - refactor/prune-style-css
+    paths:
+      - scripts/audit_style_css_usage.py
+      - .github/workflows/audit-style-css.yml
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/prune-style-css
+      - name: 扫描 style.css 运行时引用
+        run: python scripts/audit_style_css_usage.py
