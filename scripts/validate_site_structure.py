@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate static site routing and article layout consistency."""
+"""Validate static site routing and canonical article layout consistency."""
 
 from __future__ import annotations
 
@@ -16,30 +16,18 @@ LEGACY_ROUTES = ROOT / "assets/js/legacy-routes.js"
 INDEX = ROOT / "index.html"
 
 HOME_HREF_RE = re.compile(r"href\s*:\s*withVersion\(\s*['\"]([^'\"]+)['\"]\s*\)")
-PATH_MAP_RE = re.compile(r"['\"]([^'\"]+\.html)['\"]\s*:\s*['\"]([^'\"]+\.html)['\"]")
 LEGACY_ROUTE_RE = re.compile(r"^\s*['\"]([^'\"]+)['\"]\s*:\s*['\"]([^'\"]+)['\"]\s*,?\s*$", re.MULTILINE)
 SCRIPT_RE = re.compile(r"<script\s+[^>]*src=['\"]([^'\"]+)['\"][^>]*>", re.IGNORECASE)
 ARTICLE_SOURCE_RE = re.compile(r"data-article-source=['\"]([^'\"]+)['\"]", re.IGNORECASE)
 
 
 def local_path(value: str) -> Path:
-    path = urlsplit(value).path.lstrip("/")
-    return ROOT / path
+    return ROOT / urlsplit(value).path.lstrip("/")
 
 
 def require_file(path: Path, errors: list[str], context: str) -> None:
     if not path.is_file():
         errors.append(f"{context}: missing file: {path.relative_to(ROOT).as_posix()}")
-
-
-def read_article_path_map() -> dict[str, str]:
-    text = ARTICLE_PATH_MAP.read_text(encoding="utf-8")
-    return dict(PATH_MAP_RE.findall(text))
-
-
-def effective_article_path(href: str, path_map: dict[str, str]) -> str:
-    clean_href = urlsplit(href).path
-    return path_map.get(clean_href, clean_href)
 
 
 def validate_index(errors: list[str]) -> None:
@@ -50,7 +38,6 @@ def validate_index(errors: list[str]) -> None:
 
     required_order = [
         "assets/js/home-data.js",
-        "assets/js/article-path-map.js",
         "assets/js/legacy-routes.js",
         "assets/js/hash-compat.js",
         "assets/js/main.js",
@@ -65,8 +52,11 @@ def validate_index(errors: list[str]) -> None:
     if len(positions) == len(required_order) and positions != sorted(positions):
         errors.append("index script: routing scripts are not loaded in the required order")
 
+    if any("article-path-map.js" in script for script in scripts):
+        errors.append("index script: article-path-map.js must not be loaded")
 
-def validate_home_data(errors: list[str], path_map: dict[str, str]) -> None:
+
+def validate_home_data(errors: list[str]) -> None:
     text = HOME_DATA.read_text(encoding="utf-8")
     hrefs = HOME_HREF_RE.findall(text)
     if not hrefs:
@@ -78,25 +68,7 @@ def validate_home_data(errors: list[str], path_map: dict[str, str]) -> None:
         if href in seen:
             errors.append(f"home-data: duplicate article href: {href}")
         seen.add(href)
-        effective = effective_article_path(href, path_map)
-        require_file(local_path(effective), errors, "home-data effective route")
-
-
-def validate_article_path_map(errors: list[str], path_map: dict[str, str]) -> None:
-    sources: set[str] = set()
-    targets: set[str] = set()
-
-    for source, target in path_map.items():
-        if source in sources:
-            errors.append(f"article-path-map: duplicate source: {source}")
-        if target in targets:
-            errors.append(f"article-path-map: duplicate target: {target}")
-        sources.add(source)
-        targets.add(target)
-
-        # Source paths are compatibility aliases and are allowed to be virtual.
-        # Targets are canonical routes and must always exist.
-        require_file(local_path(target), errors, "article-path-map target")
+        require_file(local_path(href), errors, "home-data route")
 
 
 def validate_proxy_sources(errors: list[str]) -> None:
@@ -145,8 +117,12 @@ def validate_legacy_routes(errors: list[str]) -> None:
             errors.append(f"{consumer.name}: must consume {helper} from legacy-routes.js")
 
 
-def validate_known_duplicate_trees(errors: list[str]) -> None:
-    duplicate_paths = [
+def validate_canonical_layout(errors: list[str]) -> None:
+    forbidden_paths = [
+        "articles/c",
+        "articles/linux",
+        "articles/freertos",
+        "articles/windows",
         "articles/foundation/foundation",
         "articles/dev-tools/dev-tools",
         "articles/fpga/fpga",
@@ -162,25 +138,26 @@ def validate_known_duplicate_trees(errors: list[str]) -> None:
         "articles/mcu/mcu/silicon-labs",
         "articles/mcu/mcu/wh",
     ]
-    for relative in duplicate_paths:
+    for relative in forbidden_paths:
         if (ROOT / relative).exists():
-            errors.append(f"article layout: duplicated tree must not exist: {relative}")
+            errors.append(f"article layout: legacy/duplicated tree must not exist: {relative}")
+
+    if ARTICLE_PATH_MAP.exists():
+        errors.append("article layout: assets/js/article-path-map.js must not exist")
 
 
 def main() -> int:
     errors: list[str] = []
 
-    for required in (HOME_DATA, ARTICLE_PATH_MAP, LEGACY_ROUTES, INDEX):
+    for required in (HOME_DATA, LEGACY_ROUTES, INDEX):
         require_file(required, errors, "site structure")
 
     if not errors:
-        path_map = read_article_path_map()
         validate_index(errors)
-        validate_home_data(errors, path_map)
-        validate_article_path_map(errors, path_map)
+        validate_home_data(errors)
         validate_proxy_sources(errors)
         validate_legacy_routes(errors)
-        validate_known_duplicate_trees(errors)
+        validate_canonical_layout(errors)
 
     if errors:
         print("Site structure validation failed:", file=sys.stderr)

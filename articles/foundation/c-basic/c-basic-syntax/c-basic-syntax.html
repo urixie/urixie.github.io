@@ -6,10 +6,237 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>C语言基础语法整理 - XYJ</title>
+  <meta name="description" content="面向嵌入式工程实践整理 C 语言基础语法，包括变量.类型.运算符.流程控制.函数和源文件组织方式。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=bc26d38b1d83">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../c/c-basic-syntax/c-basic-syntax.html" data-topic-href="../../../../index.html#foundation/c-basic" data-topic-label="返回 嵌入式基础">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=bc26d38b1d83">← 返回首页</a>
+      <a href="../../../../index.html?v=bc26d38b1d83#c-basic">返回 C语言专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">C LANGUAGE · BASIC · EMBEDDED</div>
+
+      <h1>C语言基础语法整理</h1>
+
+      <p>
+        本文从嵌入式工程实践角度整理 C 语言基础语法。重点不是重复教材概念，而是把变量.类型.表达式.流程控制.函数和文件组织这些基础内容，放到单片机.驱动.通信协议和参数配置的场景中理解。
+      </p>
+
+      <div class="article-note">
+        写嵌入式 C 时，基础语法的目标不是“能跑”，而是让数据宽度明确.执行路径清楚.接口边界稳定.代码后续可维护。
+      </div>
+
+      <section>
+        <h2>1.C 语言在嵌入式中的作用</h2>
+        <p>
+          嵌入式项目中，C 语言通常直接面对寄存器.外设.Flash.RAM.通信数据和中断。相比应用层开发，嵌入式 C 更关注数据宽度.内存位置.执行时序和硬件副作用。
+        </p>
+        <ul>
+          <li>驱动层：读写寄存器.配置 GPIO.Timer.ADC.SPI.IIC.UART 等外设。</li>
+          <li>协议层：组织帧头.命令字.长度.校验和数据区。</li>
+          <li>业务层：实现参数管理.状态机.错误处理和设备控制逻辑。</li>
+          <li>存储层：管理 Flash.EEPROM.NVS.文件系统或自定义 bin 配置。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2.变量.常量与基本数据类型</h2>
+        <p>
+          嵌入式项目中不建议长期依赖 <code>int</code>.<code>long</code> 这类宽度可能随平台变化的类型。对于协议.寄存器.Flash 存储和跨平台数据，优先使用 <code>stdint.h</code> 提供的定长类型。
+        </p>
+        <pre><code>#include &lt;stdint.h&gt;
+#include &lt;stdbool.h&gt;
+
+uint8_t  flag;        // 8bit 标志或字节数据
+uint16_t adc_value;   // 16bit ADC 或寄存器值
+uint32_t tick_ms;     // 32bit 系统计数
+bool     enabled;     // 布尔状态</code></pre>
+        <p>
+          如果变量表示硬件寄存器值.协议字段.文件格式字段，类型宽度必须固定。否则上位机.下位机.不同编译器之间可能出现解析不一致。
+        </p>
+      </section>
+
+      <section>
+        <h2>3.整型.浮点型与 char 的常见坑</h2>
+        <p>
+          C 语言中的整数运算可能发生溢出，且有符号和无符号混合比较时容易出现意外结果。嵌入式协议解析中，原始字节建议统一使用 <code>uint8_t</code>，不要直接使用 <code>char</code> 表示二进制数据。
+        </p>
+        <pre><code>uint8_t rx = 0xFF;
+uint16_t value = ((uint16_t)rx &lt;&lt; 8) | 0x34;
+
+// 不推荐：char 是否有符号与编译器实现有关
+char raw = (char)0xFF;</code></pre>
+        <p>
+          浮点数适合物理量换算和界面显示，但不适合作为通信协议中的精确判等依据。需要跨设备传输时，常见做法是使用定点数，例如把 12.34V 放大 100 倍后存为整数 1234。
+        </p>
+      </section>
+
+      <section>
+        <h2>4.运算符与表达式</h2>
+        <p>
+          位运算是嵌入式 C 的核心能力。寄存器配置.状态标志.协议字段打包和权限标记都经常依赖按位与.按位或.按位取反.左移和右移。
+        </p>
+        <pre><code>#define BIT(n)             (1U &lt;&lt; (n))
+#define REG_ENABLE_BIT     BIT(3)
+#define REG_MODE_MASK      (0x03U &lt;&lt; 4)
+
+reg |= REG_ENABLE_BIT;             // 置位
+reg &amp;= ~REG_ENABLE_BIT;            // 清位
+reg = (reg &amp; ~REG_MODE_MASK) | (2U &lt;&lt; 4);</code></pre>
+        <p>
+          对表达式加括号可以减少误读，尤其是宏定义.位移.比较和逻辑组合表达式。工程代码优先保证清晰，而不是追求一行写完。
+        </p>
+      </section>
+
+      <section>
+        <h2>5.流程控制的工程写法</h2>
+        <p>
+          <code>if</code>.<code>switch</code>.<code>for</code>.<code>while</code> 都很基础，但在工程中应当保持入口条件明确.退出条件明确.错误路径明确。循环中如果等待硬件状态，必须考虑超时退出。
+        </p>
+        <pre><code>uint32_t timeout = 100000U;
+while ((REG_STATUS &amp; BUSY_FLAG) != 0U) {
+    if (--timeout == 0U) {
+        return ERR_TIMEOUT;
+    }
+}</code></pre>
+        <p>
+          状态较多时优先使用 <code>switch</code> 描述状态机，不要让多层 <code>if else</code> 把流程写得难以维护。
+        </p>
+      </section>
+
+      <section>
+        <h2>6.函数.参数传递与返回值</h2>
+        <p>
+          函数是工程代码的基本组织单元。嵌入式函数应尽量做到职责单1.输入输出清楚.错误码明确。不要让函数既初始化硬件.又处理协议.又刷新界面。
+        </p>
+        <pre><code>typedef enum {
+    APP_OK = 0,
+    APP_ERR_PARAM,
+    APP_ERR_TIMEOUT,
+    APP_ERR_CRC,
+} app_err_t;
+
+app_err_t adc_read_channel(uint8_t channel, uint16_t *out_value)
+{
+    if (out_value == NULL) {
+        return APP_ERR_PARAM;
+    }
+
+    // 读取 ADC，省略硬件细节
+    *out_value = 0;
+    return APP_OK;
+}</code></pre>
+        <p>
+          指针参数用于输出结果时，函数开头必须判空。返回值建议表达函数是否执行成功，具体数据通过输出参数返回。
+        </p>
+      </section>
+
+      <section>
+        <h2>7.头文件与源文件组织</h2>
+        <p>
+          头文件用于声明对外接口，源文件用于实现内部逻辑。头文件不应该暴露过多内部变量和内部函数，否则模块边界会越来越混乱。
+        </p>
+        <pre><code>// app_adc.h
+#ifndef APP_ADC_H
+#define APP_ADC_H
+
+#include &lt;stdint.h&gt;
+#include "app_error.h"
+
+app_err_t app_adc_init(void);
+app_err_t app_adc_read(uint8_t channel, uint16_t *out_value);
+
+#endif</code></pre>
+        <p>
+          一个模块通常包含 <code>.h</code> 和 <code>.c</code> 两部分。外部只包含头文件，不直接依赖源文件内部的静态变量和静态函数。
+        </p>
+      </section>
+
+      <section>
+        <h2>8.完整案例：解析一帧传感器数据</h2>
+        <p>
+          假设设备通过 UART 收到一帧 <code>AA 55 CMD LEN VALUE_L VALUE_H</code>：前两个字节是帧头，第三个字节是命令，第四个字节表示后续有效载荷长度，最后两个字节是小端格式的测量值。这个例子把定长类型、位移、条件判断、指针参数和错误码串在一起，正好对应真实驱动中的最小闭环。
+        </p>
+        <figure class="article-figure">
+          <img src="images/c-basic-flow.svg?v=bc26d38b1d83" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图">
+          <figcaption>图 1：基础语法最终要服务于一条可验证的数据处理链。</figcaption>
+        </figure>
+        <pre><code>#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+
+typedef enum {
+    FRAME_OK = 0,
+    FRAME_ERR_PARAM = -1,
+    FRAME_ERR_HEADER = -2,
+    FRAME_ERR_LENGTH = -3,
+} frame_status_t;
+
+static uint16_t read_le16(const uint8_t *p)
+{
+    return (uint16_t)p[0] | ((uint16_t)p[1] &lt;&lt; 8);
+}
+
+frame_status_t parse_sensor_frame(const uint8_t *buf,
+                                  size_t len,
+                                  uint16_t *out_value)
+{
+    if (buf == NULL || out_value == NULL) {
+        return FRAME_ERR_PARAM;
+    }
+    if (len &lt; 6U || buf[0] != 0xAAU || buf[1] != 0x55U) {
+        return FRAME_ERR_HEADER;
+    }
+    if (buf[3] != 2U || len != 6U) {
+        return FRAME_ERR_LENGTH;
+    }
+
+    *out_value = read_le16(&amp;buf[4]);
+    return FRAME_OK;
+}</code></pre>
+        <p>
+          这段代码的关键不是“把字节读出来”，而是先验证输入再解引用：每一个下标都建立在长度检查之后，字节序也通过显式函数表达。实际项目还应继续增加 CRC、命令字白名单和超时策略，并把解析函数放在协议层，不要让 UI 或业务层直接访问接收缓冲区。
+        </p>
+      </section>
+
+      <section>
+        <h2>9.同一套语法在不同场景中的落地</h2>
+        <table>
+          <thead><tr><th>场景</th><th>常见输入</th><th>基础语法的关注点</th><th>建议验证</th></tr></thead>
+          <tbody>
+            <tr><td>GPIO / 寄存器</td><td>位掩码、状态寄存器</td><td>固定宽度、括号、读改写副作用</td><td>对照手册检查每一位</td></tr>
+            <tr><td>UART / SPI 协议</td><td>字节数组</td><td>长度、大小端、CRC、超时</td><td>边界帧和截断帧测试</td></tr>
+            <tr><td>参数配置</td><td>Flash / EEPROM 数据</td><td>版本、默认值、错误码</td><td>断电和旧版本迁移测试</td></tr>
+            <tr><td>周期任务</td><td>tick、传感器采样值</td><td>无符号溢出、状态机、时间单位</td><td>模拟计数器回绕</td></tr>
+          </tbody>
+        </table>
+        <p>
+          因此，学习基础语法时不要只写孤立的 <code>printf</code> 练习。更有效的练习方式是为一个小模块画出输入、校验、处理和输出，再为每个边界写一个测试用例：输入为空、长度不足、数值越界、超时和正常路径都要覆盖。
+        </p>
+      </section>
+
+      <section>
+        <h2>10.基础语法检查清单</h2>
+        <ul>
+          <li>协议.寄存器.Flash 数据是否使用了固定宽度类型。</li>
+          <li>有符号和无符号变量是否混合比较。</li>
+          <li>移位前是否确认了变量宽度，必要时是否强制类型转换。</li>
+          <li>等待硬件状态的循环是否有超时退出。</li>
+          <li>函数参数是否做了合法性检查。</li>
+          <li>头文件是否只暴露必要接口。</li>
+          <li>复杂表达式是否加括号提升可读性。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=bc26d38b1d83#c-basic">返回 C语言专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=bc26d38b1d83"></script>
 </body>
 </html>

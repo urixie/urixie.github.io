@@ -6,10 +6,182 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>FreeRTOS 软件定时器.内存与调试 - XYJ</title>
+  <meta name="description" content="整理 FreeRTOS 软件定时器.定时器服务任务.动态内存.静态内存.heap_4.栈溢出检测.任务运行统计和常见调试方法。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../freertos/freertos-timer-memory-debug/freertos-timer-memory-debug.html" data-topic-href="../../../../index.html#realtime/timer-memory-debug" data-topic-label="返回 实时系统">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#freertos-debug">返回 FreeRTOS专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">FREERTOS · TIMER · HEAP · DEBUG · TRACE</div>
+      <h1>FreeRTOS 软件定时器.内存与调试</h1>
+
+      <p>
+        FreeRTOS 项目真正上线时，最常见的问题往往不是 API 不会用，而是定时器回调阻塞.任务栈不够.堆碎片.优先级配置不合理.FromISR 用错以及系统长时间运行后偶发异常。本文整理软件定时器.内存管理和调试检查方法。
+      </p>
+
+      <section>
+        <h2>1.软件定时器是什么</h2>
+        <p>
+          FreeRTOS 软件定时器由内核定时器服务任务统一管理。它不是硬件定时器中断，回调函数运行在定时器服务任务上下文中。
+        </p>
+        <pre><code>static void led_timer_cb(TimerHandle_t timer)
+{
+    (void)timer;
+    led_toggle();
+}
+
+TimerHandle_t timer = xTimerCreate("led",
+                                   pdMS_TO_TICKS(500),
+                                   pdTRUE,
+                                   NULL,
+                                   led_timer_cb);
+
+xTimerStart(timer, 0);</code></pre>
+        <p>
+          定时器回调必须短小，不能长时间阻塞。否则会影响其它软件定时器回调执行。
+        </p>
+      </section>
+
+      <section>
+        <h2>2.一次性定时器与周期定时器</h2>
+        <ul>
+          <li>一次性定时器：到期后只执行一次回调。</li>
+          <li>周期定时器：到期后自动重新计时，周期执行回调。</li>
+        </ul>
+        <pre><code>// pdFALSE：一次性定时器
+xTimerCreate("once", pdMS_TO_TICKS(1000), pdFALSE, NULL, cb);
+
+// pdTRUE：周期定时器
+xTimerCreate("period", pdMS_TO_TICKS(1000), pdTRUE, NULL, cb);</code></pre>
+      </section>
+
+      <section>
+        <h2>3.定时器回调注意事项</h2>
+        <ul>
+          <li>不要在定时器回调中做长时间循环。</li>
+          <li>不要在回调中等待很久的队列.信号量或互斥锁。</li>
+          <li>复杂工作应通知任务去处理。</li>
+          <li>多个软件定时器共用定时器服务任务，某个回调卡住会影响其它回调。</li>
+        </ul>
+        <pre><code>static void timer_cb(TimerHandle_t timer)
+{
+    (void)timer;
+    xTaskNotifyGive(s_work_task_handle); // 只通知任务
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>4.FreeRTOS 内存管理</h2>
+        <p>
+          FreeRTOS 可以使用动态内存，也可以使用静态内存。动态创建任务.队列.信号量.定时器时，会从 FreeRTOS 堆中分配内存。静态创建则由用户提供控制块和栈空间。
+        </p>
+        <ul>
+          <li><code>heap_1</code>：只能分配，不能释放。</li>
+          <li><code>heap_2</code>：可释放，但不合并相邻空闲块。</li>
+          <li><code>heap_3</code>：封装标准库 <code>malloc/free</code>。</li>
+          <li><code>heap_4</code>：支持释放和合并空闲块，常用。</li>
+          <li><code>heap_5</code>：支持多个非连续内存区域。</li>
+        </ul>
+        <p>
+          很多 MCU 项目会选择 <code>heap_4.c</code>，因为它支持空闲块合并，碎片控制相对更好。
+        </p>
+      </section>
+
+      <section>
+        <h2>5.静态创建对象</h2>
+        <p>
+          对稳定性要求较高的项目，可以优先使用静态创建，避免运行过程中动态分配失败。
+        </p>
+        <pre><code>static StaticTask_t s_task_tcb;
+static StackType_t s_task_stack[1024];
+
+xTaskCreateStatic(task_entry,
+                  "worker",
+                  1024,
+                  NULL,
+                  2,
+                  s_task_stack,
+                  &amp;s_task_tcb);</code></pre>
+        <p>
+          静态创建的好处是内存占用更可控，坏处是灵活性较差。对嵌入式产品来说，确定性通常比灵活性更重要。
+        </p>
+      </section>
+
+      <section>
+        <h2>6.栈溢出检测</h2>
+        <p>
+          FreeRTOS 可以配置栈溢出检测。常见配置项包括 <code>configCHECK_FOR_STACK_OVERFLOW</code> 和钩子函数 <code>vApplicationStackOverflowHook()</code>。
+        </p>
+        <pre><code>void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name)
+{
+    (void)task;
+    printf("stack overflow: %s\n", task_name);
+    taskDISABLE_INTERRUPTS();
+    while (1) {
+    }
+}</code></pre>
+        <p>
+          栈溢出检测不能替代栈水位分析。建议调试阶段周期性打印关键任务的栈水位，并保留足够余量。
+        </p>
+      </section>
+
+      <section>
+        <h2>7.运行统计与调试</h2>
+        <p>
+          FreeRTOS 可通过任务列表.运行时间统计.栈水位.断言和 trace 工具分析系统状态。常见排查方向包括任务是否阻塞.优先级是否合理.CPU 是否被高优先级任务占满.队列是否长期满或空。
+        </p>
+        <pre><code>char buf[512];
+vTaskList(buf);
+printf("%s\n", buf);
+
+vTaskGetRunTimeStats(buf);
+printf("%s\n", buf);</code></pre>
+        <p>
+          这些接口需要在 <code>FreeRTOSConfig.h</code> 中打开对应配置。不同芯片 SDK 对统计接口支持程度不同，需要结合工程配置确认。
+        </p>
+      </section>
+
+      <section>
+        <h2>8.常见问题排查表</h2>
+        <table>
+          <thead>
+            <tr><th>现象</th><th>优先排查方向</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>某个任务不运行</td><td>优先级被压制.任务一直阻塞.栈溢出</td></tr>
+            <tr><td>系统偶发死机</td><td>栈溢出.中断优先级.FromISR API 用错</td></tr>
+            <tr><td>队列发送失败</td><td>队列满.接收任务优先级低或未运行</td></tr>
+            <tr><td>定时器不准</td><td>Tick 配置.回调耗时.定时器服务任务优先级</td></tr>
+            <tr><td>运行一段时间后异常</td><td>堆泄漏.碎片.任务栈余量不足</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>9.工程检查清单</h2>
+        <ul>
+          <li>任务栈是否做过水位检测。</li>
+          <li>软件定时器回调是否足够短。</li>
+          <li>中断中是否只调用 FromISR API。</li>
+          <li>互斥锁是否只在任务上下文使用。</li>
+          <li>动态对象是否可能创建失败。</li>
+          <li>是否开启断言和栈溢出钩子。</li>
+          <li>队列长度是否根据峰值流量设计。</li>
+          <li>任务优先级是否按实时性设计。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#freertos-debug">返回 FreeRTOS专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
 </body>
 </html>

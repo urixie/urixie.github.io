@@ -6,10 +6,194 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>iVentoy PXE安装Windows与网卡驱动处理 - XYJ</title>
+  <meta name="description" content="整理 iVentoy 通过 PXE 安装 Windows 的流程，重点说明原版 ISO 可能缺少目标电脑网卡驱动，可通过 USB 转网口或向 ISO/WinPE/安装镜像注入驱动解决。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../windows/iventoy-pxe-win-install/iventoy-pxe-win-install.html" data-topic-href="../../../../index.html#dev-tools/pxe-iventoy" data-topic-label="返回 开发环境与工具">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#windows-iventoy">返回 Windows装机专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">WINDOWS · IVENTOY · PXE · ISO · NETWORK DRIVER</div>
+      <h1>iVentoy PXE安装Windows与网卡驱动处理</h1>
+
+      <p>
+        iVentoy 可以让一台电脑作为 PXE 启动服务器，另一台电脑通过网卡从网络启动并加载 ISO 镜像安装系统。它适合没有 U 盘.批量装机.临时给另一台电脑安装 Windows 的场景。本文重点整理 Windows 原版 ISO 通过 PXE 安装时的网卡驱动问题。
+      </p>
+
+      <div class="article-warning">
+        重点结论：原版 Windows ISO 不一定包含目标电脑的有线网卡驱动。PXE 安装过程中，前期能从网卡启动，不代表进入 Windows PE / Windows 安装程序后仍然能识别这块网卡。解决思路通常有两种：使用兼容性好的 USB 转网口，或者把目标网卡驱动注入到 boot.wim / install.wim 中。
+      </div>
+
+      <section>
+        <h2>1.iVentoy PXE安装的基本链路</h2>
+        <p>
+          PXE 安装需要两端：服务端运行 iVentoy，客户端从网卡启动。客户端通过 DHCP/TFTP/HTTP 等方式获取启动文件，再加载 ISO 安装系统。
+        </p>
+        <figure class="article-figure">
+          <svg viewBox="0 0 780 280" role="img" aria-label="iVentoy PXE 安装链路示意图">
+            <rect x="55" y="85" width="170" height="80" rx="16" fill="#e0f2fe" stroke="#0284c7"/><text x="140" y="118" text-anchor="middle" font-size="15" font-weight="700">服务端电脑</text><text x="140" y="143" text-anchor="middle" font-size="13">iVentoy + ISO</text>
+            <rect x="305" y="85" width="160" height="80" rx="16" fill="#fef3c7" stroke="#d97706"/><text x="385" y="118" text-anchor="middle" font-size="15" font-weight="700">局域网</text><text x="385" y="143" text-anchor="middle" font-size="13">DHCP / PXE</text>
+            <rect x="545" y="85" width="180" height="80" rx="16" fill="#dcfce7" stroke="#16a34a"/><text x="635" y="118" text-anchor="middle" font-size="15" font-weight="700">客户端电脑</text><text x="635" y="143" text-anchor="middle" font-size="13">网卡启动安装Win</text>
+            <path d="M225 125 L305 125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-pxe)"/>
+            <path d="M465 125 L545 125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-pxe)"/>
+            <text x="385" y="210" text-anchor="middle" font-size="14" fill="#475569">前期PXE能启动，不等于安装环境里一定有网卡驱动</text>
+            <defs><marker id="arrow-pxe" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker></defs>
+          </svg>
+          <figcaption>图 1：iVentoy 服务端通过网络向客户端提供启动和 ISO 安装环境。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>2.原版Windows镜像与iVentoy项目地址</h2>
+        <p>
+          PXE 装机时建议优先使用微软官方原版 ISO，再按目标电脑补充网卡.存储控制器.芯片组等驱动。这样比使用未知来源的二次打包镜像更容易定位问题。
+        </p>
+        <ul>
+          <li><a href="https://www.microsoft.com/software-download/windows11" target="_blank" rel="noopener noreferrer">微软官方 Windows 11 下载页面</a>：可下载 Windows 11 ISO.安装助手和媒体创建工具。</li>
+          <li><a href="https://www.microsoft.com/software-download/windows10" target="_blank" rel="noopener noreferrer">微软官方 Windows 10 下载页面</a>：可通过媒体创建工具生成 ISO 或安装 U 盘。</li>
+          <li><a href="https://www.iventoy.com/en/download.html" target="_blank" rel="noopener noreferrer">iVentoy 官方下载页面</a>：官方页面给出的 Free Edition 下载入口指向 GitHub Releases。</li>
+          <li><a href="https://github.com/ventoy/PXE" target="_blank" rel="noopener noreferrer">iVentoy GitHub 开源部分地址：ventoy/PXE</a>。</li>
+          <li><a href="https://github.com/ventoy/PXE/releases" target="_blank" rel="noopener noreferrer">iVentoy GitHub Releases 下载页</a>。</li>
+        </ul>
+        <div class="article-warning">
+          注意：iVentoy 官方 GitHub Release 说明中明确写到，Ventoy 和 iVentoy 是两个不同软件；Ventoy 是 100% 开源，iVentoy 是“部分开源.部分闭源”，<code>ventoy/PXE</code> 仓库只包含 iVentoy 的开源部分。
+        </div>
+      </section>
+
+      <section>
+        <h2>3.服务端准备</h2>
+        <ol>
+          <li>在服务端电脑下载并解压 iVentoy。</li>
+          <li>把 Windows 10 / Windows 11 ISO 放入 iVentoy 指定的 ISO 目录。</li>
+          <li>服务端电脑和客户端电脑接入同一局域网，或者两台电脑通过网线直连。</li>
+          <li>启动 iVentoy 服务，确认监听网卡选择正确。</li>
+          <li>确认防火墙没有拦截 iVentoy 相关服务。</li>
+        </ol>
+        <p>
+          如果两台电脑网线直连，建议服务端使用固定 IP，并确认 iVentoy DHCP 服务工作正常。网络里如果已有路由器 DHCP，要避免多个 DHCP 服务冲突。</p>
+      </section>
+
+      <section>
+        <h2>4.客户端设置PXE启动</h2>
+        <ol>
+          <li>进入客户端 BIOS / UEFI。</li>
+          <li>开启 Network Boot / PXE Boot。</li>
+          <li>根据实际情况选择 UEFI PXE 或 Legacy PXE。</li>
+          <li>把网卡启动临时设为第一启动项，或用启动快捷键选择网卡。</li>
+          <li>进入 iVentoy 菜单后选择 Windows ISO。</li>
+        </ol>
+        <p>
+          新机器通常优先选择 UEFI PXE；老机器可能需要 Legacy PXE。安装模式应尽量和目标磁盘分区方式匹配：UEFI 对应 GPT，Legacy 对应 MBR。</p>
+      </section>
+
+      <section>
+        <h2>5.为什么PXE能启动，Windows安装却没网</h2>
+        <p>
+          PXE 启动早期使用的是网卡固件.UEFI PXE 驱动或 BIOS PXE 能力；进入 Windows 安装环境后，控制权转到 Windows PE / Windows 安装程序。这时候能否继续访问网络，取决于 Windows PE 中是否带有目标网卡驱动。
+        </p>
+        <table>
+          <thead><tr><th>阶段</th><th>谁在驱动网卡</th><th>常见问题</th></tr></thead>
+          <tbody>
+            <tr><td>PXE启动前期</td><td>BIOS/UEFI 网卡固件</td><td>能拿到启动文件</td></tr>
+            <tr><td>进入WinPE/安装程序</td><td>Windows PE 内置驱动</td><td>原版 ISO 可能没有目标网卡驱动</td></tr>
+            <tr><td>Windows第一次进桌面</td><td>已安装系统驱动</td><td>可能仍然没网，需要离线安装驱动</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>6.方案一：使用USB转网口</h2>
+        <p>
+          如果目标电脑内置网卡太新，原版 Windows ISO 没有驱动，最省事的办法通常是插一个兼容性好的 USB 转网口。很多 USB 有线网卡芯片在 WinPE 或 Windows 中更容易被识别。</p>
+        <ul>
+          <li>优点：不需要改 ISO，操作快，适合临时装机。</li>
+          <li>缺点：需要额外硬件；不是所有 USB 网卡都一定免驱。</li>
+          <li>适用场景：临时给一台电脑安装系统.目标机内置网卡不识别.赶时间。</li>
+        </ul>
+        <p>
+          你之前遇到“使用 USB 转网口就可以”的现象，本质就是 Windows 安装环境识别了 USB 网卡驱动，但没有识别目标电脑内置网卡驱动。</p>
+      </section>
+
+      <section>
+        <h2>7.方案二：向原版ISO注入网卡驱动</h2>
+        <p>
+          如果希望不用 USB 转网口，或者需要批量安装同型号电脑，可以把目标网卡驱动注入到 Windows 安装镜像中。通常至少要关注两个文件：</p>
+        <ul>
+          <li><code>boot.wim</code>：Windows PE / 安装环境。PXE 安装过程中能否识别网卡，主要看这里。</li>
+          <li><code>install.wim</code> 或 <code>install.esd</code>：最终安装到硬盘上的 Windows 系统镜像。第一次进系统后是否有网，主要看这里。</li>
+        </ul>
+        <p>
+          只给 <code>install.wim</code> 注入驱动，可能解决进系统后的驱动问题，但不一定解决安装环境中没网的问题；PXE 场景更应该优先处理 <code>boot.wim</code>。</p>
+      </section>
+
+      <section>
+        <h2>8.DISM注入驱动示例</h2>
+        <p>
+          在 Windows 主机上可以使用 DISM 挂载 WIM 并添加驱动。示例仅展示思路，实际路径按自己的 ISO 解压目录和驱动目录调整。</p>
+        <pre><code>mkdir C:\mount\boot
+mkdir C:\mount\install
+
+Dism /Mount-Wim /WimFile:D:\iso\sources\boot.wim /Index:2 /MountDir:C:\mount\boot
+Dism /Image:C:\mount\boot /Add-Driver /Driver:D:\drivers\lan /Recurse
+Dism /Unmount-Wim /MountDir:C:\mount\boot /Commit
+
+Dism /Get-WimInfo /WimFile:D:\iso\sources\install.wim
+Dism /Mount-Wim /WimFile:D:\iso\sources\install.wim /Index:1 /MountDir:C:\mount\install
+Dism /Image:C:\mount\install /Add-Driver /Driver:D:\drivers\lan /Recurse
+Dism /Unmount-Wim /MountDir:C:\mount\install /Commit</code></pre>
+        <p>
+          如果 ISO 中是 <code>install.esd</code>，可以先转换为 <code>install.wim</code>，再注入驱动。驱动目录中应包含 <code>.inf</code> 文件，单独的 <code>.exe</code> 安装包通常不能直接注入，需要先解压出驱动文件。</p>
+      </section>
+
+      <section>
+        <h2>9.PXE安装完成后避免再次进入PXE</h2>
+        <p>
+          Windows 安装过程中会多次重启。第一次把系统文件释放到硬盘后，重启时如果仍然优先从 PXE 启动，就会再次进入 iVentoy 菜单，看起来像“安装循环”。</p>
+        <ul>
+          <li>首次重启后，进入 BIOS 把系统盘设为第一启动项。</li>
+          <li>或者在启动菜单中手动选择 Windows Boot Manager。</li>
+          <li>如果只是临时 PXE 启动，不要把 PXE 永久设为第一启动项。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>10.常见问题排查</h2>
+        <table>
+          <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
+          <tbody>
+            <tr><td>客户端PXE启动失败</td><td>网线.网卡启动开关.UEFI/Legacy.DHCP.防火墙.iVentoy监听网卡</td></tr>
+            <tr><td>能进菜单但加载ISO失败</td><td>ISO路径.文件名.服务端网络.防火墙.镜像完整性</td></tr>
+            <tr><td>安装环境没网</td><td>boot.wim 缺网卡驱动，使用 USB 转网口或注入 LAN 驱动</td></tr>
+            <tr><td>装完系统没网</td><td>install.wim 未注入驱动，或进系统后需离线安装网卡驱动</td></tr>
+            <tr><td>重启后又进PXE</td><td>启动顺序未改，选择 Windows Boot Manager 或系统盘优先</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>11.工程检查清单</h2>
+        <ul>
+          <li>服务端和客户端是否在同一网络，或直连网络是否配置正确。</li>
+          <li>iVentoy 监听的是否是连接客户端的那块网卡。</li>
+          <li>网络中是否存在多个 DHCP 服务冲突。</li>
+          <li>Windows ISO 是否来自微软官方下载页面。</li>
+          <li>iVentoy 是否来自官方下载页或 GitHub Releases。</li>
+          <li>目标电脑内置网卡驱动是否已经准备。</li>
+          <li>PXE 场景是否优先给 <code>boot.wim</code> 注入网卡驱动。</li>
+          <li>安装完成第一次重启后，是否改回系统盘启动。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#windows-iventoy">返回 Windows装机专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
 </body>
 </html>

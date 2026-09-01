@@ -6,10 +6,173 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>优启通U盘启动盘与Windows重装教程 - XYJ</title>
+  <meta name="description" content="整理优启通U盘启动盘制作.进入PE.磁盘分区.原版Windows镜像安装.驱动处理.启动项修复和重装系统注意事项。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../windows/uqitong-usb-win-install/uqitong-usb-win-install.html" data-topic-href="../../../../index.html#dev-tools/windows-install" data-topic-label="返回 开发环境与工具">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#windows-uqitong">返回 Windows装机专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">WINDOWS · UQITONG · PE · USB BOOT · INSTALL</div>
+      <h1>优启通U盘启动盘与Windows重装教程</h1>
+
+      <p>
+        本文整理使用优启通制作 U 盘启动盘，并通过 PE 环境重装 Windows 10 / Windows 11 的完整流程。内容参考优启通官网教程列表的方向：启动盘制作.进入 PE.重装 Win7/Win10/Win11 等教程分类，但正文按工程排错和实际装机步骤重新整理。
+      </p>
+
+      <div class="article-note">
+        重装系统前最重要的是备份数据。尤其是桌面.文档.下载.微信/QQ 文件.浏览器书签.开发环境配置.工程源码.驱动安装包和激活信息。分区和格式化一旦选错，数据恢复成本很高。
+      </div>
+
+      <section>
+        <h2>1.准备工作</h2>
+        <ul>
+          <li>一个 16GB 或更大的 U 盘，建议使用质量稳定的品牌盘。</li>
+          <li>优启通启动盘制作工具。</li>
+          <li>Windows 原版 ISO 镜像，建议优先使用官方原版镜像。</li>
+          <li>目标电脑的重要数据备份。</li>
+          <li>目标电脑网卡.显卡.芯片组等驱动备份，尤其是较新的笔记本或迷你主机。</li>
+        </ul>
+        <p>
+          优启通官网教程页中包含启动盘制作.进入 PE.重装 Win10/Win11 等教程入口。实际操作时，建议优先从官网下载工具和教程，避免下载到被二次打包的工具。
+        </p>
+      </section>
+
+      <section>
+        <h2>2.原版Windows镜像下载入口</h2>
+        <p>
+          Windows 镜像建议优先从微软官方下载。第三方网盘.论坛整合版或所谓“精简版”可能被修改过，适合学习研究时也要谨慎使用，不建议作为正式装机来源。
+        </p>
+        <ul>
+          <li><a href="https://www.microsoft.com/software-download/windows11" target="_blank" rel="noopener noreferrer">微软官方 Windows 11 下载页面</a>：可下载 Windows 11 安装助手.媒体创建工具和 Windows 11 ISO。</li>
+          <li><a href="https://www.microsoft.com/software-download/windows10" target="_blank" rel="noopener noreferrer">微软官方 Windows 10 下载页面</a>：可下载 Windows 10 媒体创建工具，并通过工具创建 ISO 或 U 盘安装介质。</li>
+        </ul>
+        <div class="article-warning">
+          下载 ISO 后建议校验文件完整性，并确认文件名.版本.语言和架构是否符合目标电脑。Windows 11 普通电脑通常选择 x64；ARM 设备需要选择 ARM64 版本。
+        </div>
+      </section>
+
+      <section>
+        <h2>3.制作优启通U盘启动盘</h2>
+        <p>
+          制作启动盘会改写 U 盘分区和启动结构，U 盘内原有数据可能被清空。制作前先把 U 盘里的文件拷贝出来。
+        </p>
+        <ol>
+          <li>插入 U 盘。</li>
+          <li>打开优启通启动盘制作工具。</li>
+          <li>选择目标 U 盘，确认盘符和容量，避免误选移动硬盘。</li>
+          <li>选择推荐模式制作，一般同时兼容 BIOS 和 UEFI 更方便。</li>
+          <li>开始制作，等待写入完成。</li>
+          <li>制作完成后，把 Windows ISO 镜像复制到 U 盘数据分区或电脑本地硬盘中。</li>
+        </ol>
+        <figure class="article-figure">
+          <svg viewBox="0 0 780 260" role="img" aria-label="优启通U盘启动盘制作流程">
+            <rect x="40" y="90" width="120" height="58" rx="12" fill="#e0f2fe" stroke="#0284c7"/><text x="100" y="125" text-anchor="middle" font-size="14">准备U盘</text>
+            <rect x="210" y="90" width="120" height="58" rx="12" fill="#dcfce7" stroke="#16a34a"/><text x="270" y="125" text-anchor="middle" font-size="14">选择工具</text>
+            <rect x="380" y="90" width="130" height="58" rx="12" fill="#fef3c7" stroke="#d97706"/><text x="445" y="125" text-anchor="middle" font-size="14">制作启动盘</text>
+            <rect x="560" y="90" width="150" height="58" rx="12" fill="#ede9fe" stroke="#7c3aed"/><text x="635" y="125" text-anchor="middle" font-size="14">复制ISO镜像</text>
+            <path d="M160 119 L210 119" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-uqitong)"/>
+            <path d="M330 119 L380 119" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-uqitong)"/>
+            <path d="M510 119 L560 119" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-uqitong)"/>
+            <defs><marker id="arrow-uqitong" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/></marker></defs>
+          </svg>
+          <figcaption>图 1：优启通启动盘制作流程。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>4.设置从U盘启动</h2>
+        <p>
+          常用方式有两种：开机按启动快捷键选择 U 盘，或者进入 BIOS/UEFI 把 U 盘设为第一启动项。推荐优先使用快捷启动菜单，因为它不会永久改变启动顺序。
+        </p>
+        <ul>
+          <li>常见快捷键：F12.F11.F8.Esc.F9，不同品牌不同。</li>
+          <li>UEFI 机器建议选择带有 <code>UEFI:</code> 前缀的 U 盘启动项。</li>
+          <li>老机器或特殊系统可能需要关闭 Secure Boot 或调整启动模式。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5.进入PE后的安装思路</h2>
+        <p>
+          进入优启通 PE 后，通常可以通过系统安装工具加载 Windows ISO，选择目标系统分区并开始安装。安装前一定要确认目标磁盘和分区。
+        </p>
+        <ol>
+          <li>进入 PE 桌面。</li>
+          <li>打开磁盘工具，确认系统盘.数据盘.分区大小和盘符。</li>
+          <li>需要全新安装时，可删除旧系统分区并重新分区。</li>
+          <li>加载 Windows ISO 镜像。</li>
+          <li>选择要安装的版本，例如专业版.家庭版。</li>
+          <li>选择目标系统分区，开始释放系统镜像。</li>
+          <li>写入引导，重启进入 Windows 安装阶段。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>6.分区与启动模式</h2>
+        <p>
+          新电脑一般使用 UEFI + GPT；老电脑可能使用 Legacy BIOS + MBR。两者不要混用，否则容易出现装完系统无法启动。
+        </p>
+        <table>
+          <thead><tr><th>启动方式</th><th>推荐分区表</th><th>特点</th></tr></thead>
+          <tbody>
+            <tr><td>UEFI</td><td>GPT</td><td>新电脑常用，需要 EFI 分区</td></tr>
+            <tr><td>Legacy BIOS</td><td>MBR</td><td>老电脑常用，需要活动主分区或传统引导</td></tr>
+          </tbody>
+        </table>
+        <p>
+          如果是 Windows 11，新平台一般建议使用 UEFI + GPT，并确保 BIOS 中相关安全启动.TPM 设置符合系统要求。</p>
+      </section>
+
+      <section>
+        <h2>7.安装完成后的驱动处理</h2>
+        <p>
+          Windows 安装完成后，优先检查设备管理器中是否有黄色感叹号。特别关注网卡.芯片组.显卡.声卡.触控板.无线网卡.蓝牙等设备。</p>
+        <ul>
+          <li>有网络时，先通过 Windows Update 获取基础驱动。</li>
+          <li>品牌机优先去官网按型号下载驱动。</li>
+          <li>无网络时，提前准备 USB 网卡或离线驱动包。</li>
+          <li>新平台装 Win10 时，可能缺少较新的网卡.RST.触控板或 Wi-Fi 驱动。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8.常见问题排查</h2>
+        <table>
+          <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
+          <tbody>
+            <tr><td>U盘启动项看不到</td><td>U盘制作是否成功.USB口.BIOS启动模式.Secure Boot</td></tr>
+            <tr><td>进入PE后看不到硬盘</td><td>硬盘模式.Intel RST/VMD 驱动.NVMe 驱动.PE版本</td></tr>
+            <tr><td>安装后无法启动</td><td>UEFI/GPT 是否匹配.EFI 分区.引导是否写入正确磁盘</td></tr>
+            <tr><td>装完没网</td><td>网卡驱动缺失，使用 USB 转网口或提前准备离线驱动</td></tr>
+            <tr><td>重启又进PE</td><td>拔掉U盘，或调整 BIOS 启动顺序为系统盘优先</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>9.工程检查清单</h2>
+        <ul>
+          <li>数据是否已经备份。</li>
+          <li>Windows ISO 是否来自微软官方下载页面。</li>
+          <li>U 盘制作工具是否来自官网。</li>
+          <li>目标磁盘和分区是否确认无误。</li>
+          <li>UEFI/GPT 或 Legacy/MBR 是否匹配。</li>
+          <li>是否准备了网卡和芯片组离线驱动。</li>
+          <li>安装完成后是否调整启动顺序，避免再次进入 U 盘 PE。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#windows-uqitong">返回 Windows装机专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
 </body>
 </html>

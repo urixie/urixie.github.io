@@ -6,10 +6,407 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>文章加载中 - XYJ</title>
+  <title>Linux 基础命令与文件系统 - XYJ</title>
+  <meta name="description" content="面向新手深入讲解 Linux 基础命令.目录结构.文件操作.权限.搜索.压缩传输.挂载./proc 与 /sys，并给出可跟做的实战示例。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ef7caca13ac7">
 </head>
-<body data-root-prefix="../../../../" data-article-source="../../../linux/linux-basic-filesystem/linux-basic-filesystem.html" data-topic-href="../../../../index.html#soc-linux/linux-basic" data-topic-label="返回 SOC/Linux开发">
-  <p>正在加载文章...</p>
-  <script src="../../../../assets/js/article-loader.js?v=bc26d38b1d83"></script>
+<body>
+  <main class="article-page-shell">
+    <div class="article-topbar">
+      <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+      <a href="../../../../index.html?v=ef7caca13ac7#linux-basic">返回 Linux专题</a>
+    </div>
+
+    <article class="article card">
+      <div class="post-meta">LINUX · COMMAND · FILESYSTEM · PERMISSION</div>
+      <h1>Linux 基础命令与文件系统</h1>
+
+      <p>
+        本文整理 Linux 入门和嵌入式 Linux 调试中最常用的基础命令与文件系统知识。重点不是背命令，而是理解 Linux 中“一切皆文件”的思想：普通文件.目录.设备节点.进程信息.内核参数，都可以通过统一的文件接口进行查看和操作。
+      </p>
+
+      <div class="article-note">
+        嵌入式 Linux 调试时，很多问题不是代码本身，而是路径.权限.设备节点.挂载点.脚本执行环境和文件系统状态出错。先熟悉基础命令和目录结构，后面看驱动.进程和系统服务会轻松很多。
+      </div>
+
+      <section>
+        <h2>0.开始之前：先学会安全地输入命令</h2>
+        <p>
+          命令行的基本形式可以理解为 <code>命令 [选项] [参数]</code>。命令决定“做什么”，选项决定“怎样做”，参数则是要处理的文件.目录或关键字。例如 <code>ls -lah /etc</code> 中，<code>ls</code> 是查看目录，<code>-lah</code> 是详细.包含隐藏文件.以易读单位显示，<code>/etc</code> 是目标目录。
+        </p>
+        <p>
+          教程里的 <code>$</code> 通常表示普通用户提示符，<code>#</code> 通常表示 root 提示符；它们不是命令内容。先在自己的家目录或 <code>/tmp</code> 做实验，不要一开始就在 <code>/</code>.<code>/etc</code> 或设备目录中尝试删除.移动.改权限等操作。
+        </p>
+        <pre><code># 先确认自己在哪个目录.以哪个用户身份工作
+pwd
+whoami
+
+# 不确定命令参数时，优先查看本机帮助
+ls --help
+man ls
+command -v ls</code></pre>
+        <p>
+          <code>pwd</code> 会打印当前工作目录；<code>whoami</code> 显示当前用户；<code>command -v ls</code> 用来确认实际执行的是哪个 <code>ls</code>。许多嵌入式设备的命令来自 BusyBox，可能没有 <code>man</code>，也不支持桌面发行版里的全部选项；这时先执行 <code>命令 --help</code>，不要凭记忆直接套用网络命令。
+        </p>
+        <div class="article-warning">
+          不理解命令含义时，不要为了“试一下”在命令前加 sudo，也不要复制带有通配符.重定向或递归删除的命令。尤其是 <code>rm -rf</code>.<code>chmod -R</code>.<code>chown -R</code>.<code>rsync --delete</code>，目标路径写错会造成大范围且难以恢复的损失。
+        </div>
+      </section>
+
+      <section>
+        <h2>1.Linux 目录结构</h2>
+        <p>
+          Linux 没有 Windows 那种 C 盘.D 盘概念，所有内容都挂在根目录 <code>/</code> 下面。不同目录有不同职责。
+        </p>
+        <figure class="article-figure">
+          <svg viewBox="0 0 760 360" role="img" aria-label="Linux 目录结构示意图">
+            <rect x="330" y="30" width="100" height="46" rx="12" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="380" y="60" text-anchor="middle" font-size="18" font-weight="700">/</text>
+            <g font-size="14" fill="#0f172a">
+              <rect x="60" y="130" width="110" height="42" rx="10" fill="#dcfce7" stroke="#16a34a"/><text x="115" y="157" text-anchor="middle">/bin</text>
+              <rect x="190" y="130" width="110" height="42" rx="10" fill="#dcfce7" stroke="#16a34a"/><text x="245" y="157" text-anchor="middle">/etc</text>
+              <rect x="320" y="130" width="110" height="42" rx="10" fill="#fef3c7" stroke="#d97706"/><text x="375" y="157" text-anchor="middle">/dev</text>
+              <rect x="450" y="130" width="110" height="42" rx="10" fill="#ede9fe" stroke="#7c3aed"/><text x="505" y="157" text-anchor="middle">/proc</text>
+              <rect x="580" y="130" width="110" height="42" rx="10" fill="#ede9fe" stroke="#7c3aed"/><text x="635" y="157" text-anchor="middle">/sys</text>
+              <rect x="120" y="240" width="120" height="42" rx="10" fill="#f8fafc" stroke="#64748b"/><text x="180" y="267" text-anchor="middle">/home</text>
+              <rect x="320" y="240" width="120" height="42" rx="10" fill="#f8fafc" stroke="#64748b"/><text x="380" y="267" text-anchor="middle">/mnt</text>
+              <rect x="520" y="240" width="120" height="42" rx="10" fill="#f8fafc" stroke="#64748b"/><text x="580" y="267" text-anchor="middle">/tmp</text>
+            </g>
+            <g stroke="#64748b" stroke-width="2">
+              <path d="M380 76 L115 130"/><path d="M380 76 L245 130"/><path d="M380 76 L375 130"/><path d="M380 76 L505 130"/><path d="M380 76 L635 130"/>
+              <path d="M380 76 L180 240"/><path d="M380 76 L380 240"/><path d="M380 76 L580 240"/>
+            </g>
+          </svg>
+          <figcaption>图 1：Linux 常见目录结构，嵌入式调试经常关注 /dev./proc./sys./etc。</figcaption>
+        </figure>
+        <ul>
+          <li><code>/bin</code>.<code>/sbin</code>：基础命令。</li>
+          <li><code>/etc</code>：配置文件。</li>
+          <li><code>/dev</code>：设备节点，例如串口.磁盘.GPIO 相关设备。</li>
+          <li><code>/proc</code>：进程和内核运行时信息。</li>
+          <li><code>/sys</code>：设备模型.驱动.总线.类等信息。</li>
+          <li><code>/mnt</code>.<code>/media</code>：挂载外部存储或临时文件系统。</li>
+        </ul>
+        <p>
+          目录结构不是所有发行版都完全相同，例如现代发行版可能把 <code>/bin</code> 链接到 <code>/usr/bin</code>，嵌入式系统也可能没有 <code>/home</code>。因此排查时不要只靠“通常应该在这里”，而是先从根目录实际查看，再由服务配置.启动脚本或命令输出确认真实路径。
+        </p>
+        <h3>先读懂路径，再读懂 ls</h3>
+        <pre><code>pwd                    # 当前工作目录，例如 /home/xyj/work
+ls /                   # 列出根目录内容
+ls -ld /etc /dev /tmp  # -d 查看目录对象本身，而非列出目录内部
+ls -lah /etc           # -l 详细格式；-a 包含隐藏项；-h 易读大小
+
+cd /etc                # 绝对路径：从根目录开始
+cd ../var              # 相对路径：相对于当前目录
+cd -                   # 回到上一次工作目录
+cd ~                   # 回到当前用户家目录
+ls -ld "name with spaces"  # 路径含空格时用引号包住</code></pre>
+        <p>
+          <code>ls -l</code> 的一行通常包含权限.硬链接数.所有者.所属组.大小.修改时间和名称。例如 <code>-rwxr-xr-x 1 root root 12345 app</code> 中，最前面的 <code>-</code> 表示普通文件，后面的三组 <code>rwx</code> 是权限；权限部分会在后文详细解释。每次切换目录后先执行 <code>pwd</code>，可以避免“命令正确但操作错目录”的常见失误。
+        </p>
+      </section>
+
+      <section>
+        <h2>2.常用查看命令</h2>
+        <p>
+          日常定位问题时，先看文件.路径.权限和内容是否正确。
+        </p>
+        <pre><code>cat /etc/hostname          # 输出短文件的全部内容
+less /var/log/messages     # 分页查看；按 / 搜索，q 退出
+head -n 20 app.log         # 只看前 20 行，常用于确认文件格式
+tail -n 50 app.log         # 看最后 50 行，常用于看最近错误
+tail -F app.log             # 跟踪日志；文件被轮转重建后会重新打开
+wc -l app.log               # 统计行数，判断日志量级
+file firmware.bin           # 判断文件类型，不要只相信扩展名
+stat app.log                # 查看大小.时间戳.inode 等详细元数据
+du -sh *                    # 当前目录每个项目实际占用的总大小
+df -hT                      # 各挂载分区的可用空间和文件系统类型</code></pre>
+        <p>
+          <code>cat</code> 适合短小文本；日志.配置备份或伪文件系统内容很大时，直接 <code>cat</code> 会刷屏，反而看不到关键信息。<code>less</code> 适合交互式阅读，<code>head</code> 和 <code>tail</code> 分别用于查看开头和末尾，<code>file</code> 则能防止把二进制.压缩包误当作普通文本阅读。
+        </p>
+        <p>
+          <code>tail -f</code> 会持续跟踪同一个已打开的文件；日志轮转时，旧文件可能被改名并新建一个同名文件，<code>tail -F</code> 更适合长期观察这类日志。若系统没有 <code>less</code> 或 <code>tail -F</code>，先看 <code>--help</code> 确认 BusyBox 支持的替代选项。
+        </p>
+        <h3>看日志时，先问三个问题</h3>
+        <ul>
+          <li>日志是否真的在增长？先用 <code>stat app.log</code> 或 <code>ls -l app.log</code> 对比大小和修改时间。</li>
+          <li>错误发生在什么时候？用 <code>tail -n 100 app.log</code> 查看错误前后的上下文，而不是只搜到一行 error 就结束。</li>
+          <li>程序写的是不是这个文件？配置中的路径可能是相对路径，先用 <code>pwd</code> 和启动脚本确认实际工作目录。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3.创建.复制.移动与删除：先确认目标，再执行修改</h2>
+        <p>
+          文件操作本身并不复杂，真正容易出错的是目标路径和 shell 的展开规则。先写出目标目录.再用 <code>ls</code> 确认，最后再执行修改命令，比事后恢复简单得多。下面的练习全部放在自己的家目录中，不会碰系统文件。
+        </p>
+        <pre><code>cd ~
+mkdir -p linux-lab/logs
+cd linux-lab
+
+printf '%s\n' 'first line' &gt; notes.txt
+# &gt; 会新建或清空后写入
+
+printf '%s\n' 'second line' &gt;&gt; notes.txt
+# &gt;&gt; 在文件末尾追加
+
+cp notes.txt logs/notes.bak       # 复制；目标是新文件名
+mv notes.txt notes-renamed.txt    # 移动或改名，取决于目标位置
+cp -a logs logs-copy              # -a 尽量保留属性并递归复制目录
+rm -i notes-renamed.txt           # -i 删除前询问，适合手工操作</code></pre>
+        <p>
+          <code>&gt;</code> 和 <code>&gt;&gt;</code> 是 shell 重定向，不是 <code>printf</code> 的参数。前者会覆盖目标文件，后者会追加；因此写配置前应先备份。错误输出也能单独保存：<code>./app &gt;app.out 2&gt;app.err</code> 表示标准输出写入 <code>app.out</code>，错误输出写入 <code>app.err</code>；<code>2&gt;&amp;1</code> 表示把错误输出合并到标准输出当前指向的位置。
+        </p>
+        <p>
+          <code>*</code> 是通配符，会在命令执行前被 shell 展开为当前目录中的多个文件。例如 <code>cp *.log logs/</code> 会复制所有以 <code>.log</code> 结尾的文件。执行带通配符的删除或移动前，可先用 <code>printf '%s\n' *.log</code> 查看它实际会匹配哪些名称。不要把未验证的 <code>*</code> 与递归删除一起使用。
+        </p>
+        <div class="article-warning">
+          <code>rm</code> 删除的是目录项，不会进入回收站。特别是 <code>rm -r</code> 会递归删除目录，<code>-f</code> 会取消多数确认提示。新手排查空间问题时，应先用 <code>du</code> 找到大文件，而不是直接在系统目录中执行删除命令。
+        </div>
+      </section>
+
+      <section>
+        <h2>4.搜索与过滤：从“找到文件”到“找到那一行”</h2>
+        <p>
+          Linux 调试经常需要在大量日志和源码中查找关键字。常用组合是 <code>grep</code>.<code>find</code>.<code>xargs</code>。
+        </p>
+        <h3>grep：在文本.日志和源码中找关键字</h3>
+        <pre><code>grep -n "error" app.log
+# -n 显示行号，便于回到原文确认上下文
+
+grep -in "timeout" app.log
+# -i 忽略大小写；适合匹配 ERROR.Error.error
+
+grep -r --include="*.c" -n "spi_init" src/
+# -r 递归目录；--include 只搜索 .c 文件，避免扫描无关二进制文件
+
+grep -E "error|failed|timeout" app.log
+# -E 使用扩展正则，竖线表示“或”
+
+grep -v '^#' config.ini | grep -v '^$'
+# -v 反选：去掉注释行和空行后再观察有效配置</code></pre>
+        <p>
+          搜索词里有空格.星号.方括号等特殊字符时优先用单引号，例如 <code>grep -n 'device not found' app.log</code>。<code>grep</code> 找到的是匹配行，不一定就是根因；应使用 <code>grep -n -C 3 'error' app.log</code> 查看命中行前后各 3 行，结合时间和调用顺序判断。
+        </p>
+        <h3>find：按名称.类型.时间和大小找文件</h3>
+        <pre><code>find . -type f -name "*.c"
+# . 是起点；-type f 只要普通文件；-name 按文件名匹配
+
+find /var/log -type f -mtime -1
+# 最近 24 小时内修改过的普通文件
+
+find . -type f -size +100M
+# 大于 100 MiB 的文件，排查磁盘占用时很有用
+
+find . -type f -name "*.log" -print0 | xargs -0 grep -n "error"
+# -print0 与 xargs -0 用 NUL 分隔，能正确处理文件名中的空格或换行</code></pre>
+        <p>
+          不要在根目录上不加条件地执行 <code>find /</code>，它可能很慢.产生大量权限错误，并给存储较慢的嵌入式设备增加负担。优先从明确目录开始，例如 <code>/var/log</code>.应用部署目录或工程目录；必要时把权限错误单独重定向为 <code>2&gt;/dev/null</code>，但不要用它掩盖本该处理的访问问题。
+        </p>
+        <h3>进程搜索也有更可靠的写法</h3>
+        <pre><code>ps aux | grep '[a]pp'
+# 方括号避免 grep 自己也出现在结果里
+
+pgrep -af app
+# -a 显示完整命令行；比 ps | grep 更直接（若系统提供）</code></pre>
+        <p>
+          在嵌入式板子上，如果没有完整 GNU 工具，BusyBox 版本命令可能参数较少，需要根据实际系统裁剪情况调整写法。
+        </p>
+      </section>
+
+      <section>
+        <h2>5.权限与用户：先读懂 ls -l，再修改权限</h2>
+        <p>
+          Linux 文件权限分为所有者.所属组和其它用户三类，每类有读.写.执行权限。很多“命令不能执行”“设备打不开”的问题，本质是权限不对。
+        </p>
+        <pre><code>$ ls -l run.sh
+-rw-r--r-- 1 xyj developers 120 Jul 10 09:30 run.sh
+
+# 第 1 个字符：- 普通文件，d 目录，l 软链接
+# 接下来的 9 个字符：rw- | r-- | r--
+# 分别对应：所有者 | 所属组 | 其他用户
+
+chmod u+x run.sh       # 只给文件所有者增加执行权限
+chmod 755 app          # 所有者 rwx；组 r-x；其他用户 r-x
+chmod 644 config.ini   # 所有者可读写；其他用户只读
+ls -l /dev/ttyS0       # 查看串口设备节点的属主.组和权限</code></pre>
+        <p>
+          数字权限是 <code>r=4</code>.<code>w=2</code>.<code>x=1</code> 的相加：<code>7</code> 等于 <code>rwx</code>，<code>6</code> 等于 <code>rw-</code>，<code>5</code> 等于 <code>r-x</code>。但目录的 <code>x</code> 不是“执行目录”，而是允许进入和访问目录项；目录没有 <code>x</code> 时，即使能读到文件名，也可能无法打开其中的文件。
+        </p>
+        <p>
+          <code>chown 用户:组 文件</code> 用于改变属主和所属组，通常需要管理员权限。例如部署程序时，应该按服务实际运行用户设置最小权限，而不是图省事使用 <code>chmod 777</code>。后者会让所有用户都可写，既不安全，也会掩盖真正的用户组配置问题。
+        </p>
+        <div class="article-note">
+          shell 脚本的“不能执行”还有一个常见原因：文件是 Windows 换行符 CRLF，内核会把解释器路径读成 <code>/bin/sh\r</code>。可先运行 <code>file run.sh</code> 检查；确认问题后再使用项目规定的换行转换工具。不要仅凭报错就反复 chmod。
+        </div>
+        <p>
+          对脚本来说，只有读权限不够，还需要执行权限；对设备节点来说，应用程序还需要具备访问该设备节点的权限。
+        </p>
+      </section>
+
+      <section>
+        <h2>6.软链接与硬链接：程序版本和库文件为什么常有箭头</h2>
+        <p>
+          软链接类似快捷方式，保存的是目标路径；硬链接是多个文件名指向同一个 inode。嵌入式系统里常用软链接管理版本.库文件和启动脚本。
+        </p>
+        <pre><code>ln -s app_v1.2.0 app_current
+ls -l app_current
+# 可能显示：app_current -&gt; app_v1.2.0
+
+readlink app_current       # 查看软链接保存的原始目标
+readlink -f app_current    # 解析为最终绝对路径；可发现断链
+ls -li app_v1.2.0          # 查看 inode；比较硬链接时有用</code></pre>
+        <p>
+          软链接可以跨文件系统，也可以指向目录；代价是目标文件移动或删除后会变成“断链”。排查动态库.启动脚本或版本切换问题时，先用 <code>ls -l</code> 看箭头指向哪里，再用 <code>readlink -f</code> 验证最终路径是否存在。不要把软链接当成文件副本：删除链接通常不会删除目标，但删除目标会让链接失效。
+        </p>
+      </section>
+
+      <section>
+        <h2>7.磁盘.挂载与空间：文件在不在，不等于分区没问题</h2>
+        <p>
+          <code>df</code> 看的是“文件系统或分区”还剩多少空间，<code>du</code> 看的是“目录或文件”占了多少空间。两个命令回答的问题不同：某个分区满了时先用 <code>df</code> 定位分区，再用 <code>du</code> 在该挂载点内找大目录。
+        </p>
+        <pre><code>df -hT
+# -h 以易读单位显示；-T 显示文件系统类型
+
+du -xhd 1 /var
+# -x 不跨越到其他挂载点；-h 易读单位；-d 1 只展开一层
+
+lsblk -f
+# 查看块设备.分区.文件系统和挂载点（若系统提供）
+
+findmnt
+# 以树状方式显示当前挂载关系（若系统提供）
+
+cat /proc/mounts
+# BusyBox 环境中也常可用；显示内核看到的挂载信息</code></pre>
+        <p>
+          常见场景是：<code>df -h</code> 显示 <code>/var</code> 所在分区已满，而应用报“写日志失败”。此时不要只看当前目录；应从 <code>df -hT</code> 找到挂载点，再执行 <code>du -xhd 1 挂载点</code>，逐层缩小范围。<code>du</code> 与 <code>df</code> 数字差异很大时，可能存在“文件已删除但仍被进程打开”的情况，需要再结合 <code>lsof</code>（若可用）或重启相关服务排查。
+        </p>
+        <div class="article-warning">
+          发现文件系统为只读 <code>ro</code> 挂载时，不要立即反复执行 remount 为读写。只读可能是文件系统错误后的保护结果；应先保存日志.检查内核信息和存储介质状态，再按产品维护流程处理。
+        </div>
+      </section>
+
+      <section>
+        <h2>8.压缩.传输与同步：把“文件发过去”做成可验证的动作</h2>
+        <p>
+          <code>tar</code> 负责把多个文件打成一个归档，也可以同时 gzip 压缩；<code>scp</code> 适合一次性复制；<code>rsync</code> 适合反复同步构建产物。无论使用哪种方式，传输后都要在目标端验证文件名.权限和版本，而不是只看到命令没有报错就认为部署成功。
+        </p>
+        <h3>tar：把选项拆开理解</h3>
+        <pre><code>tar -czf project.tar.gz project/
+# c=create 创建归档；z=gzip 压缩；f=后面紧跟归档文件名
+
+tar -tzf project.tar.gz
+# t=list 只列出归档内容；解压前先检查里面有什么
+
+tar -xzf project.tar.gz -C /tmp/restore-test
+# x=extract 解压；-C 指定目标目录，避免解到当前未知位置</code></pre>
+        <p>
+          记忆 <code>tar</code> 时，关键不是死背字母顺序，而是知道 <code>f</code> 后面必须跟归档文件名。解压来自他人的压缩包前，先用 <code>tar -tzf</code> 列表检查内容；生产系统中应选择明确的空目录作为解压目标。
+        </p>
+        <h3>scp 与 rsync：部署前后都要确认</h3>
+        <pre><code>scp ./build/app root@192.168.1.10:/opt/demo/
+# 本地文件在前，远端写成 用户@主机:路径
+
+ssh root@192.168.1.10 'ls -l /opt/demo/app'
+# 在远端确认文件是否到达.权限是否正确
+
+rsync -avz ./build/ root@192.168.1.10:/opt/demo/
+# -a 保留常用属性并递归；-v 显示过程；-z 传输时压缩
+
+rsync -avzn ./build/ root@192.168.1.10:/opt/demo/
+# -n 是 dry-run，只显示将要发生的变化，首次同步建议先使用</code></pre>
+        <p>
+          <code>rsync ./build/ 远端:/opt/demo/</code> 末尾的 <code>/</code> 表示同步 <code>build</code> 目录<strong>内部内容</strong>；去掉它则可能把整个 <code>build</code> 目录放到目标目录下。<code>--delete</code> 会删除目标端多出来的文件，只应在确认目标目录专属于本次部署.且 dry-run 结果正确后使用。
+        </p>
+      </section>
+
+      <section>
+        <h2>9./dev./proc 与 /sys：从用户态观察设备和内核</h2>
+        <p>
+          <code>/proc</code> 和 <code>/sys</code> 是理解 Linux 运行状态的窗口。它们看起来像文件系统，但很多内容并不是真实磁盘文件，而是内核导出的运行时信息。
+        </p>
+        <pre><code># /dev：设备节点是否出现.谁可以访问
+ls -l /dev/ttyS0
+ls -l /dev/video0
+
+# /proc：系统运行状态
+cat /proc/cmdline        # 内核启动参数
+cat /proc/meminfo        # 内存统计
+cat /proc/interrupts     # 中断计数；可多次对比某设备计数是否增长
+cat /proc/mounts         # 当前挂载信息
+
+# /sys：设备模型.总线和驱动导出的属性
+ls /sys/class
+ls /sys/bus/platform/devices
+find /sys/class -maxdepth 2 -type l | head -n 20
+
+dmesg -T | tail -n 80    # 最近内核日志；部分系统不支持 -T</code></pre>
+        <p>
+          例如串口程序打不开 <code>/dev/ttyS0</code> 时，先执行 <code>ls -l /dev/ttyS0</code>：如果节点不存在，应回到内核日志.设备树或驱动注册流程；如果节点存在但权限不足，应检查应用实际用户和所属组；如果能打开但没有数据，再检查波特率.线路和驱动日志。不要通过手工 <code>mknod</code> 伪造节点来绕过前两类问题。
+        </p>
+        <p>
+          有些驱动会在 <code>/sys</code> 暴露可写属性。正确流程是先 <code>cat</code> 读取当前值，确认该属性的内核文档和单位，再在测试环境中写入。注意 <code>sudo echo 1 &gt; 文件</code> 的重定向仍由当前 shell 执行，可能没有写权限；若确实需要管理员写入，应使用经过确认的 <code>printf '1\n' | sudo tee 文件</code>，并避免把它用于未知属性。
+        </p>
+      </section>
+
+      <section>
+        <h2>10.把命令串成排查流程：三个新手常见场景</h2>
+        <h3>场景 1：程序“不能执行”</h3>
+        <pre><code>pwd
+ls -l ./app
+file ./app
+./app
+echo $?
+# 0 通常表示成功；非 0 表示失败，需结合上一步输出判断
+
+ldd ./app
+# 检查动态库依赖；静态链接程序.精简系统或目标架构不匹配时结果不同</code></pre>
+        <p>
+          按顺序确认：路径是否正确.文件是否存在.是否具有执行权限.可执行文件架构是否与设备匹配.动态库是否齐全。若报 <code>Permission denied</code>，还要检查所在文件系统是否以 <code>noexec</code> 方式挂载；若报 <code>not found</code> 但文件明明存在，可能是动态加载器或依赖库缺失，不能只盯着文件名。
+        </p>
+        <h3>场景 2：日志没有写入或磁盘突然满了</h3>
+        <pre><code>df -hT
+stat /var/log/myapp/app.log
+tail -n 100 /var/log/myapp/app.log
+du -xhd 1 /var/log
+find /var/log -type f -size +50M -ls</code></pre>
+        <p>
+          先用 <code>df</code> 判断是不是空间或只读挂载问题，再用 <code>stat</code> 确认目标日志是否真的更新，最后用 <code>du</code> 和 <code>find</code> 找占用来源。不要把“日志没变化”直接等同于“程序没运行”：它也可能写到了另一个工作目录.被日志级别过滤，或没有权限创建目录。
+        </p>
+        <h3>场景 3：设备节点没有出现</h3>
+        <pre><code>dmesg | tail -n 100
+ls -l /dev | grep -i tty
+cat /proc/interrupts
+ls /sys/class
+ls /sys/bus/platform/devices</code></pre>
+        <p>
+          先看内核是否识别或报错，再看对应设备节点.sysfs 条目和中断计数。把“硬件是否枚举”“驱动是否绑定”“设备节点是否创建”“应用是否有权限”分成四步检查，比直接修改应用代码更有效。
+        </p>
+      </section>
+
+      <section>
+        <h2>11.工程检查清单与练习顺序</h2>
+        <ul>
+          <li>开始命令前：确认当前用户.当前目录和目标路径；含空格的路径加引号。</li>
+          <li>看文件前：先判断它是普通文本.二进制.软链接还是设备节点，再选择 <code>cat</code>.<code>less</code>.<code>file</code> 或 <code>ls -l</code>。</li>
+          <li>修改前：用 <code>ls</code>.<code>printf</code> 或 <code>rsync -n</code> 预览通配符和同步结果；对配置先备份。</li>
+          <li>权限问题：同时核对文件权限.属主.所属组.运行用户和挂载选项，不要用 <code>777</code> 掩盖问题。</li>
+          <li>设备问题：按“内核日志 → /sys → /dev → 权限 → 应用参数”顺序排查。</li>
+          <li>空间问题：先 <code>df</code> 找分区，再 <code>du</code> 找目录，最后才决定如何清理。</li>
+          <li>嵌入式目标：把命令当作“可能被裁剪的工具”，每次先确认 BusyBox 或发行版实际支持的参数。</li>
+        </ul>
+        <p>
+          建议按本文顺序在 <code>~/linux-lab</code> 中完成目录.文件.重定向.grep.find.权限和 tar 的小练习。命令真正变成能力，不是记住几十条缩写，而是每次都能回答：我正在操作哪个路径？这条命令会修改什么？执行后应如何验证结果？
+        </p>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=ef7caca13ac7#linux-basic">返回 Linux专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
 </body>
 </html>
