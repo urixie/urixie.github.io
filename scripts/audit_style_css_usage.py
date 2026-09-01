@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report style.css selectors that have no runtime references in repository HTML/JS."""
+"""Report style.css selectors that have no references in production HTML/JS."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CSS_PATH = ROOT / "assets/css/style.css"
 RUNTIME_SUFFIXES = {".html", ".js"}
+EXCLUDED_TOP_LEVEL = {"tests"}
 
 CLASS_OR_ID_RE = re.compile(r"(?P<kind>[.#])(?P<name>[A-Za-z_][A-Za-z0-9_-]*)")
 
@@ -138,15 +139,18 @@ def selector_groups(selector: str) -> list[str]:
     return groups
 
 
+def is_production_runtime_file(path: Path) -> bool:
+    if not path.is_file() or path.suffix.lower() not in RUNTIME_SUFFIXES:
+        return False
+    relative = path.relative_to(ROOT)
+    if relative.parts and relative.parts[0] in EXCLUDED_TOP_LEVEL:
+        return False
+    return ".git" not in relative.parts
+
+
 def main() -> int:
     css = CSS_PATH.read_text(encoding="utf-8")
-    runtime_files = [
-        path
-        for path in ROOT.rglob("*")
-        if path.is_file()
-        and path.suffix.lower() in RUNTIME_SUFFIXES
-        and ".git" not in path.parts
-    ]
+    runtime_files = [path for path in ROOT.rglob("*") if is_production_runtime_file(path)]
     corpus = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in runtime_files)
 
     rules = scan_rules(css)
@@ -194,7 +198,7 @@ def main() -> int:
         elif any(state[1] is False for state in actionable):
             partial.append((rule, group_states))
 
-    print(f"Scanned {len(rules)} style.css rules against {len(runtime_files)} HTML/JS files.")
+    print(f"Scanned {len(rules)} style.css rules against {len(runtime_files)} production HTML/JS files.")
     print(f"Fully dead candidate rules: {len(dead_rules)}")
     for rule, states in dead_rules:
         tokens = sorted({f"{kind}{name}" for _, _, refs in states for kind, name, _ in refs})
