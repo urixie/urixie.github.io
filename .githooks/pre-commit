@@ -24,3 +24,9 @@ if ! python scripts/validate_style_css_usage.py; then
   echo "请删除无效规则或补齐实际 HTML/JS 引用后再提交。"
   exit 1
 fi
+
+if ! python scripts/validate_javascript.py; then
+  echo "提交已阻止：assets/js 中存在 JavaScript 语法错误，或当前环境缺少 Node.js。"
+  echo "请安装 Node.js 并修复上方语法错误后再提交。"
+  exit 1
+fi
