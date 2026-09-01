@@ -14,3 +14,5 @@ jobs:
         run: python scripts/website_privacy_guard.py --check
       - name: 检查站点目录与路由一致性
         run: python scripts/validate_site_structure.py
+      - name: 检查首页 CSS 无效覆盖
+        run: python scripts/validate_home_css.py
