@@ -15,11 +15,16 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 ROOT = Path(__file__).resolve().parents[1]
-HARNESS = "tests/layout-regression.html"
-SCENARIOS = (
+HOME_HARNESS = "tests/layout-regression.html"
+ARTICLE_HARNESS = "tests/article-layout-regression.html"
+HOME_SCENARIOS = (
     {"mode": "desktop", "width": 1440, "height": 900},
     {"mode": "narrow", "width": 920, "height": 820},
     {"mode": "mobile", "width": 390, "height": 844},
+)
+ARTICLE_SCENARIOS = (
+    {"mode": "article-desktop", "width": 1280, "height": 900},
+    {"mode": "article-mobile", "width": 390, "height": 844},
 )
 
 
@@ -72,9 +77,14 @@ def extract_result(dom: str) -> tuple[str, str]:
     return status, body
 
 
-def run_scenario(chrome: str, port: int, scenario: dict[str, int | str]) -> tuple[bool, str]:
+def run_scenario(
+    chrome: str,
+    port: int,
+    harness: str,
+    scenario: dict[str, int | str],
+) -> tuple[bool, str]:
     query = urlencode(scenario)
-    url = f"http://127.0.0.1:{port}/{HARNESS}?{query}"
+    url = f"http://127.0.0.1:{port}/{harness}?{query}"
     command = [
         chrome,
         "--headless=new",
@@ -109,15 +119,21 @@ def main() -> int:
     print(f"Browser layout guard using: {chrome}")
     failures = []
 
+    suites = (
+        ("home", HOME_HARNESS, HOME_SCENARIOS),
+        ("article", ARTICLE_HARNESS, ARTICLE_SCENARIOS),
+    )
+
     with local_server() as port:
-        for scenario in SCENARIOS:
-            label = f"{scenario['mode']} {scenario['width']}x{scenario['height']}"
-            ok, report = run_scenario(chrome, port, scenario)
-            if ok:
-                print(f"PASS {label}")
-            else:
-                failures.append((label, report))
-                print(f"FAIL {label}\n{report}")
+        for suite_name, harness, scenarios in suites:
+            for scenario in scenarios:
+                label = f"{suite_name} {scenario['mode']} {scenario['width']}x{scenario['height']}"
+                ok, report = run_scenario(chrome, port, harness, scenario)
+                if ok:
+                    print(f"PASS {label}")
+                else:
+                    failures.append((label, report))
+                    print(f"FAIL {label}\n{report}")
 
     if failures:
         print("\nBrowser layout regression check failed:")
@@ -125,7 +141,10 @@ def main() -> int:
             print(f"\n[{label}]\n{report}")
         return 1
 
-    print("Browser layout regression check passed for desktop, narrow, and mobile viewports.")
+    print(
+        "Browser layout regression check passed for home desktop/narrow/mobile "
+        "and standalone article desktop/mobile viewports."
+    )
     return 0
 
 
