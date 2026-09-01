@@ -6,3 +6,9 @@ if ! python scripts/website_privacy_guard.py --check; then
   echo "修复后再提交。"
   exit 1
 fi
+
+if ! python scripts/validate_site_structure.py; then
+  echo "提交已阻止：站点目录、文章路径或兼容路由存在不一致。"
+  echo "请根据上方检查结果修复后再提交。"
+  exit 1
+fi
