@@ -7,6 +7,8 @@ on:
     paths:
       - scripts/move_article_common_styles.py
       - scripts/validate_home_css.py
+      - tests/article-layout-regression.html
+      - scripts/browser_layout_guard.py
       - .github/workflows/move-article-common-styles.yml
 
 permissions:
