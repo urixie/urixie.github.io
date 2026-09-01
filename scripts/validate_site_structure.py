@@ -16,7 +16,7 @@ ARTICLE_PATH_MAP = ROOT / "assets/js/article-path-map.js"
 LEGACY_ROUTES = ROOT / "assets/js/legacy-routes.js"
 INDEX = ROOT / "index.html"
 
-HOME_HREF_RE = re.compile(r"href\s*:\s*withVersion\(\s*['\"]([^'\"]+)['\"]\s*\)")
+HOME_HREF_RE = re.compile(r"href\s*:\s*['\"](articles/[^'\"]+\.html(?:[?#][^'\"]*)?)['\"]")
 LEGACY_ROUTE_RE = re.compile(r"^\s*['\"]([^'\"]+)['\"]\s*:\s*['\"]([^'\"]+)['\"]\s*,?\s*$", re.MULTILINE)
 SCRIPT_RE = re.compile(r"<script\s+[^>]*src=['\"]([^'\"]+)['\"][^>]*>", re.IGNORECASE)
 
@@ -93,6 +93,16 @@ def validate_index(errors: list[str]) -> None:
 
 def validate_home_data(errors: list[str]) -> None:
     text = HOME_DATA.read_text(encoding="utf-8")
+
+    forbidden_cache_coupling = (
+        "withVersion(",
+        "cacheVersion",
+        "assets/css/style.css",
+    )
+    for marker in forbidden_cache_coupling:
+        if marker in text:
+            errors.append(f"home-data: article routing must not depend on asset cache versions: {marker}")
+
     hrefs = HOME_HREF_RE.findall(text)
     if not hrefs:
         errors.append("home-data: no article href entries found")
@@ -100,10 +110,15 @@ def validate_home_data(errors: list[str]) -> None:
 
     seen: set[str] = set()
     for href in hrefs:
-        if href in seen:
-            errors.append(f"home-data: duplicate article href: {href}")
-        seen.add(href)
-        require_file(local_path(href), errors, "home-data route")
+        parsed = urlsplit(href)
+        if parsed.query or parsed.fragment:
+            errors.append(f"home-data: article href must be a pure canonical path: {href}")
+
+        canonical = parsed.path
+        if canonical in seen:
+            errors.append(f"home-data: duplicate article href: {canonical}")
+        seen.add(canonical)
+        require_file(ROOT / canonical, errors, "home-data route")
 
 
 def validate_no_article_proxies(errors: list[str]) -> None:
