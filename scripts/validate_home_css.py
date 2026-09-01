@@ -17,6 +17,13 @@ LEGACY_CLASS_SELECTORS = (
     "secondary-article-desc",
     "secondary-article-title",
 )
+LEGACY_HIGH_SPECIFICITY_PATTERNS = (
+    r"\.content\.home-content\b",
+    r"\.home-content\s+\.home-panel\b",
+    r"\.home-content\s+\.section-title\b",
+    r"\.home-content\s+\.article-list\b",
+    r"\.home-content\s*,\s*\.content\b",
+)
 
 
 def skip_comment(text: str, index: int) -> int:
@@ -166,6 +173,10 @@ def main() -> int:
     errors = []
     if re.search(r"!important\b", text, flags=re.I):
         errors.append("home.css must not use !important; resolve cascade order or specificity instead")
+
+    for pattern in LEGACY_HIGH_SPECIFICITY_PATTERNS:
+        if re.search(pattern, text):
+            errors.append(f"home.css contains obsolete high-specificity selector form matching {pattern!r}")
 
     for (scope, selector), occurrences in groups.items():
         if len(occurrences) < 2:
