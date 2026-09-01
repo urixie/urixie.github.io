@@ -33,6 +33,19 @@ def require_file(path: Path, errors: list[str], context: str) -> None:
 def validate_index(errors: list[str]) -> None:
     text = INDEX.read_text(encoding="utf-8")
     scripts = [urlsplit(item).path for item in SCRIPT_RE.findall(text)]
+    required_styles = ["assets/css/style.css", "assets/css/home.css"]
+    for stylesheet in required_styles:
+        if stylesheet not in text:
+            errors.append(f"index style: missing required stylesheet: {stylesheet}")
+    for legacy_stylesheet in (
+        "assets/css/home-layout-tuning.css",
+        "assets/css/inline-section-reader.css",
+        "assets/css/nav-compact-layout.css",
+        "assets/css/article-fixed-scroll-override.css",
+    ):
+        if legacy_stylesheet in text:
+            errors.append(f"index style: legacy stylesheet must not be loaded: {legacy_stylesheet}")
+
     for script in scripts:
         require_file(ROOT / script, errors, "index script")
 
@@ -154,6 +167,15 @@ def validate_canonical_layout(errors: list[str]) -> None:
 
     if ARTICLE_PATH_MAP.exists():
         errors.append("article layout: assets/js/article-path-map.js must not exist")
+
+    for legacy_stylesheet in (
+        "home-layout-tuning.css",
+        "inline-section-reader.css",
+        "nav-compact-layout.css",
+        "article-fixed-scroll-override.css",
+    ):
+        if (ROOT / "assets/css" / legacy_stylesheet).exists():
+            errors.append(f"stylesheet layout: legacy home stylesheet must not exist: {legacy_stylesheet}")
 
 
 def main() -> int:
