@@ -1,0 +1,42 @@
+name: Remove dead home CSS
+
+on:
+  push:
+    branches:
+      - refactor/dead-home-css
+    paths:
+      - scripts/remove_dead_home_css.py
+      - .github/workflows/remove-dead-home-css.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/dead-home-css
+      - name: 清理不可达 CSS
+        run: python scripts/remove_dead_home_css.py
+      - name: 检查 HTML noindex 配置
+        run: python scripts/website_privacy_guard.py --check
+      - name: 检查站点目录与路由一致性
+        run: python scripts/validate_site_structure.py
+      - name: 检查首页 CSS
+        run: python scripts/validate_home_css.py
+      - name: 检查三种浏览器布局
+        run: python scripts/browser_layout_guard.py
+      - name: 提交清理结果
+        run: |
+          if git diff --quiet; then
+            echo "No dead CSS cleanup changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/home.css
+          git commit -m "refactor: remove unreachable home css"
+          git push origin HEAD:refactor/dead-home-css
