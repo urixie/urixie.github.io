@@ -18,3 +18,5 @@ jobs:
         run: python scripts/validate_home_css.py
       - name: 检查公共 CSS 生产引用
         run: python scripts/validate_style_css_usage.py
+      - name: 检查 JavaScript 语法
+        run: python scripts/validate_javascript.py
