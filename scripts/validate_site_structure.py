@@ -168,9 +168,7 @@ def validate_canonical_layout(errors: list[str]) -> None:
         "articles/soc/linux-rockchip",
         "articles/host/tools",
         "articles/host/tools-debug-config",
-        "articles/mcu/mcu/microchip",
-        "articles/mcu/mcu/silicon-labs",
-        "articles/mcu/mcu/wh",
+        "articles/mcu/mcu",
     ]
     for relative in forbidden_paths:
         if (ROOT / relative).exists():
