@@ -2,7 +2,6 @@ const homeState = {
   topicId: '',
   categoryId: '',
   articleSlug: '',
-  articleHref: ''
 };
 
 function getHomeTopics() {
@@ -119,8 +118,6 @@ async function renderInlineArticle(topic, category, article, options = {}) {
   homeState.topicId = topic?.id || '';
   homeState.categoryId = category?.id || '';
   homeState.articleSlug = getArticleSlug(article);
-  homeState.articleHref = article.href;
-
   if (contentTitle) contentTitle.textContent = article.title;
   if (articleEmpty) articleEmpty.classList.add('hidden');
 
@@ -307,8 +304,6 @@ function switchTopic(topicId, options = {}) {
   homeState.topicId = topic.id;
   homeState.categoryId = category?.id || '';
   homeState.articleSlug = article ? getArticleSlug(article) : '';
-  homeState.articleHref = article?.href || '';
-
   renderPrimaryNav();
   renderSecondaryNav(topic);
 
@@ -339,8 +334,6 @@ function switchCategory(categoryId, options = {}) {
 
   homeState.categoryId = category?.id || '';
   homeState.articleSlug = article ? getArticleSlug(article) : '';
-  homeState.articleHref = article?.href || '';
-
   renderSecondaryNav(topic);
 
   if (article) {

@@ -80,6 +80,8 @@ def validate_index(errors: list[str]) -> None:
         errors.append("javascript layout: home.js must own and initialize home navigation")
     if "legacyHomeHashMap" in home_js:
         errors.append("javascript layout: home.js must consume legacy-routes.js instead of duplicating legacy routes")
+    if "articleHref" in home_js:
+        errors.append("javascript layout: home.js must not keep unused articleHref state")
     if "function fetchInlineArticleRoot" in home_js or "function extractArticleSections" in home_js:
         errors.append("javascript layout: home.js must not contain article reader implementation")
     if "window.articleReader" not in reader_js or "function createSectionedArticleReader" not in reader_js:
