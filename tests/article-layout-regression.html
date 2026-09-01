@@ -29,6 +29,7 @@
       frame.src = '../articles/foundation/c-basic/c-basic-syntax/c-basic-syntax.html';
 
       const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+      const closeEnough = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance;
 
       async function waitForEnhancements(doc) {
         const deadline = Date.now() + 10000;
@@ -84,26 +85,35 @@
           assert(article.width > 0, 'article width must be positive');
         }
         if (copyButton && firstCode) {
-          assert(copyButton.right <= firstCode.right + 2, 'copy button must remain inside code block');
-          assert(copyButton.width >= 40, `copy button unexpectedly small: ${copyButton.width}`);
+          assert(copyButton.top >= firstCode.top && copyButton.bottom < firstCode.bottom,
+            'copy button must remain overlaid near the top of the code block');
+          assert(copyButton.right <= firstCode.right + 2 && copyButton.right >= firstCode.right - 16,
+            'copy button must remain aligned to the code block right edge');
         }
         if (figure && article) {
           assert(figure.width <= article.width + 1, 'article figure must remain within article width');
         }
 
         if (mode === 'article-desktop') {
-          assert(article && article.width >= 850 && article.width <= 965,
+          assert(article && article.width >= 900 && article.width <= 965,
             `desktop article width out of range: ${article?.width}`);
-          assert(article && article.left <= 2,
-            `desktop article should remain left-aligned with page shell: left=${article?.left}`);
+          assert(shell && article && closeEnough(shell.right - article.right, 28, 2),
+            `desktop article right inset must remain near 28px: ${shell && article ? shell.right - article.right : 'missing'}`);
           assert(style('.article', 'paddingLeft') === '38px',
             `desktop article padding changed: ${style('.article', 'paddingLeft')}`);
+          assert(copyButton && closeEnough(copyButton.width, 48, 1) && closeEnough(copyButton.height, 28, 1),
+            `desktop copy button size changed: ${copyButton?.width}x${copyButton?.height}`);
         } else if (mode === 'article-mobile') {
-          assert(article && article.width >= width - 34 && article.width <= width,
-            `mobile article width out of range: ${article?.width}`);
-          assert(style('.article', 'paddingLeft') !== '38px', 'mobile article padding must be reduced');
-          assert(copyButton && copyButton.right <= width + 2,
-            `mobile copy button exceeds viewport: right=${copyButton?.right}`);
+          assert(shell && article && closeEnough(article.left - shell.left, 16, 2),
+            `mobile article left inset must remain near 16px: ${shell && article ? article.left - shell.left : 'missing'}`);
+          assert(shell && article && closeEnough(shell.right - article.right, 16, 2),
+            `mobile article right inset must remain near 16px: ${shell && article ? shell.right - article.right : 'missing'}`);
+          assert(shell && article && closeEnough(article.width, shell.width - 32, 3),
+            `mobile article width must track shell minus 32px: article=${article?.width}, shell=${shell?.width}`);
+          assert(style('.article', 'paddingLeft') === '24px',
+            `mobile article padding changed: ${style('.article', 'paddingLeft')}`);
+          assert(copyButton && closeEnough(copyButton.width, 44, 1) && closeEnough(copyButton.height, 26, 1),
+            `mobile copy button size changed: ${copyButton?.width}x${copyButton?.height}`);
         } else {
           failures.push(`unknown mode: ${mode}`);
         }
