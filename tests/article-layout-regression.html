@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Article layout regression harness</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #111; color: #eee; font-family: monospace; }
+    iframe { display: block; border: 0; background: #fff; }
+    #layout-result { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <iframe id="siteFrame" title="standalone article regression target"></iframe>
+  <pre id="layout-result" data-status="pending">pending</pre>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const width = Number(params.get('width') || 1280);
+      const height = Number(params.get('height') || 900);
+      const mode = params.get('mode') || 'article-desktop';
+      const frame = document.querySelector('#siteFrame');
+      const result = document.querySelector('#layout-result');
+      frame.style.width = `${width}px`;
+      frame.style.height = `${height}px`;
+      frame.src = '../articles/foundation/c-basic/c-basic-syntax/c-basic-syntax.html';
+
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+      async function waitForEnhancements(doc) {
+        const deadline = Date.now() + 10000;
+        while (Date.now() < deadline) {
+          if (doc.querySelector('.article .copy-code-button') && doc.querySelector('.article-table-wrap')) return;
+          await sleep(80);
+        }
+        throw new Error('timed out waiting for standalone article enhancements');
+      }
+
+      function runAssertions(doc) {
+        const failures = [];
+        const assert = (condition, message) => {
+          if (!condition) failures.push(message);
+        };
+        const element = selector => doc.querySelector(selector);
+        const rect = selector => {
+          const node = element(selector);
+          if (!node) return null;
+          const value = node.getBoundingClientRect();
+          return {
+            top: value.top,
+            right: value.right,
+            bottom: value.bottom,
+            left: value.left,
+            width: value.width,
+            height: value.height,
+          };
+        };
+        const style = (selector, property) => {
+          const node = element(selector);
+          return node ? doc.defaultView.getComputedStyle(node)[property] : '';
+        };
+
+        const shell = rect('.article-page-shell');
+        const article = rect('.article.card');
+        const firstCode = rect('.code-block-wrap');
+        const copyButton = rect('.copy-code-button');
+        const tableWrap = rect('.article-table-wrap');
+        const figure = rect('.article-figure img');
+
+        assert(Boolean(shell && article), 'standalone article shell is incomplete');
+        assert(Boolean(firstCode && copyButton), 'code enhancement is missing');
+        assert(Boolean(tableWrap), 'table enhancement is missing');
+        assert(Boolean(figure), 'article figure is missing');
+        assert(style('.article-topbar', 'display') === 'none', 'legacy article topbar must remain hidden');
+        assert(doc.documentElement.scrollWidth <= doc.documentElement.clientWidth + 3,
+          `standalone article has horizontal overflow: ${doc.documentElement.scrollWidth}/${doc.documentElement.clientWidth}`);
+
+        if (article) {
+          assert(article.left >= -1, `article starts outside viewport: left=${article.left}`);
+          assert(article.right <= width + 2, `article exceeds viewport: right=${article.right}`);
+          assert(article.width > 0, 'article width must be positive');
+        }
+        if (copyButton && firstCode) {
+          assert(copyButton.right <= firstCode.right + 2, 'copy button must remain inside code block');
+          assert(copyButton.width >= 40, `copy button unexpectedly small: ${copyButton.width}`);
+        }
+        if (figure && article) {
+          assert(figure.width <= article.width + 1, 'article figure must remain within article width');
+        }
+
+        if (mode === 'article-desktop') {
+          assert(article && article.width >= 850 && article.width <= 965,
+            `desktop article width out of range: ${article?.width}`);
+          assert(article && article.left <= 2,
+            `desktop article should remain left-aligned with page shell: left=${article?.left}`);
+          assert(style('.article', 'paddingLeft') === '38px',
+            `desktop article padding changed: ${style('.article', 'paddingLeft')}`);
+        } else if (mode === 'article-mobile') {
+          assert(article && article.width >= width - 34 && article.width <= width,
+            `mobile article width out of range: ${article?.width}`);
+          assert(style('.article', 'paddingLeft') !== '38px', 'mobile article padding must be reduced');
+          assert(copyButton && copyButton.right <= width + 2,
+            `mobile copy button exceeds viewport: right=${copyButton?.right}`);
+        } else {
+          failures.push(`unknown mode: ${mode}`);
+        }
+
+        return {
+          mode,
+          width,
+          height,
+          failures,
+          metrics: {
+            shell,
+            article,
+            firstCode,
+            copyButton,
+            tableWrap,
+            figure,
+            articlePaddingLeft: style('.article', 'paddingLeft'),
+            rootScrollWidth: doc.documentElement.scrollWidth,
+            rootClientWidth: doc.documentElement.clientWidth,
+          },
+        };
+      }
+
+      frame.addEventListener('load', async () => {
+        try {
+          const doc = frame.contentDocument;
+          await waitForEnhancements(doc);
+          await sleep(120);
+          const report = runAssertions(doc);
+          result.dataset.status = report.failures.length ? 'fail' : 'pass';
+          result.textContent = JSON.stringify(report, null, 2);
+          document.title = report.failures.length ? 'ARTICLE_LAYOUT_FAIL' : 'ARTICLE_LAYOUT_PASS';
+        } catch (error) {
+          result.dataset.status = 'fail';
+          result.textContent = JSON.stringify({ mode, width, height, failures: [String(error)] }, null, 2);
+          document.title = 'ARTICLE_LAYOUT_FAIL';
+        }
+      }, { once: true });
+    })();
+  </script>
+</body>
+</html>
