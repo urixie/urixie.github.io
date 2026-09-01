@@ -1,0 +1,20 @@
+name: Audit home CSS reachability
+
+on:
+  push:
+    branches:
+      - refactor/dead-home-css
+    paths:
+      - scripts/audit_home_css_reachability.py
+      - .github/workflows/audit-home-css-reachability.yml
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/dead-home-css
+      - name: 审计未使用的 home.css 类
+        run: python scripts/audit_home_css_reachability.py
