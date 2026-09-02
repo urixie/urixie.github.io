@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from collections import Counter
@@ -15,7 +16,10 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 ARTICLES_DIR = ROOT / "articles"
 TEMPLATES_DIR = ARTICLES_DIR / "templates"
+SITE_MAP = ROOT / "data" / "site-map.json"
+LEGACY_ROUTES = ROOT / "assets" / "js" / "legacy-routes.js"
 EXTERNAL_SCHEMES = {"http", "https", "mailto", "tel", "data", "javascript"}
+LEGACY_ROUTE_RE = re.compile(r"^\s*['\"]([^'\"]+)['\"]\s*:\s*['\"]([^'\"]+)['\"]\s*,?\s*$", re.MULTILINE)
 
 
 class PageParser(HTMLParser):
@@ -28,8 +32,8 @@ class PageParser(HTMLParser):
         self.ids: list[str] = []
         self.images_without_alt = 0
         self.links: list[str] = []
-        self.images: list[str] = []
-        self.headings: list[int] = []
+        self.resources: list[tuple[str, str]] = []
+        self.headings: list[tuple[int, int]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
@@ -45,7 +49,7 @@ class PageParser(HTMLParser):
             self.description = (values.get("content") or "").strip()
         elif tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             level = int(tag[1])
-            self.headings.append(level)
+            self.headings.append((level, self.getpos()[0]))
             if level == 1:
                 self.h1_count += 1
         elif tag == "img":
@@ -53,11 +57,19 @@ class PageParser(HTMLParser):
                 self.images_without_alt += 1
             src = (values.get("src") or "").strip()
             if src:
-                self.images.append(src)
+                self.resources.append(("图片", src))
         elif tag == "a":
             href = (values.get("href") or "").strip()
             if href:
                 self.links.append(href)
+        elif tag == "link":
+            href = (values.get("href") or "").strip()
+            if href:
+                self.resources.append(("link 资源", href))
+        elif tag in {"script", "source", "video", "audio"}:
+            src = (values.get("src") or "").strip()
+            if src:
+                self.resources.append((f"{tag} 资源", src))
 
     def handle_endtag(self, tag: str) -> None:
         if tag.lower() == "title":
@@ -98,6 +110,33 @@ def parse_page(path: Path) -> PageParser:
     return parser
 
 
+@lru_cache(maxsize=1)
+def valid_home_routes() -> set[str]:
+    routes = {"about"}
+    if SITE_MAP.is_file():
+        site_map = json.loads(SITE_MAP.read_text(encoding="utf-8"))
+        for topic in site_map:
+            topic_id = str(topic.get("id") or "").strip()
+            if not topic_id:
+                continue
+            routes.add(topic_id)
+            for category in topic.get("children") or []:
+                category_id = str(category.get("id") or "").strip()
+                if not category_id:
+                    continue
+                category_route = f"{topic_id}/{category_id}"
+                routes.add(category_route)
+                for article in category.get("articles") or []:
+                    href = str(article.get("href") or "")
+                    slug = Path(urlsplit(href).path).stem
+                    if slug:
+                        routes.add(f"{category_route}/{slug}")
+
+    if LEGACY_ROUTES.is_file():
+        routes.update(key for key, _target in LEGACY_ROUTE_RE.findall(LEGACY_ROUTES.read_text(encoding="utf-8")))
+    return routes
+
+
 def resolve_local_reference(source: Path, raw: str) -> tuple[Path | None, str]:
     parsed = urlsplit(raw)
     if parsed.scheme.lower() in EXTERNAL_SCHEMES or parsed.netloc:
@@ -112,12 +151,7 @@ def resolve_local_reference(source: Path, raw: str) -> tuple[Path | None, str]:
     else:
         target = source
 
-    try:
-        target = target.resolve()
-        target.relative_to(ROOT.resolve())
-    except ValueError:
-        return target, unquote(parsed.fragment)
-
+    target = target.resolve()
     return target, unquote(parsed.fragment)
 
 
@@ -138,7 +172,10 @@ def validate_local_reference(source: Path, raw: str, kind: str) -> list[str]:
         return errors
 
     if fragment:
-        if not target.is_file() or target.suffix.lower() not in {".html", ".htm"}:
+        if target == (ROOT / "index.html").resolve():
+            if fragment not in valid_home_routes():
+                errors.append(f"{relative}: {kind} 指向未知首页路由 '#{fragment}': {raw}")
+        elif not target.is_file() or target.suffix.lower() not in {".html", ".htm"}:
             errors.append(f"{relative}: {kind} 在非 HTML 目标上使用锚点: {raw}")
         else:
             target_parser = parse_page(target)
@@ -148,16 +185,16 @@ def validate_local_reference(source: Path, raw: str, kind: str) -> list[str]:
     return errors
 
 
-def validate_heading_order(path: Path, headings: list[int]) -> list[str]:
+def validate_heading_order(path: Path, headings: list[tuple[int, int]]) -> list[str]:
     relative = path.relative_to(ROOT).as_posix()
     errors: list[str] = []
-    previous: int | None = None
-    for level in headings:
-        if previous is not None and level > previous + 1:
+    previous: tuple[int, int] | None = None
+    for level, line in headings:
+        if previous is not None and level > previous[0] + 1:
             errors.append(
-                f"{relative}: 标题层级从 h{previous} 跳到 h{level}，应逐级递进"
+                f"{relative}:{line}: 标题层级从 h{previous[0]} 跳到 h{level}，应逐级递进"
             )
-        previous = level
+        previous = (level, line)
     return errors
 
 
@@ -185,11 +222,10 @@ def validate_page(path: Path) -> list[str]:
         errors.append(f"{relative}: 存在未替换模板标记: {', '.join(unresolved_tokens)}")
 
     errors.extend(validate_heading_order(path, parser.headings))
-
     for href in parser.links:
         errors.extend(validate_local_reference(path, href, "链接"))
-    for src in parser.images:
-        errors.extend(validate_local_reference(path, src, "图片"))
+    for kind, src in parser.resources:
+        errors.extend(validate_local_reference(path, src, kind))
 
     return errors
 
@@ -208,7 +244,7 @@ def main() -> int:
 
     print(
         f"Content validation passed: {len(pages)} production HTML pages checked for metadata, "
-        "headings, ids, images, local links, anchors, and template tokens."
+        "headings, ids, local links, routes, anchors, assets, and template tokens."
     )
     return 0
 
