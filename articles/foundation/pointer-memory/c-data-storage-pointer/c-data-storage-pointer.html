@@ -8,13 +8,13 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言数据存储与指针整理 - XYJ</title>
   <meta name="description" content="整理 C 语言数据存储与指针，包括大小端.有符号无符号.溢出.类型转换.数据对齐.size_t.typedef.enum.常量变量.数组与指针.多级指针.函数指针和 void。">
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=20260901-styleclean">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=20584d47bb7b">
 </head>
 <body>
   <main class="article-page-shell">
     <div class="article-topbar">
-      <a href="../../../../index.html?v=bc26d38b1d83">← 返回首页</a>
-      <a href="../../../../index.html?v=bc26d38b1d83#foundation/pointer-memory">返回 C语言专题</a>
+      <a href="../../../../index.html?v=20584d47bb7b">← 返回首页</a>
+      <a href="../../../../index.html?v=20584d47bb7b#foundation/pointer-memory">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -474,7 +474,7 @@ void *memcpy(void *dst, const void *src, size_t n);</code></pre>
           下面的配置包含版本号、温度设定值和工作模式。它可以写入 Flash，也可以通过串口发送给上位机。示例故意不使用 <code>memcpy</code> 直接复制结构体，而是逐字段写入字节数组，这样填充字节、编译器对齐方式和 CPU 大小端都不会偷偷改变数据格式。
         </p>
         <figure class="article-figure">
-          <img src="images/c-data-layout.svg?v=bc26d38b1d83" alt="业务字段经过显式序列化转换为协议和 Flash 字节流的示意图" loading="lazy" decoding="async">
+          <img src="images/c-data-layout.svg?v=20584d47bb7b" alt="业务字段经过显式序列化转换为协议和 Flash 字节流的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：内部数据结构与外部字节格式之间必须有明确的序列化边界。</figcaption>
         </figure>
         <pre><code>#include &lt;stddef.h&gt;
@@ -528,11 +528,11 @@ size_t config_encode(const device_config_t *cfg,
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=bc26d38b1d83#foundation/pointer-memory">返回 C语言专题</a>
+        <a href="../../../../index.html?v=20584d47bb7b#foundation/pointer-memory">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=bc26d38b1d83"></script>
+  <script src="../../../../assets/js/main.js?v=20584d47bb7b"></script>
 </body>
 </html>
