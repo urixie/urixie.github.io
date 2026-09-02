@@ -1,0 +1,36 @@
+name: One-shot article image loading optimization
+
+on:
+  push:
+    paths:
+      - scripts/add_article_image_hints.py
+      - .github/workflows/add-article-image-hints.yml
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v7
+      - name: 添加文章图片加载提示
+        run: python scripts/add_article_image_hints.py
+      - name: 检查内容与浏览器回归
+        run: |
+          python scripts/validate_content.py
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
+          python scripts/browser_layout_guard.py
+          git diff --check
+      - name: 提交优化结果
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add articles
+          if git diff --cached --quiet; then
+            echo "No article images required loading hints."
+            exit 0
+          fi
+          git commit -m "perf: add native loading hints to article images"
+          git push
