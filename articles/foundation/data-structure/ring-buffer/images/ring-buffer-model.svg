@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">环形缓冲区读写指针与回绕模型</title>
+  <desc id="desc">展示容量为八个槽位的环形缓冲区，head 指向下一个写入位置，tail 指向下一个读取位置，数据跨过数组末尾后从零号槽继续。</desc>
+  <style>
+    text{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;fill:#1f2937}.box{fill:#fff;stroke:#64748b;stroke-width:2}.used{fill:#dbeafe}.free{fill:#f8fafc}.arrow{stroke:#2563eb;stroke-width:4;fill:none;marker-end:url(#m)}.tail{stroke:#ea580c}.label{font-size:30px;font-weight:700}.small{font-size:24px}.caption{font-size:22px;fill:#475569}
+  </style>
+  <defs><marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="context-stroke"/></marker></defs>
+  <text x="600" y="52" text-anchor="middle" class="label">环形缓冲区：物理数组有限，逻辑数据流可以持续循环</text>
+  <g transform="translate(100 150)">
+    <rect x="0" y="0" width="120" height="110" class="used"/><rect x="120" y="0" width="120" height="110" class="used"/>
+    <rect x="240" y="0" width="120" height="110" class="free"/><rect x="360" y="0" width="120" height="110" class="free"/>
+    <rect x="480" y="0" width="120" height="110" class="free"/><rect x="600" y="0" width="120" height="110" class="free"/>
+    <rect x="720" y="0" width="120" height="110" class="used"/><rect x="840" y="0" width="120" height="110" class="used"/>
+    <g class="small" text-anchor="middle"><text x="60" y="66">0</text><text x="180" y="66">1</text><text x="300" y="66">2</text><text x="420" y="66">3</text><text x="540" y="66">4</text><text x="660" y="66">5</text><text x="780" y="66">6</text><text x="900" y="66">7</text></g>
+    <path d="M300 145 V105" class="arrow"/><text x="300" y="185" text-anchor="middle" class="small">head / write</text>
+    <path d="M720 -45 V-5" class="arrow tail"/><text x="720" y="-65" text-anchor="middle" class="small">tail / read</text>
+  </g>
+  <path d="M1020 295 C1110 295 1110 405 600 405 C130 405 120 330 170 305" class="arrow"/>
+  <text x="600" y="455" text-anchor="middle" class="caption">写指针到达末尾后回到 0；数据的逻辑顺序仍然是 6 → 7 → 0 → 1。</text>
+  <text x="600" y="492" text-anchor="middle" class="caption">真正变化的是索引，不需要搬移已经存在的数据。</text>
+</svg>
