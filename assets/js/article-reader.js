@@ -41,9 +41,9 @@ function getCleanArticleRoot(html, articleHref) {
   return doc.querySelector('article') || doc.querySelector('main') || doc.body;
 }
 
-async function fetchInlineArticleRoot(article) {
+async function fetchInlineArticleRoot(article, options = {}) {
   const articleHref = article.href;
-  const response = await fetch(articleHref, { cache: 'no-cache' });
+  const response = await fetch(articleHref, { signal: options.signal });
   if (!response.ok) {
     throw new Error(`无法读取文章：${articleHref}`);
   }
@@ -186,7 +186,7 @@ function createSectionedArticleReader(articleRoot) {
   const content = document.createElement('article');
   content.className = 'inline-section-content article';
 
-  const buttons = sections.map((section, index) => {
+  const buttons = sections.map(section => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'inline-section-button';
@@ -202,7 +202,7 @@ function createSectionedArticleReader(articleRoot) {
   });
 
   if (buttons[0]) buttons[0].classList.add('active');
-  renderSectionInto(content, sections[0]);
+  if (sections[0]) renderSectionInto(content, sections[0]);
 
   reader.append(nav, content);
   return reader;
