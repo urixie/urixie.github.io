@@ -20,6 +20,7 @@ HOME_HARNESS = "tests/layout-regression.html"
 ARTICLE_HARNESS = "tests/article-layout-regression.html"
 ARTICLE_RACE_HARNESS = "tests/article-loading-race.html"
 ROUTE_HARNESS = "tests/route-compat-regression.html"
+ARTICLE_TOC_HARNESS = "tests/article-toc-regression.html"
 HOME_SCENARIOS = (
     {"mode": "desktop", "width": 1440, "height": 900},
     {"mode": "narrow", "width": 920, "height": 820},
@@ -34,6 +35,9 @@ INTERACTION_SCENARIOS = (
 )
 ROUTE_SCENARIOS = (
     {"mode": "route-compat", "width": 1024, "height": 768},
+)
+ARTICLE_TOC_SCENARIOS = (
+    {"mode": "article-toc", "width": 1024, "height": 768},
 )
 CHROME_TIMEOUT_SECONDS = 35
 CHROME_TIMEOUT_ATTEMPTS = 2
@@ -160,6 +164,7 @@ def main() -> int:
         ("article", ARTICLE_HARNESS, ARTICLE_SCENARIOS),
         ("interaction", ARTICLE_RACE_HARNESS, INTERACTION_SCENARIOS),
         ("route", ROUTE_HARNESS, ROUTE_SCENARIOS),
+        ("article-toc", ARTICLE_TOC_HARNESS, ARTICLE_TOC_SCENARIOS),
     )
 
     with local_server() as port:
@@ -181,7 +186,8 @@ def main() -> int:
 
     print(
         "Browser regression check passed for home desktop/narrow/mobile, standalone article "
-        "desktop/mobile, inline article race handling, and hash-route compatibility."
+        "desktop/mobile, inline article race handling, hash-route compatibility, automatic article TOC, "
+        "and keyboard image zoom."
     )
     return 0
 
