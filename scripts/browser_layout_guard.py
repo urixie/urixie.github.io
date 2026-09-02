@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run zero-dependency browser layout regression checks with headless Chrome."""
+"""Run zero-dependency browser layout and interaction regression checks with headless Chrome."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from urllib.parse import urlencode
 ROOT = Path(__file__).resolve().parents[1]
 HOME_HARNESS = "tests/layout-regression.html"
 ARTICLE_HARNESS = "tests/article-layout-regression.html"
+ARTICLE_RACE_HARNESS = "tests/article-loading-race.html"
 HOME_SCENARIOS = (
     {"mode": "desktop", "width": 1440, "height": 900},
     {"mode": "narrow", "width": 920, "height": 820},
@@ -26,6 +27,9 @@ HOME_SCENARIOS = (
 ARTICLE_SCENARIOS = (
     {"mode": "article-desktop", "width": 1280, "height": 900},
     {"mode": "article-mobile", "width": 390, "height": 844},
+)
+INTERACTION_SCENARIOS = (
+    {"mode": "article-race", "width": 1024, "height": 768},
 )
 CHROME_TIMEOUT_SECONDS = 35
 CHROME_TIMEOUT_ATTEMPTS = 2
@@ -136,20 +140,21 @@ def run_scenario(
 
             status, report = extract_result(completed.stdout)
             if status != "pass":
-                return False, report or f"layout harness returned status={status}"
+                return False, report or f"browser harness returned status={status}"
             return True, report
 
-    return False, "Chrome layout scenario did not produce a result"
+    return False, "Chrome browser scenario did not produce a result"
 
 
 def main() -> int:
     chrome = find_chrome()
-    print(f"Browser layout guard using: {chrome}")
+    print(f"Browser regression guard using: {chrome}")
     failures = []
 
     suites = (
         ("home", HOME_HARNESS, HOME_SCENARIOS),
         ("article", ARTICLE_HARNESS, ARTICLE_SCENARIOS),
+        ("interaction", ARTICLE_RACE_HARNESS, INTERACTION_SCENARIOS),
     )
 
     with local_server() as port:
@@ -164,14 +169,14 @@ def main() -> int:
                     print(f"FAIL {label}\n{report}")
 
     if failures:
-        print("\nBrowser layout regression check failed:")
+        print("\nBrowser regression check failed:")
         for label, report in failures:
             print(f"\n[{label}]\n{report}")
         return 1
 
     print(
-        "Browser layout regression check passed for home desktop/narrow/mobile "
-        "and standalone article desktop/mobile viewports."
+        "Browser regression check passed for home desktop/narrow/mobile, standalone article "
+        "desktop/mobile, and inline article race handling."
     )
     return 0
 
