@@ -176,7 +176,7 @@ frame_t frame = {0};</code></pre>
           假设设备偶尔把一帧 32 字节数据报告为“长度错误”。直接在报错行加一个断点，往往会改变时序，使问题消失。更稳妥的做法是记录输入摘要、当前状态、缓冲区容量和返回码，再用固定输入离线重放解析函数。
         </p>
         <figure class="article-figure">
-          <img src="images/c-debug-evidence.svg?v=bc26d38b1d83" alt="C 语言故障从现象到复现、取证、定位、修复和回归的证据链流程图">
+          <img src="images/c-debug-evidence.svg?v=bc26d38b1d83" alt="C 语言故障从现象到复现、取证、定位、修复和回归的证据链流程图" loading="lazy" decoding="async">
           <figcaption>图 1：调试的目标是建立证据链，而不是猜测某一行代码。</figcaption>
         </figure>
         <pre><code>typedef struct {

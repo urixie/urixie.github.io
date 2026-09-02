@@ -162,7 +162,7 @@ app_err_t app_adc_read(uint8_t channel, uint16_t *out_value);
           假设设备通过 UART 收到一帧 <code>AA 55 CMD LEN VALUE_L VALUE_H</code>：前两个字节是帧头，第三个字节是命令，第四个字节表示后续有效载荷长度，最后两个字节是小端格式的测量值。这个例子把定长类型、位移、条件判断、指针参数和错误码串在一起，正好对应真实驱动中的最小闭环。
         </p>
         <figure class="article-figure">
-          <img src="images/c-basic-flow.svg?v=bc26d38b1d83" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图">
+          <img src="images/c-basic-flow.svg?v=bc26d38b1d83" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
           <figcaption>图 1：基础语法最终要服务于一条可验证的数据处理链。</figcaption>
         </figure>
         <pre><code>#include &lt;stddef.h&gt;

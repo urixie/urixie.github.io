@@ -281,7 +281,7 @@ int parse_frame(const uint8_t *data, uint16_t len, app_frame_t *out_frame)
           一个可靠的缓冲区接口至少要同时表达地址、有效长度、容量和所有权。下面的接口只借用调用者提供的内存，不负责释放；成功后返回写入字节数，失败时不修改输出长度。这样的约定适合 UART 接收、Flash 读写和协议编码等场景。
         </p>
         <figure class="article-figure">
-          <img src="images/c-pointer-ownership.svg?v=bc26d38b1d83" alt="指针接口需要明确地址、长度和所有权三个问题的示意图">
+          <img src="images/c-pointer-ownership.svg?v=bc26d38b1d83" alt="指针接口需要明确地址、长度和所有权三个问题的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：指针的安全性来自完整的接口契约，而不是来自指针类型本身。</figcaption>
         </figure>
         <pre><code>#include &lt;stddef.h&gt;

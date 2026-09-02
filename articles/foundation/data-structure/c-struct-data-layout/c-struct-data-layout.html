@@ -229,7 +229,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
           对需要长期保存的设备参数，推荐把“业务访问结构体”和“外部存储格式”分开。业务代码使用结构体字段，Flash 中则使用固定字段顺序、显式宽度、版本号、总长度和 CRC。升级固件时可以根据版本号决定是否补齐默认值，避免结构体增删字段后直接读出错误配置。
         </p>
         <figure class="article-figure">
-          <img src="images/c-struct-serialization.svg?v=bc26d38b1d83" alt="内部结构体通过序列化函数转换为稳定外部字节格式的示意图">
+          <img src="images/c-struct-serialization.svg?v=bc26d38b1d83" alt="内部结构体通过序列化函数转换为稳定外部字节格式的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：结构体适合组织业务，序列化函数负责稳定外部格式。</figcaption>
         </figure>
         <pre><code>#include &lt;stddef.h&gt;
