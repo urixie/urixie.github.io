@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 确认 Chrome 环境
         run: command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
       - name: 检查首页、独立文章页与文章切换交互
