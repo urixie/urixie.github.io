@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HOME_HARNESS = "tests/layout-regression.html"
 ARTICLE_HARNESS = "tests/article-layout-regression.html"
 ARTICLE_RACE_HARNESS = "tests/article-loading-race.html"
+ROUTE_HARNESS = "tests/route-compat-regression.html"
 HOME_SCENARIOS = (
     {"mode": "desktop", "width": 1440, "height": 900},
     {"mode": "narrow", "width": 920, "height": 820},
@@ -30,6 +31,9 @@ ARTICLE_SCENARIOS = (
 )
 INTERACTION_SCENARIOS = (
     {"mode": "article-race", "width": 1024, "height": 768},
+)
+ROUTE_SCENARIOS = (
+    {"mode": "route-compat", "width": 1024, "height": 768},
 )
 CHROME_TIMEOUT_SECONDS = 35
 CHROME_TIMEOUT_ATTEMPTS = 2
@@ -155,6 +159,7 @@ def main() -> int:
         ("home", HOME_HARNESS, HOME_SCENARIOS),
         ("article", ARTICLE_HARNESS, ARTICLE_SCENARIOS),
         ("interaction", ARTICLE_RACE_HARNESS, INTERACTION_SCENARIOS),
+        ("route", ROUTE_HARNESS, ROUTE_SCENARIOS),
     )
 
     with local_server() as port:
@@ -176,7 +181,7 @@ def main() -> int:
 
     print(
         "Browser regression check passed for home desktop/narrow/mobile, standalone article "
-        "desktop/mobile, and inline article race handling."
+        "desktop/mobile, inline article race handling, and hash-route compatibility."
     )
     return 0
 
