@@ -1,9 +1,0 @@
-name: retired
-on:
-  workflow_dispatch:
-jobs:
-  retired:
-    if: ${{ false }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo retired
