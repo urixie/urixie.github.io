@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Article loading race regression</title>
+</head>
+<body>
+  <div class="home-shell">
+    <aside class="primary-sidebar"><nav id="primaryNav"></nav></aside>
+    <aside class="secondary-sidebar"><nav id="secondaryNav"></nav></aside>
+    <main class="home-content">
+      <h2 id="contentTitle"></h2>
+      <div id="articleList"></div>
+      <div id="articleEmpty" class="hidden"></div>
+    </main>
+  </div>
+  <pre id="layout-result" data-status="pending">pending</pre>
+
+  <script>
+    window.siteMap = [{
+      id: 'foundation',
+      title: 'Foundation',
+      shortTitle: 'Base',
+      children: [{
+        id: 'c-basic',
+        title: 'C Basic',
+        articles: [
+          { title: 'Slow A', href: 'slow-a.html' },
+          { title: 'Fast B', href: 'fast-b.html' }
+        ]
+      }]
+    }];
+    window.resolveLegacyHomeRoute = value => value;
+
+    const makeArticle = title => `<!doctype html><html><body><article class="article"><section><h2>${title}</h2><p>${title} content</p></section></article></body></html>`;
+    window.fetch = (url, options = {}) => new Promise((resolve, reject) => {
+      const isSlow = String(url).includes('slow-a');
+      const timer = setTimeout(() => resolve({ ok: true, text: async () => makeArticle(isSlow ? 'Slow A' : 'Fast B') }), isSlow ? 350 : 20);
+      const signal = options.signal;
+      if (signal) {
+        if (signal.aborted) {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+          return;
+        }
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      }
+    });
+  </script>
+  <script src="../assets/js/main.js"></script>
+  <script src="../assets/js/article-reader.js"></script>
+  <script src="../assets/js/home.js"></script>
+  <script>
+    (() => {
+      const result = document.querySelector('#layout-result');
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+      (async () => {
+        try {
+          await sleep(30);
+          window.selectArticle('foundation', 'c-basic', 'fast-b');
+          await sleep(500);
+
+          const title = document.querySelector('#contentTitle')?.textContent?.trim();
+          const body = document.querySelector('.inline-section-content')?.textContent?.trim() || '';
+          const active = document.querySelector('.secondary-article-link.active')?.textContent?.trim();
+          const failures = [];
+          if (title !== 'Fast B') failures.push(`expected title Fast B, got ${title}`);
+          if (!body.includes('Fast B content')) failures.push(`expected Fast B body, got ${body}`);
+          if (body.includes('Slow A content')) failures.push('stale Slow A response replaced Fast B');
+          if (active !== 'Fast B') failures.push(`expected active Fast B, got ${active}`);
+
+          result.dataset.status = failures.length ? 'fail' : 'pass';
+          result.textContent = JSON.stringify({ failures, title, body, active }, null, 2);
+        } catch (error) {
+          result.dataset.status = 'fail';
+          result.textContent = JSON.stringify({ failures: [String(error)] }, null, 2);
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>
