@@ -58,8 +58,8 @@
       },
       {
         "id": "data-structure",
-        "title": "结构体与数据组织",
-        "desc": "适合参数配置、寄存器映射和通信协议设计的数据组织方式。",
+        "title": "数据结构与数据组织",
+        "desc": "整理结构体、协议数据组织、队列、环形缓冲区等可复用基础数据结构与工程实现。",
         "articles": [
           {
             "navTitle": "C语言 · 结构体与数据组织",
@@ -68,6 +68,17 @@
             "tags": [
               "struct",
               "协议帧"
+            ]
+          },
+          {
+            "navTitle": "环形缓冲区 · 原理、Linux 与 RT-Thread 实现",
+            "navDesc": "Ring Buffer / head-tail / mirror bit / Linux circ_buf / kfifo / RT-Thread / SPSC / UART / DMA",
+            "href": "articles/foundation/data-structure/ring-buffer/ring-buffer.html",
+            "tags": [
+              "Ring Buffer",
+              "Linux",
+              "RT-Thread",
+              "数据结构"
             ]
           }
         ]

@@ -8,15 +8,15 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>环形缓冲区原理、Linux 与 RT-Thread 实现详解 - XYJ</title>
   <meta name="description" content="从读写指针、满空判定、回绕与两段复制出发，深入分析 Linux circ_buf/kfifo 与 RT-Thread ringbuffer，并给出并发、UART/DMA 和可移植 C 实现方法。">
-  <link rel="stylesheet" href="../../../../assets/css/style.css">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=7d4d6e9cd35b">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html">← 返回首页</a>
-          <a href="../../../../index.html#foundation/data-structure">返回对应专题</a>
+          <a href="../../../../index.html?v=7d4d6e9cd35b">← 返回首页</a>
+          <a href="../../../../index.html?v=7d4d6e9cd35b#foundation/data-structure">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -40,7 +40,7 @@
        Producer             缓冲                Consumer</code></pre>
         <p>生产者只负责往“下一个可写位置”放数据，消费者只负责从“下一个可读位置”拿数据。当索引到达数组末尾时回到 0，于是有限数组可以承载持续不断的数据流。</p>
         <figure class="article-figure">
-          <img src="images/ring-buffer-model.svg" alt="环形缓冲区读写指针与数组回绕模型" loading="lazy" decoding="async">
+          <img src="images/ring-buffer-model.svg?v=7d4d6e9cd35b" alt="环形缓冲区读写指针与数组回绕模型" loading="lazy" decoding="async">
           <figcaption>图 1：物理内存仍然是一段普通数组，所谓“环形”只是索引回绕后的逻辑视图。</figcaption>
         </figure>
       </section>
@@ -70,7 +70,7 @@ tail = (tail + 1U) % size;</code></pre>
         <h2>3. 最核心的问题：head == tail 到底是空还是满</h2>
         <p>如果只有 head 和 tail 两个循环下标，那么 <code>head == tail</code> 会产生歧义：刚初始化时两者相等表示空；如果写指针绕一整圈追上读指针，两者也会相等，但此时理论上应该表示满。工程实现必须额外引入一种状态信息来消除歧义。</p>
         <figure class="article-figure">
-          <img src="images/ring-buffer-implementation-compare.svg" alt="Linux circ_buf、RT-Thread mirror bit 与 Linux kfifo 三种环形缓冲区判满判空方案对比" loading="lazy" decoding="async">
+          <img src="images/ring-buffer-implementation-compare.svg?v=7d4d6e9cd35b" alt="Linux circ_buf、RT-Thread mirror bit 与 Linux kfifo 三种环形缓冲区判满判空方案对比" loading="lazy" decoding="async">
           <figcaption>图 2：三种主流状态模型都在解决“同一组物理下标如何区分不同逻辑状态”的问题。</figcaption>
         </figure>
 
@@ -124,7 +124,7 @@ memcpy(buffer + index, source, first);
 memcpy(buffer, source + first, second);</code></pre>
         <p>如果 second 为 0，第二次复制等价于没有跨界；如果 second 大于 0，就从数组起点继续。Linux <code>kfifo_copy_in()/kfifo_copy_out()</code> 和 RT-Thread <code>rt_ringbuffer_put()/get()</code> 都采用这种“最多两段”的思想。</p>
         <figure class="article-figure">
-          <img src="images/ring-buffer-read-write-flow.svg" alt="环形缓冲区写入和读取时跨界拆分为两段复制的流程图" loading="lazy" decoding="async">
+          <img src="images/ring-buffer-read-write-flow.svg?v=7d4d6e9cd35b" alt="环形缓冲区写入和读取时跨界拆分为两段复制的流程图" loading="lazy" decoding="async">
           <figcaption>图 3：批量操作先按可用空间/数据量限长，再判断尾部连续区域是否足够。</figcaption>
         </figure>
       </section>
@@ -451,11 +451,11 @@ void protocol_task(void)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html#foundation/data-structure">返回数据结构与数据组织</a>
+        <a href="../../../../index.html?v=7d4d6e9cd35b#foundation/data-structure">返回数据结构与数据组织</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js"></script>
+  <script src="../../../../assets/js/main.js?v=7d4d6e9cd35b"></script>
 </body>
 </html>
