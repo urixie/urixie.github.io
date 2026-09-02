@@ -2,6 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "生成首页导航数据",
+      "type": "shell",
+      "command": "python scripts/generate_home_data.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "检查首页导航数据",
+      "type": "shell",
+      "command": "python scripts/generate_home_data.py --check",
+      "problemMatcher": []
+    },
+    {
       "label": "更新网站缓存版本号",
       "type": "shell",
       "command": "python scripts/bump_cache_version_from_git.py",
