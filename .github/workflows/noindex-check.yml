@@ -16,10 +16,12 @@ jobs:
         run: python scripts/website_privacy_guard.py --check
       - name: 检查站点目录与路由一致性
         run: python scripts/validate_site_structure.py
-      - name: 检查页面内容质量
+      - name: 检查页面内容质量与本地引用
         run: python scripts/validate_content.py
       - name: 检查首页 CSS 无效覆盖
         run: python scripts/validate_home_css.py
+      - name: 检查 CSS 职责边界
+        run: python scripts/validate_css_ownership.py
       - name: 检查公共 CSS 生产引用
         run: python scripts/validate_style_css_usage.py
       - name: 检查无人引用的运行时资源
