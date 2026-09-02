@@ -1,5 +1,11 @@
 #!/usr/bin/env sh
 
+if ! python scripts/generate_home_data.py --check; then
+  echo "提交已阻止：assets/js/home-data.js 与 data/site-map.json 不一致。"
+  echo "请运行：python scripts/generate_home_data.py"
+  exit 1
+fi
+
 if ! python scripts/website_privacy_guard.py --check; then
   echo "提交已阻止：发现 HTML 页面缺少或使用了错误的 noindex 配置。"
   echo "请运行：python scripts/website_privacy_guard.py --fix"
