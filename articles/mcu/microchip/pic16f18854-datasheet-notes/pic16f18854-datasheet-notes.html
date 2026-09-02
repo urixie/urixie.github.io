@@ -8,15 +8,15 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="description" content="PIC16F18854 数据手册中断.PPS.PWM.定时器.CCP 与 CLC 模块资料整理。">
   <title>PIC16F18854 单片机数据手册资料整理 - XYJ</title>
-  <link rel="stylesheet" href="../../../assets/css/style.css?v=20260901-styleclean">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=20260901-styleclean">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../index.html?v=ef7caca13ac7">← 返回首页</a>
-          <a href="../../../index.html?v=ef7caca13ac7#mcu-stack">返回 MCU 平台</a>
+          <a href="../../../../index.html?v=ef7caca13ac7">← 返回首页</a>
+          <a href="../../../../index.html?v=ef7caca13ac7#mcu/common">返回 MCU 平台</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav class="article-nav" aria-label="文章目录">
@@ -1333,7 +1333,7 @@
         <img src="images/14-pic16f18854.png?v=ef7caca13ac7" alt="Image">
         <figcaption>图 14：PIC16F18854 数据手册资料图。</figcaption>
       </figure>
-      <h4 id="29-1-可配置逻辑单元-clc-模块功能概述定时器2工作模式">29.1 可配置逻辑单元（CLC）模块功能概述定时器2工作模式</h4>
+      <h3 id="29-1-可配置逻辑单元-clc-模块功能概述定时器2工作模式">29.1 可配置逻辑单元（CLC）模块功能概述定时器2工作模式</h3>
       <ul>
         <li>自由运行周期模式（Free Running Period Mode） ：TMR2 与周期寄存器 T2PR 每个时钟周期比较，相等时 TMR2 在下一周期清零，后分频器计数递增。后分频器计数值等于 TMRxCON1 寄存器的 OUTPS&lt;4:0&gt; 值时，TMR2 后分频输出产生一个时钟周期宽脉冲，后分频计数清零 。</li>
       </ul>
@@ -1351,11 +1351,11 @@
       <ul>
         <li>TMR2 寄存器可读可写，设备复位时双缓冲且初始化为0<em>xFF</em> 。T2PR 寄存器直接读写，实际周期缓冲器在特定事件（写 TMR2.T2CON.T2HLT 寄存器，TMR2 = T2PR 且预分频器满，外部复位事件 ）发生时更新 。预分频器和后分频器在写 TMR2.T2CON 寄存器，设备复位，外部复位事件时清零 。T2CON 写入时 TMR2 不清零 。</li>
       </ul>
-      <h4 id="29-2-timer2-输出"><strong>29.2 Timer2 输出</strong></h4>
+      <h3 id="29-2-timer2-输出"><strong>29.2 Timer2 输出</strong></h3>
       <ul>
         <li>主要输出 TMR2\_postscaled，后分频器计数匹配 TMR2 时钟周期时产生脉冲，可作为 ADC 模块自动转换触发.CWG 自动关闭源.Memory Scanner 触发.Timer 1/3 门控输入.Timer 2/4/6 外部复位信号.SMT 窗口和信号输入 。此外，CCP 模块在 PWM 模式生成脉冲时也会用到 Timer2 相关信号 。</li>
       </ul>
-      <h4 id="29-3-timer2-输出"><strong>29.3 Timer2 输出</strong></h4>
+      <h3 id="29-3-timer2-输出"><strong>29.3 Timer2 输出</strong></h3>
       <p><strong>外部复位源功能</strong></p>
       <ul>
         <li>Timer2 除时钟源外，还可接入外部复位源。Timer2.Timer4.Timer6 分别通过 T2RST.T4RST.T6RST 寄存器选择外部复位源 。该外部复位源可根据定时器工作模式，控制定时器的启动.停止和复位 。</li>
@@ -2281,6 +2281,6 @@
       </section>
     </article>
   </main>
-  <script src="../../../assets/js/main.js?v=ef7caca13ac7"></script>
+  <script src="../../../../assets/js/main.js?v=ef7caca13ac7"></script>
 </body>
 </html>
