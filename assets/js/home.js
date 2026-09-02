@@ -4,6 +4,10 @@ const homeState = {
   articleSlug: '',
 };
 
+let activeArticleController = null;
+let articleRenderVersion = 0;
+let routeRestoreQueued = false;
+
 function getHomeTopics() {
   return Array.isArray(window.siteMap) ? window.siteMap : [];
 }
@@ -75,7 +79,9 @@ function createCountLabel(count) {
 function createLoadingCard(message = '正在加载文章...') {
   const wrapper = document.createElement('div');
   wrapper.className = 'inline-article-placeholder card';
-  wrapper.innerHTML = `<p>${message}</p>`;
+  const paragraph = document.createElement('p');
+  paragraph.textContent = message;
+  wrapper.appendChild(paragraph);
   return wrapper;
 }
 
@@ -108,40 +114,44 @@ function createArticleWelcome(topic, category) {
   return wrapper;
 }
 
+function cancelActiveArticleLoad() {
+  if (activeArticleController) {
+    activeArticleController.abort();
+    activeArticleController = null;
+  }
+}
+
 async function renderInlineArticle(topic, category, article, options = {}) {
   const articleList = document.querySelector('#articleList');
   const articleEmpty = document.querySelector('#articleEmpty');
   const contentTitle = document.querySelector('#contentTitle');
-
   if (!articleList || !article) return;
 
-  homeState.topicId = topic?.id || '';
-  homeState.categoryId = category?.id || '';
-  homeState.articleSlug = getArticleSlug(article);
+  cancelActiveArticleLoad();
+  const controller = new AbortController();
+  activeArticleController = controller;
+  const renderVersion = ++articleRenderVersion;
+
   if (contentTitle) contentTitle.textContent = article.title;
   if (articleEmpty) articleEmpty.classList.add('hidden');
-
   articleList.replaceChildren(createLoadingCard());
-  renderPrimaryNav();
-  renderSecondaryNav(topic);
   updateHomeHash(topic, category, article, options);
 
   try {
-    const articleRoot = await window.articleReader.fetchInlineArticleRoot(article);
+    const articleRoot = await window.articleReader.fetchInlineArticleRoot(article, { signal: controller.signal });
+    if (controller.signal.aborted || renderVersion !== articleRenderVersion) return;
     articleList.replaceChildren(window.articleReader.createSectionedArticleReader(articleRoot));
   } catch (error) {
+    if (controller.signal.aborted || renderVersion !== articleRenderVersion || error?.name === 'AbortError') return;
     articleList.replaceChildren(createErrorCard(error.message));
-  }
-
-  if (options.scroll !== false) {
-    scrollHomeToTop();
+  } finally {
+    if (activeArticleController === controller) activeArticleController = null;
   }
 }
 
 function renderPrimaryNav() {
   const primaryNav = document.querySelector('#primaryNav');
   if (!primaryNav) return;
-
   primaryNav.replaceChildren();
 
   getHomeTopics().forEach((topic, index) => {
@@ -177,13 +187,11 @@ function renderSecondaryNav(topic) {
   const homeShell = document.querySelector('.home-shell');
   const secondarySidebar = document.querySelector('.secondary-sidebar');
   const secondaryNav = document.querySelector('#secondaryNav');
-
   if (!topic || !homeShell || !secondarySidebar || !secondaryNav) return;
 
   const hasChildren = Array.isArray(topic.children) && topic.children.length > 0;
   homeShell.classList.toggle('is-about', !hasChildren);
   secondarySidebar.hidden = !hasChildren;
-
   secondaryNav.replaceChildren();
   if (!hasChildren) return;
 
@@ -218,7 +226,6 @@ function renderSecondaryNav(topic) {
     if (articles.length > 0) {
       const list = document.createElement('div');
       list.className = 'secondary-article-list';
-
       articles.forEach(article => {
         const link = document.createElement('a');
         const slug = getArticleSlug(article);
@@ -229,14 +236,12 @@ function renderSecondaryNav(topic) {
         link.dataset.articleSlug = slug;
         link.setAttribute('aria-current', selected ? 'page' : 'false');
         link.textContent = article.title;
-
         link.addEventListener('click', event => {
           event.preventDefault();
           selectArticle(topic.id, category.id, slug);
         });
         list.appendChild(link);
       });
-
       card.appendChild(list);
     } else {
       const empty = document.createElement('p');
@@ -254,16 +259,13 @@ function renderSecondaryNav(topic) {
 function renderAboutContent(topic) {
   const articleList = document.querySelector('#articleList');
   if (!articleList) return;
-
   const aboutCard = document.createElement('div');
   aboutCard.className = 'about-card card';
-
   (topic.content || [topic.desc]).forEach(text => {
     const paragraph = document.createElement('p');
     paragraph.textContent = text;
     aboutCard.appendChild(paragraph);
   });
-
   articleList.appendChild(aboutCard);
 }
 
@@ -271,9 +273,10 @@ function renderArticles(topic, category) {
   const contentTitle = document.querySelector('#contentTitle');
   const articleList = document.querySelector('#articleList');
   const articleEmpty = document.querySelector('#articleEmpty');
-
   if (!topic || !articleList || !articleEmpty) return;
 
+  cancelActiveArticleLoad();
+  articleRenderVersion += 1;
   articleList.replaceChildren();
   articleEmpty.classList.add('hidden');
 
@@ -284,24 +287,16 @@ function renderArticles(topic, category) {
   }
 
   const article = findArticle(category, homeState.articleSlug);
-
   if (!article) {
     if (contentTitle) contentTitle.textContent = category.title;
     articleList.appendChild(createArticleWelcome(topic, category));
     return;
   }
-
   renderInlineArticle(topic, category, article, { replace: true, scroll: false });
 }
 
-function switchTopic(topicId, options = {}) {
-  const topic = findTopic(topicId) || findTopic('foundation');
-  if (!topic) return;
-
-  const category = findCategory(topic, options.categoryId);
-  const article = options.articleSlug ? findArticle(category, options.articleSlug) : findArticle(category, '');
-
-  homeState.topicId = topic.id;
+function applySelection(topic, category, article, options = {}) {
+  homeState.topicId = topic?.id || '';
   homeState.categoryId = category?.id || '';
   homeState.articleSlug = article ? getArticleSlug(article) : '';
   renderPrimaryNav();
@@ -310,42 +305,30 @@ function switchTopic(topicId, options = {}) {
   if (!category) {
     renderArticles(topic, null);
     updateHomeHash(topic, null, null, options);
-    return;
-  }
-
-  if (article) {
+  } else if (article) {
     renderInlineArticle(topic, category, article, options);
   } else {
     renderArticles(topic, category);
     updateHomeHash(topic, category, null, options);
   }
 
-  if (options.scroll !== false) {
-    scrollHomeToTop();
-  }
+  if (options.scroll !== false) scrollHomeToTop();
+}
+
+function switchTopic(topicId, options = {}) {
+  const topic = findTopic(topicId) || findTopic('foundation');
+  if (!topic) return;
+  const category = findCategory(topic, options.categoryId);
+  const article = options.articleSlug ? findArticle(category, options.articleSlug) : findArticle(category, '');
+  applySelection(topic, category, article, options);
 }
 
 function switchCategory(categoryId, options = {}) {
   const topic = findTopic(homeState.topicId);
   if (!topic) return;
-
   const category = findCategory(topic, categoryId);
   const article = findArticle(category, options.articleSlug || '');
-
-  homeState.categoryId = category?.id || '';
-  homeState.articleSlug = article ? getArticleSlug(article) : '';
-  renderSecondaryNav(topic);
-
-  if (article) {
-    renderInlineArticle(topic, category, article, options);
-  } else {
-    renderArticles(topic, category);
-    updateHomeHash(topic, category, null, options);
-  }
-
-  if (options.scroll !== false) {
-    scrollHomeToTop();
-  }
+  applySelection(topic, category, article, options);
 }
 
 function selectArticle(topicId, categoryId, articleSlug, options = {}) {
@@ -353,7 +336,7 @@ function selectArticle(topicId, categoryId, articleSlug, options = {}) {
   const category = findCategory(topic, categoryId);
   const article = findArticle(category, articleSlug);
   if (!topic || !category || !article) return;
-  renderInlineArticle(topic, category, article, options);
+  applySelection(topic, category, article, options);
 }
 
 function restoreHomeFromHash(options = {}) {
@@ -367,19 +350,21 @@ function restoreHomeFromHash(options = {}) {
   });
 }
 
+function scheduleRouteRestore() {
+  if (routeRestoreQueued) return;
+  routeRestoreQueued = true;
+  queueMicrotask(() => {
+    routeRestoreQueued = false;
+    restoreHomeFromHash({ skipHash: true, scroll: false });
+  });
+}
+
 function initHome() {
   const homeShell = document.querySelector('.home-shell');
   if (!homeShell || getHomeTopics().length === 0) return;
-
   restoreHomeFromHash({ replace: true, scroll: false });
-
-  window.addEventListener('popstate', () => {
-    restoreHomeFromHash({ skipHash: true, scroll: false });
-  });
-
-  window.addEventListener('hashchange', () => {
-    restoreHomeFromHash({ skipHash: true, scroll: false });
-  });
+  window.addEventListener('popstate', scheduleRouteRestore);
+  window.addEventListener('hashchange', scheduleRouteRestore);
 }
 
 window.homeNav = {
