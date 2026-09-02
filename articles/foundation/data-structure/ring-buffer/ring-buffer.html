@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>环形缓冲区原理、Linux 与 RT-Thread 实现详解 - XYJ</title>
+  <meta name="description" content="从读写指针、满空判定、回绕与两段复制出发，深入分析 Linux circ_buf/kfifo 与 RT-Thread ringbuffer，并给出并发、UART/DMA 和可移植 C 实现方法。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html">← 返回首页</a>
+          <a href="../../../../index.html#foundation/data-structure">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <div class="post-meta">DATA STRUCTURE · RING BUFFER · LINUX · RT-THREAD</div>
+      <h1>环形缓冲区原理、Linux 与 RT-Thread 实现详解</h1>
+      <p class="article-summary">从读写指针、满空判定、回绕与两段复制出发，深入分析 Linux circ_buf/kfifo 与 RT-Thread ringbuffer，并给出并发、UART/DMA 和可移植 C 实现方法。</p>
+
+      <div class="article-note">
+        环形缓冲区真正值得掌握的不是“数组首尾相接”这句话，而是三个问题：如何表达有效数据范围、如何在跨越数组末尾时仍保持 O(1) 的索引推进、以及并发读写时如何保证“数据先写好，再把它发布给消费者”。只要这三个问题理解透，Linux、RTOS、裸机 UART、DMA 接收中的 Ring Buffer 都能用同一套思路分析。
+      </div>
+
+      <section>
+        <h2>1. 为什么嵌入式系统经常需要环形缓冲区</h2>
+        <p>串口、SPI 从机、网络接收、ADC 连续采样、日志系统和 DMA 都有一个共同特点：数据的产生速度和数据的处理速度并不完全同步。硬件可能在任何时刻收到字节，而解析任务可能每隔几毫秒才运行一次。如果生产者必须等待消费者处理完再继续，吞吐率和实时性都会明显下降。</p>
+        <p>最直接的办法是准备一块线性数组，把新数据追加到尾部；消费者处理掉前面的数据后，再把剩余数据整体搬到数组开头。但这种方案会产生额外 <code>memmove</code>，数据越多，搬移成本越大。环形缓冲区的核心改进就是：<strong>数据不搬，移动的是读写位置。</strong></p>
+        <pre><code>硬件 / ISR / DMA  ----&gt;  Ring Buffer  ----&gt;  协议解析任务
+       Producer             缓冲                Consumer</code></pre>
+        <p>生产者只负责往“下一个可写位置”放数据，消费者只负责从“下一个可读位置”拿数据。当索引到达数组末尾时回到 0，于是有限数组可以承载持续不断的数据流。</p>
+        <figure class="article-figure">
+          <img src="images/ring-buffer-model.svg" alt="环形缓冲区读写指针与数组回绕模型" loading="lazy" decoding="async">
+          <figcaption>图 1：物理内存仍然是一段普通数组，所谓“环形”只是索引回绕后的逻辑视图。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>2. 最小数学模型：head、tail 和容量</h2>
+        <p>一个最小 Ring Buffer 至少包含一块存储区、容量以及两个逻辑位置：</p>
+        <pre><code>struct ring_buffer {
+    uint8_t *buffer;
+    size_t size;
+    size_t head;   // 下一个写入位置
+    size_t tail;   // 下一个读取位置
+};</code></pre>
+        <p><code>head</code> 由生产者推进，<code>tail</code> 由消费者推进。写入一个字节后 head 前进，读取一个字节后 tail 前进。最普通的回绕写法是：</p>
+        <pre><code>head = (head + 1U) % size;
+tail = (tail + 1U) % size;</code></pre>
+        <p>如果容量为 8，head 从 7 再前进一步就回到 0。重要的是：<strong>物理下标回到 0，不代表逻辑时间回到起点</strong>。这也是后面 Linux <code>kfifo</code> 使用“持续递增计数器”的基础。</p>
+
+        <h3>2.1 有效数据可能分成两段</h3>
+        <p>假设容量为 8，tail=6，head=2，那么有效数据的逻辑顺序是 6、7、0、1。它在逻辑上连续，在物理内存上却分成两段。因此任何批量读写接口都必须正确处理“跨数组末尾”的情况。</p>
+
+        <h3>2.2 环形缓冲区并不等于消息队列</h3>
+        <p>Ring Buffer 首先是一种存储结构，它解决“数据放在哪里、还有多少空间、从哪里读”的问题。任务阻塞、超时等待、唤醒、优先级继承等属于同步机制。实际 RTOS 工程经常把 Ring Buffer 与信号量、事件或通知组合使用，而不是认为有了 Ring Buffer 就自动具备线程间通信语义。</p>
+      </section>
+
+      <section>
+        <h2>3. 最核心的问题：head == tail 到底是空还是满</h2>
+        <p>如果只有 head 和 tail 两个循环下标，那么 <code>head == tail</code> 会产生歧义：刚初始化时两者相等表示空；如果写指针绕一整圈追上读指针，两者也会相等，但此时理论上应该表示满。工程实现必须额外引入一种状态信息来消除歧义。</p>
+        <figure class="article-figure">
+          <img src="images/ring-buffer-implementation-compare.svg" alt="Linux circ_buf、RT-Thread mirror bit 与 Linux kfifo 三种环形缓冲区判满判空方案对比" loading="lazy" decoding="async">
+          <figcaption>图 2：三种主流状态模型都在解决“同一组物理下标如何区分不同逻辑状态”的问题。</figcaption>
+        </figure>
+
+        <h3>3.1 方案 A：永远留一个槽位</h3>
+        <p>Linux 的基础 circular-buffer helpers 使用这种经典方案。空时：</p>
+        <pre><code>head == tail</code></pre>
+        <p>满时不是让 head 真正追上 tail，而是规定“head 的下一个位置已经是 tail”就算满：</p>
+        <pre><code>next(head) == tail</code></pre>
+        <p>这样满和空不会冲突，但代价是容量为 N 的数组最多只能保存 N-1 个元素。Linux <code>include/linux/circ_buf.h</code> 中的空间计算明确保留一个空槽。</p>
+
+        <h3>3.2 方案 B：增加一位镜像状态</h3>
+        <p>RT-Thread 的 <code>rt_ringbuffer</code> 为读写索引各增加一个 mirror bit。每当某个索引跨过数组末尾回到 0，对应 mirror 翻转一次。于是当两个 index 相同时，可以继续比较 mirror：</p>
+        <pre><code>read_index == write_index &amp;&amp; read_mirror == write_mirror
+    =&gt; EMPTY
+
+read_index == write_index &amp;&amp; read_mirror != write_mirror
+    =&gt; FULL</code></pre>
+        <p>这样容量 N 就可以实际保存 N 字节，不需要浪费一个槽位。mirror 本质上是在物理数组之外增加了“当前位于第几圈”的一位信息。</p>
+
+        <h3>3.3 方案 C：逻辑计数器持续递增</h3>
+        <p>Linux <code>kfifo</code> 更进一步：<code>in</code> 和 <code>out</code> 不必每次走到数组末尾就归零，而是作为无符号逻辑计数器持续递增：</p>
+        <pre><code>used = in - out;
+physical_in  = in  &amp; mask;
+physical_out = out &amp; mask;</code></pre>
+        <p>如果容量是 2 的幂，<code>mask = size - 1</code>。这样“已经写入多少”和“物理数组下标是多少”被完全分离：前者由计数器差值决定，后者只在真正访问内存时通过位与映射。</p>
+        <p>因为 <code>in/out</code> 是无符号整数，即使整数本身最终发生自然回绕，只要生产者没有让未消费距离超过计数器可表达范围，并保持队列容量远小于整数模空间，差值的模运算性质仍然成立。Linux 的实现正是利用了这一点。</p>
+      </section>
+
+      <section>
+        <h2>4. 为什么容量经常设计为 2 的幂</h2>
+        <p>任意容量都可以用取模实现回绕：</p>
+        <pre><code>offset = counter % size;</code></pre>
+        <p>但当 <code>size = 2^n</code> 时，可以变成：</p>
+        <pre><code>offset = counter &amp; (size - 1U);</code></pre>
+        <p>例如容量 256：</p>
+        <pre><code>offset = counter &amp; 0xFFU;</code></pre>
+        <p>这不仅通常比除法/取模更便宜，还让“逻辑计数器持续增长、访问时映射到物理数组”的实现非常自然。Linux <code>circ_buf</code> 的计数宏和 <code>kfifo</code> 的 <code>mask</code> 都建立在 2 的幂容量上。</p>
+        <div class="article-note">在现代高性能 CPU 上，编译器可能对常量取模做优化；但在 MCU、内核通用代码和需要清晰不变量的底层组件里，2 的幂容量仍然是非常常见、容易验证的设计。</div>
+      </section>
+
+      <section>
+        <h2>5. 批量读写为什么经常需要两次 memcpy</h2>
+        <p>Ring Buffer 最容易写错的地方不是单字节读写，而是“本次要处理的数据横跨数组末尾”。假设容量为 8，write index=6，要写 5 字节：</p>
+        <pre><code>第一段：下标 6、7       共 2 字节
+第二段：下标 0、1、2    共 3 字节</code></pre>
+        <p>因此通用算法通常先计算尾部连续长度：</p>
+        <pre><code>first = min(length, size - index);
+second = length - first;
+
+memcpy(buffer + index, source, first);
+memcpy(buffer, source + first, second);</code></pre>
+        <p>如果 second 为 0，第二次复制等价于没有跨界；如果 second 大于 0，就从数组起点继续。Linux <code>kfifo_copy_in()/kfifo_copy_out()</code> 和 RT-Thread <code>rt_ringbuffer_put()/get()</code> 都采用这种“最多两段”的思想。</p>
+        <figure class="article-figure">
+          <img src="images/ring-buffer-read-write-flow.svg" alt="环形缓冲区写入和读取时跨界拆分为两段复制的流程图" loading="lazy" decoding="async">
+          <figcaption>图 3：批量操作先按可用空间/数据量限长，再判断尾部连续区域是否足够。</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>6. Linux circ_buf：最精炼的环形缓冲区数学辅助</h2>
+        <p>Linux 的 <code>include/linux/circ_buf.h</code> 很小，它并没有提供完整“对象 + put/get API”，而是提供一组针对 2 的幂容量的计算宏。结构体本身只有数据指针、head 和 tail。</p>
+        <p>理解它时最重要的是四类量：</p>
+        <table>
+          <thead><tr><th>概念</th><th>用途</th><th>为什么重要</th></tr></thead>
+          <tbody>
+            <tr><td>已有数据量</td><td>消费者判断能读多少</td><td>由 head 与 tail 的环形距离得到</td></tr>
+            <tr><td>剩余空间</td><td>生产者判断能写多少</td><td>始终预留一个空槽</td></tr>
+            <tr><td>到数组末尾的连续数据量</td><td>一次 memcpy / DMA 能处理多少</td><td>避免跨界访问</td></tr>
+            <tr><td>到数组末尾的连续空闲量</td><td>生产者一次可连续写多少</td><td>适合 DMA、批量复制</td></tr>
+          </tbody>
+        </table>
+        <p>它适合当作理解 SPSC Ring Buffer 的“数学骨架”。真正的数据复制、对象生命周期、等待唤醒和锁策略由使用者自己决定。</p>
+      </section>
+
+      <section>
+        <h2>7. Linux kfifo：把环形思想封装成通用 FIFO</h2>
+        <p><code>kfifo</code> 是 Linux 内核里更完整的通用 FIFO。内部核心状态可以概括为：</p>
+        <pre><code>struct __kfifo {
+    unsigned int in;
+    unsigned int out;
+    unsigned int mask;
+    unsigned int esize;
+    void *data;
+};</code></pre>
+        <p>它有几个非常值得借鉴的工程设计。</p>
+
+        <h3>7.1 in/out 是逻辑位置，不是纯物理下标</h3>
+        <p><code>kfifo_len()</code> 的本质就是 <code>in - out</code>；可用空间则是容量减去这个差值。真正复制数据时才对 off 做 <code>&amp; mask</code>。这让满空判定、统计数据量和物理回绕三件事彼此解耦。</p>
+
+        <h3>7.2 固定元素 FIFO 与记录 FIFO</h3>
+        <p><code>kfifo</code> 不仅能存字节流，还支持按元素类型组织，以及带记录长度字段的 record FIFO。对于串口裸字节流，普通 FIFO 足够；如果每次写入的是一条可变长消息，record 模式能保留消息边界。这一点和很多 MCU 项目“Ring Buffer 只保存字节，然后协议层自己找帧头”的使用方式不同。</p>
+
+        <h3>7.3 对单生产者/单消费者做了特别优化</h3>
+        <p>Linux <code>kfifo.h</code> 的锁说明指出：只有一个 reader 和一个 writer、且没有并发 reset 时，可以不使用统一锁；多 writer 时应序列化 writer，多 reader 时应序列化 reader。这个思想和 circular-buffer 官方文档中的 SPSC 模型一致。</p>
+
+        <h3>7.4 DMA 与 scatterlist</h3>
+        <p>当可写或可读区域跨数组末尾时，物理上最多是两段。Linux <code>kfifo</code> 提供 DMA prepare/finish 相关能力，可以把这两段描述成 scatterlist，而不是为了 DMA 再把数据搬到临时连续缓冲区。这说明 Ring Buffer 的“两段连续区”模型不仅适用于 memcpy，也天然适用于 DMA 描述符。</p>
+      </section>
+
+      <section>
+        <h2>8. RT-Thread rt_ringbuffer：mirror bit 如何工作</h2>
+        <p>RT-Thread 的 ringbuffer 面向设备驱动场景，结构中包含 <code>buffer_ptr</code>、读写 index、读写 mirror 和 buffer size。其状态判断非常直接：</p>
+        <pre><code>index 不同                =&gt; 既非空也非满
+index 相同 + mirror 相同  =&gt; 空
+index 相同 + mirror 不同  =&gt; 满</code></pre>
+        <p>当读或写索引跨过数组末尾回到 0 时，对应 mirror 翻转。可以把它想象成数组后面还有一个“虚拟镜像数组”：物理地址虽然又回到同一位置，但 mirror 告诉你逻辑上已经多走了一圈。</p>
+
+        <h3>8.1 rt_ringbuffer_put()</h3>
+        <p>普通 put 先查询空闲空间。如果空间为 0，返回 0；如果空间小于请求长度，就把 length 截断到实际可写长度。因此它的语义是“尽可能写，但不会覆盖未读取数据”。随后根据尾部连续空间判断一次复制还是两段复制，跨界时翻转 write mirror。</p>
+
+        <h3>8.2 rt_ringbuffer_put_force()</h3>
+        <p>force 版本代表另一种常见策略：<strong>新数据优先，必要时覆盖最旧数据。</strong>如果输入长度本身超过整个缓冲区，只保留最后一个 buffer size 的数据；如果本次写入超过当前空闲空间，写完以后推进 read 侧状态，使旧数据被逻辑丢弃。</p>
+        <p>这在“只关心最新状态”的遥测、传感器快照或日志尾部缓存中很实用，但对不能丢字节的协议流则通常不应该使用。</p>
+
+        <h3>8.3 rt_ringbuffer_get() 与 get_direct()</h3>
+        <p><code>get()</code> 把数据复制到调用者缓冲区，并推进 read index。<code>get_direct()</code> 则返回当前内部缓冲区中第一段连续可读区域的指针，并直接推进 read index。这是一种零拷贝接口。</p>
+        <div class="article-note">使用 direct 指针时不要长期保存该地址。调用返回后，这段数据在逻辑上已经被消费，后续生产者可能重新覆盖对应槽位。正确方式是立即处理这段连续区；如果数据跨界，再调用一次获取下一段。</div>
+
+        <h3>8.4 RT-Thread RingBuffer 不负责等待和唤醒</h3>
+        <p>RT-Thread 头文件明确说明其 RingBuffer 没有线程 wait/resume 功能。也就是说，<code>rt_ringbuffer_put()</code> 本身不会因为“缓冲区满了”自动挂起生产者，<code>get()</code> 也不会因为“空了”自动等待数据。需要阻塞式生产者/消费者时，应在外层组合 semaphore、event、completion 或设备框架提供的通知机制。</p>
+      </section>
+
+      <section>
+        <h2>9. 并发安全：SPSC 为什么特殊</h2>
+        <p>SPSC 指 Single Producer / Single Consumer。它之所以特别，是因为 head 只由生产者修改，tail 只由消费者修改。双方不会同时写同一个索引变量，因此可以避免一个“大锁”包住整个 Ring Buffer。</p>
+        <pre><code>Producer                       Consumer
+--------                       --------
+写 data                         读取 head
+发布新的 head        ----&gt;      读 data
+读取 tail            &lt;----      发布新的 tail</code></pre>
+
+        <h3>9.1 数据必须先写完，再发布 head</h3>
+        <p>考虑一个多核 CPU：如果生产者先让新的 head 对另一个 CPU 可见，但实际 data 的写入还没有可见，消费者就可能看到“有新数据”，随后读到旧内容。因此正确的发布顺序是：</p>
+        <pre><code>Producer:
+    写槽位内容
+    release / write barrier
+    更新 head
+
+Consumer:
+    acquire 读取 head
+    再读取槽位内容</code></pre>
+        <p>Linux circular-buffer 文档使用 <code>smp_store_release()</code> 和 <code>smp_load_acquire()</code> 展示这一关系。消费者释放 tail 时也要保证自己已经读完槽位，生产者才能安全复用它。</p>
+
+        <h3>9.2 多生产者和多消费者怎么办</h3>
+        <p>如果 UART0 ISR 和 UART1 ISR 都写同一个 Ring Buffer，它已经不是单生产者；如果两个任务同时从同一个 buffer get，它也不是单消费者。最直接可靠的方案是对同一侧序列化：</p>
+        <ul>
+          <li>多个 producer：保护写侧 head/in 和数据写入。</li>
+          <li>多个 consumer：保护读侧 tail/out 和数据读取。</li>
+          <li>同时存在复杂 reset/flush：通常需要更强的整体同步。</li>
+        </ul>
+        <p>在单核 MCU 上，ISR 与任务之间的原子性、临界区和编译器优化仍需要考虑。不要仅因为“CPU 只有一个核”就默认任意 Ring Buffer 实现天然线程安全；应遵循所使用库明确给出的并发契约。</p>
+      </section>
+
+      <section>
+        <h2>10. UART ISR + Task 的典型使用方式</h2>
+        <p>最常见的嵌入式场景是 ISR 只负责快速接收，协议解析放到任务上下文。</p>
+        <pre><code>UART RX interrupt
+      |
+      | read byte / DMA delta
+      v
+Ring Buffer write
+      |
+      | notify / semaphore
+      v
+Protocol task wakes up
+      |
+      | Ring Buffer read
+      v
+帧头、长度、CRC、命令解析</code></pre>
+        <p>这样做有三个好处：ISR 很短；协议解析不会阻塞后续硬件接收；任务可以一次从 Ring Buffer 批量取多个字节，提高效率。</p>
+
+        <h3>10.1 一次读多少合适</h3>
+        <p>不要机械地每次只取一个字节。常见做法是先查询当前数据量，然后把一段数据批量读入解析缓冲区；或者使用零拷贝接口直接解析第一段连续区。如果协议是流式状态机，也可以边读边推进解析状态。</p>
+
+        <h3>10.2 缓冲区满了怎么处理</h3>
+        <p>必须根据业务定义策略，而不是等满了再临时决定：</p>
+        <table>
+          <thead><tr><th>策略</th><th>适合场景</th><th>风险</th></tr></thead>
+          <tbody>
+            <tr><td>拒绝新数据</td><td>不能破坏旧帧完整性</td><td>新数据丢失</td></tr>
+            <tr><td>覆盖最旧数据</td><td>只关心最新测量值/日志尾部</td><td>旧数据被静默丢弃</td></tr>
+            <tr><td>流控/暂停生产者</td><td>UART RTS/CTS、软件协议可回压</td><td>系统设计更复杂</td></tr>
+            <tr><td>扩大缓冲并统计溢出</td><td>应对短时突发</td><td>不能解决长期消费能力不足</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>11. DMA Circular Mode 与 Ring Buffer 的关系</h2>
+        <p>DMA circular mode 本身就很像一个由硬件推进 write pointer 的 Ring Buffer。DMA 持续往固定数组循环写，软件通过 DMA 剩余计数、当前地址或 half/full/idle 中断推导“硬件已经写到哪里”，再维护自己的 read pointer。</p>
+        <pre><code>DMA write position = size - DMA_remaining
+software read pos  = app_tail
+
+new_data = distance(app_tail, dma_write_position)</code></pre>
+        <p>如果新数据跨过数组末尾，同样拆成尾部一段和头部一段处理。这说明“环形缓冲区”并不限于纯软件 put/get API，它更一般地描述了<strong>生产位置和消费位置在有限循环地址空间中的关系</strong>。</p>
+        <p>在高速 UART 中，常见设计不是“DMA 每来一个字节就拷贝进另一个 Ring Buffer”，而是直接把 DMA buffer 当成环形数据区，软件只跟踪消费位置；或者在需要解耦 DMA 生命周期时，再把 DMA 产生的块搬入软件 FIFO。</p>
+      </section>
+
+      <section>
+        <h2>12. 一套适合 MCU 教学和项目复用的可移植 C 实现</h2>
+        <p>下面给出一套不依赖 Linux/RT-Thread 源码的简单实现。它采用“留一个槽位”策略，优点是状态很容易验证，适合 UART 字节流、裸机和 RTOS 中的基础组件。容量要求为 2 的幂，以便使用 mask。</p>
+        <pre><code>#include &lt;stdbool.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;string.h&gt;
+
+typedef struct {
+    uint8_t *data;
+    size_t size;
+    size_t mask;
+    size_t head;
+    size_t tail;
+} ring_buffer_t;
+
+static bool is_power_of_two(size_t value)
+{
+    return value &gt;= 2U &amp;&amp; (value &amp; (value - 1U)) == 0U;
+}
+
+bool ring_buffer_init(ring_buffer_t *rb, uint8_t *storage, size_t size)
+{
+    if (rb == NULL || storage == NULL || !is_power_of_two(size)) {
+        return false;
+    }
+
+    rb-&gt;data = storage;
+    rb-&gt;size = size;
+    rb-&gt;mask = size - 1U;
+    rb-&gt;head = 0U;
+    rb-&gt;tail = 0U;
+    return true;
+}
+
+size_t ring_buffer_data_len(const ring_buffer_t *rb)
+{
+    return (rb-&gt;head - rb-&gt;tail) &amp; rb-&gt;mask;
+}
+
+size_t ring_buffer_space_len(const ring_buffer_t *rb)
+{
+    return (rb-&gt;size - 1U) - ring_buffer_data_len(rb);
+}
+
+size_t ring_buffer_write(ring_buffer_t *rb,
+                         const uint8_t *src,
+                         size_t length)
+{
+    size_t space = ring_buffer_space_len(rb);
+    if (length &gt; space) {
+        length = space;
+    }
+    if (length == 0U) {
+        return 0U;
+    }
+
+    size_t first = rb-&gt;size - rb-&gt;head;
+    if (first &gt; length) {
+        first = length;
+    }
+
+    memcpy(&amp;rb-&gt;data[rb-&gt;head], src, first);
+    memcpy(&amp;rb-&gt;data[0], &amp;src[first], length - first);
+    rb-&gt;head = (rb-&gt;head + length) &amp; rb-&gt;mask;
+    return length;
+}
+
+size_t ring_buffer_read(ring_buffer_t *rb,
+                        uint8_t *dst,
+                        size_t length)
+{
+    size_t available = ring_buffer_data_len(rb);
+    if (length &gt; available) {
+        length = available;
+    }
+    if (length == 0U) {
+        return 0U;
+    }
+
+    size_t first = rb-&gt;size - rb-&gt;tail;
+    if (first &gt; length) {
+        first = length;
+    }
+
+    memcpy(dst, &amp;rb-&gt;data[rb-&gt;tail], first);
+    memcpy(&amp;dst[first], &amp;rb-&gt;data[0], length - first);
+    rb-&gt;tail = (rb-&gt;tail + length) &amp; rb-&gt;mask;
+    return length;
+}</code></pre>
+        <p>这份代码故意不内置锁。原因是同步策略依赖上下文：裸机 ISR/主循环、FreeRTOS task/task、ISR/task、多核 SMP 的正确保护方式并不相同。把“数据结构”和“并发策略”分离，比在一个通用 Ring Buffer 里偷偷假设某种锁模型更容易复用。</p>
+
+        <h3>12.1 一个 UART 接收示意</h3>
+        <pre><code>static uint8_t rx_storage[256];
+static ring_buffer_t rx_rb;
+
+void app_init(void)
+{
+    ring_buffer_init(&amp;rx_rb, rx_storage, sizeof(rx_storage));
+}
+
+void uart_rx_isr(uint8_t byte)
+{
+    /* 示例：真实项目需按 ISR/task 并发模型保证索引访问安全。 */
+    (void)ring_buffer_write(&amp;rx_rb, &amp;byte, 1U);
+    notify_rx_task_from_isr();
+}
+
+void protocol_task(void)
+{
+    uint8_t chunk[64];
+
+    for (;;) {
+        wait_for_rx_notification();
+        size_t n;
+        while ((n = ring_buffer_read(&amp;rx_rb, chunk, sizeof(chunk))) != 0U) {
+            protocol_feed(chunk, n);
+        }
+    }
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>13. Linux、RT-Thread 与通用实现的差异</h2>
+        <table>
+          <thead><tr><th>项目</th><th>Linux circ_buf</th><th>Linux kfifo</th><th>RT-Thread ringbuffer</th><th>本文简单实现</th></tr></thead>
+          <tbody>
+            <tr><td>核心状态</td><td>head/tail</td><td>in/out/mask</td><td>read/write index + mirror</td><td>head/tail/mask</td></tr>
+            <tr><td>满空区分</td><td>留一个槽位</td><td>in-out 差值</td><td>mirror bit</td><td>留一个槽位</td></tr>
+            <tr><td>容量可全部使用</td><td>否</td><td>是</td><td>是</td><td>否</td></tr>
+            <tr><td>2 的幂容量</td><td>要求</td><td>核心设计要求</td><td>非核心要求</td><td>要求</td></tr>
+            <tr><td>批量跨界</td><td>提供连续长度辅助</td><td>内部两段复制</td><td>内部两段复制</td><td>内部两段复制</td></tr>
+            <tr><td>覆盖旧数据</td><td>由调用者决定</td><td>普通 FIFO 默认不覆盖</td><td>put_force 支持</td><td>不覆盖</td></tr>
+            <tr><td>零拷贝/连续区</td><td>可自行实现</td><td>支持 linear/DMA 相关能力</td><td>get_direct/peek</td><td>可继续扩展</td></tr>
+            <tr><td>同步/等待</td><td>调用者组合</td><td>提供锁相关 API，等待由外层完成</td><td>RingBuffer 本身不 wait/resume</td><td>调用者负责</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>14. 设计和排错时最值得检查的细节</h2>
+        <ul>
+          <li><strong>明确满策略：</strong>丢新数据、覆盖旧数据还是回压生产者，不能含糊。</li>
+          <li><strong>确认容量语义：</strong>留一槽方案的 256 字节数组实际只能保存 255 字节。</li>
+          <li><strong>测试跨界：</strong>绝大多数 bug 出现在 index 接近 size-1 时，而不是从 0 开始的正常路径。</li>
+          <li><strong>检查长度单位：</strong>Linux kfifo 可能按“元素”计数，字节型 FIFO 与结构体 FIFO 的 esize 不同。</li>
+          <li><strong>不要混淆 peek 与 consume：</strong>peek 不应推进读指针；direct API 是否立即消费必须看具体接口契约。</li>
+          <li><strong>并发契约写进接口文档：</strong>SPSC、MPSC、MPMC 的保护要求完全不同。</li>
+          <li><strong>不要无条件 reset：</strong>另一个执行上下文正在读写时清空 head/tail 可能直接破坏状态。</li>
+          <li><strong>记录 overflow 计数：</strong>现场问题中“偶尔丢帧”往往需要靠溢出统计才能定位。</li>
+          <li><strong>DMA 场景区分 cache 与内存屏障：</strong>有 D-Cache 的 MCU 还要额外考虑 cache clean/invalidate，不能把它和 CPU 内存顺序问题混为一谈。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>15. 推荐的理解顺序</h2>
+        <p>如果要真正掌握 Ring Buffer，推荐按下面顺序：</p>
+        <ol>
+          <li>先自己写一个“留一个槽位”的单字节版本，确认空、满、回绕。</li>
+          <li>扩展成批量读写，重点测试一次 memcpy 和两次 memcpy 的边界。</li>
+          <li>理解 RT-Thread mirror bit，观察它如何把完整容量利用起来。</li>
+          <li>理解 Linux kfifo 的单调 in/out，建立“逻辑位置 ≠ 物理下标”的概念。</li>
+          <li>最后再研究 SPSC 的 acquire/release、DMA 连续区和多生产者序列化。</li>
+        </ol>
+        <p>做到这一步后，环形缓冲区就不再是一段“背过但容易写错”的模板代码，而是一套可以根据业务选择状态模型、溢出策略、并发策略和零拷贝方式的工程工具。</p>
+      </section>
+
+      <section>
+        <h2>16. 参考源码与文档</h2>
+        <p>本文的 Linux/RT-Thread 实现分析以 2026-09-02 可见的上游 master 源码为参考，重点阅读以下文件：</p>
+        <ul>
+          <li><a href="https://github.com/torvalds/linux/blob/master/include/linux/circ_buf.h">Linux: include/linux/circ_buf.h</a> — 基础 circular buffer 计数辅助。</li>
+          <li><a href="https://github.com/torvalds/linux/blob/master/Documentation/core-api/circular-buffers.rst">Linux: Documentation/core-api/circular-buffers.rst</a> — SPSC 与内存屏障说明。</li>
+          <li><a href="https://github.com/torvalds/linux/blob/master/include/linux/kfifo.h">Linux: include/linux/kfifo.h</a> — kfifo 类型、API 和并发约定。</li>
+          <li><a href="https://github.com/torvalds/linux/blob/master/lib/kfifo.c">Linux: lib/kfifo.c</a> — kfifo 复制、回绕、record、DMA 等核心实现。</li>
+          <li><a href="https://github.com/RT-Thread/rt-thread/blob/master/components/drivers/include/ipc/ringbuffer.h">RT-Thread: ringbuffer.h</a> — mirror bit 结构与 API。</li>
+          <li><a href="https://github.com/RT-Thread/rt-thread/blob/master/components/drivers/ipc/ringbuffer.c">RT-Thread: ringbuffer.c</a> — put/get/force/direct 等实现。</li>
+        </ul>
+        <p>建议阅读时不要只看函数名，而是沿着“状态如何表示 → 长度如何计算 → 跨界如何拆段 → 索引何时发布”这四个问题逐行跟踪。</p>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html#foundation/data-structure">返回数据结构与数据组织</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js"></script>
+</body>
+</html>
