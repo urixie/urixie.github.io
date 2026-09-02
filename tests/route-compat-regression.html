@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="description" content="Route compatibility regression harness.">
+  <title>Route compatibility regression</title>
+</head>
+<body>
+  <pre id="layout-result" data-status="pending">pending</pre>
+
+  <script>
+    window.location.hash = '#c-basic';
+  </script>
+  <script src="../assets/js/home-data.js"></script>
+  <script src="../assets/js/legacy-routes.js"></script>
+  <script src="../assets/js/route-compat.js"></script>
+  <script>
+    (() => {
+      const result = document.querySelector('#layout-result');
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+      const failures = [];
+      const errors = [];
+      let bubbledHashChanges = 0;
+
+      window.addEventListener('error', event => {
+        errors.push(event.message || String(event.error || 'window error'));
+      });
+
+      window.addEventListener('hashchange', () => {
+        bubbledHashChanges += 1;
+      });
+
+      (async () => {
+        await sleep(50);
+        bubbledHashChanges = 0;
+
+        if (window.location.hash !== '#foundation/c-basic') {
+          failures.push(`legacy route was not normalized: ${window.location.hash}`);
+        }
+
+        window.location.hash = '#%E0%A4%A';
+        await sleep(50);
+        if (errors.length) {
+          failures.push(`malformed hash raised an error: ${errors.join('; ')}`);
+        }
+        if (bubbledHashChanges !== 0) {
+          failures.push('non-home malformed hash leaked into downstream route listeners');
+        }
+
+        window.location.hash = '#article-section-anchor';
+        await sleep(50);
+        if (bubbledHashChanges !== 0) {
+          failures.push('article anchor hash leaked into downstream home route listeners');
+        }
+
+        window.location.hash = '#foundation/c-basic';
+        await sleep(50);
+        if (bubbledHashChanges !== 1) {
+          failures.push(`canonical home route should propagate once, got ${bubbledHashChanges}`);
+        }
+
+        result.dataset.status = failures.length ? 'fail' : 'pass';
+        result.textContent = JSON.stringify({
+          failures,
+          finalHash: window.location.hash,
+          bubbledHashChanges,
+          errors
+        }, null, 2);
+      })();
+    })();
+  </script>
+</body>
+</html>
