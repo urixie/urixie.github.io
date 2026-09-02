@@ -8,13 +8,25 @@
   <meta name='bingbot' content='noindex, nofollow, noarchive, nosnippet, noimageindex'>
   <title>嵌入式 C 关键语法与 GNU C 扩展实践 - XYJ</title>
   <meta name='description' content='整理嵌入式 C 与 GNU C 扩展语法，包括指定初始化.语句表达式.typeof.container_of.零长度数组.section.aligned.packed.format.weak.alias.inline.内建函数和可变参数宏。'>
-  <link rel='stylesheet' href='../../../../assets/css/style.css?v=20584d47bb7b'>
+  <link rel='stylesheet' href='../../../../assets/css/style.css?v=087f94bbecc4'>
 </head>
 <body>
   <main class='article-page-shell'>
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=087f94bbecc4">← 返回首页</a>
+          <a href="../../../../index.html?v=087f94bbecc4#foundation/embedded-c">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+
     <div class='article-topbar'>
-      <a href='../../../../index.html?v=20584d47bb7b'>← 返回首页</a>
-      <a href='../../../../index.html?v=20584d47bb7b#foundation/embedded-c'>返回 C语言专题</a>
+      <a href='../../../../index.html?v=087f94bbecc4'>← 返回首页</a>
+      <a href='../../../../index.html?v=087f94bbecc4#foundation/embedded-c'>返回 C语言专题</a>
     </div>
 
     <article class='article card'>
@@ -455,7 +467,7 @@ if (__builtin_expect(error_code != 0, 0)) {
           在传感器或 UART 场景中，中断服务程序只适合快速确认硬件事件、保存少量数据并通知任务；协议解析、日志输出和复杂计算应放到主循环或 RTOS 任务中。<code>volatile</code> 只能保证编译器每次重新读取变量，不能自动提供多字节原子性和线程安全。
         </p>
         <figure class="article-figure">
-          <img src="images/c-embedded-concurrency.svg?v=20584d47bb7b" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图" loading="lazy" decoding="async">
+          <img src="images/c-embedded-concurrency.svg?v=087f94bbecc4" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：中断与业务任务之间要有清楚的数据交接边界。</figcaption>
         </figure>
         <pre><code>#include &lt;stdbool.h&gt;
@@ -522,11 +534,11 @@ void app_poll(void)
       </section>
 
       <div class='article-footer'>
-        <a href='../../../../index.html?v=20584d47bb7b#foundation/embedded-c'>返回 C语言专题</a>
+        <a href='../../../../index.html?v=087f94bbecc4#foundation/embedded-c'>返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src='../../../../assets/js/main.js?v=20584d47bb7b'></script>
+  <script src='../../../../assets/js/main.js?v=087f94bbecc4'></script>
 </body>
 </html>

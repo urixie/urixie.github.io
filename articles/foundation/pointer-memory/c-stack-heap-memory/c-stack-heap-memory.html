@@ -8,13 +8,25 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言内存堆栈管理整理 - XYJ</title>
   <meta name="description" content="整理 C 语言与嵌入式 Linux 中的内存堆栈管理，包括进程虚拟地址空间.Linux 内存管理.栈帧.栈溢出防护.堆管理.mmap.内存泄漏.core dump.mprotect 和 Valgrind。">
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=20584d47bb7b">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=087f94bbecc4">
 </head>
 <body>
   <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=087f94bbecc4">← 返回首页</a>
+          <a href="../../../../index.html?v=087f94bbecc4#foundation/pointer-memory">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+
     <div class="article-topbar">
-      <a href="../../../../index.html?v=20584d47bb7b">← 返回首页</a>
-      <a href="../../../../index.html?v=20584d47bb7b#foundation/pointer-memory">返回 C语言专题</a>
+      <a href="../../../../index.html?v=087f94bbecc4">← 返回首页</a>
+      <a href="../../../../index.html?v=087f94bbecc4#foundation/pointer-memory">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -694,7 +706,7 @@ mprotect((uint8_t *)page + page_size, page_size, PROT_NONE);</code></pre>
           以“串口接收 256 字节数据并交给协议任务”为例：接收缓冲区需要长期存在，不能放在某个短函数的栈上；解析过程可以使用小型局部变量；如果消息大小固定，优先使用静态数组或固定块内存池，避免系统运行数天后因为频繁申请和释放产生碎片。
         </p>
         <figure class="article-figure">
-          <img src="images/c-memory-lifecycle.svg?v=20584d47bb7b" alt="栈、静态区和堆的生命周期及适用场景对比图" loading="lazy" decoding="async">
+          <img src="images/c-memory-lifecycle.svg?v=087f94bbecc4" alt="栈、静态区和堆的生命周期及适用场景对比图" loading="lazy" decoding="async">
           <figcaption>图 1：内存区域的选择应由生命周期、大小和所有权共同决定。</figcaption>
         </figure>
         <pre><code>#include &lt;stdbool.h&gt;
@@ -750,11 +762,11 @@ void rx_block_release(uint8_t *block)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=20584d47bb7b#foundation/pointer-memory">返回 C语言专题</a>
+        <a href="../../../../index.html?v=087f94bbecc4#foundation/pointer-memory">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=20584d47bb7b"></script>
+  <script src="../../../../assets/js/main.js?v=087f94bbecc4"></script>
 </body>
 </html>
