@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">三种环形缓冲区满空判定方案对比</title>
+  <desc id="desc">比较 Linux circ_buf 的留一个槽位方案、RT-Thread 的 mirror bit 方案和 Linux kfifo 的单调递增计数器方案。</desc>
+  <style>
+    text{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;fill:#1f2937}.panel{fill:#fff;stroke:#94a3b8;stroke-width:2}.head{font-size:27px;font-weight:700}.t{font-size:21px}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:20px}.note{font-size:19px;fill:#475569}.accent{fill:#eff6ff;stroke:#2563eb;stroke-width:2}
+  </style>
+  <text x="600" y="48" text-anchor="middle" class="head">同一个 Ring Buffer，满 / 空可以用不同状态模型表达</text>
+  <g transform="translate(45 90)">
+    <rect width="340" height="560" rx="18" class="panel"/><text x="170" y="52" text-anchor="middle" class="head">A. 留一个槽位</text><text x="170" y="86" text-anchor="middle" class="note">Linux circ_buf</text>
+    <rect x="38" y="125" width="264" height="92" rx="12" class="accent"/><text x="170" y="162" text-anchor="middle" class="mono">head == tail</text><text x="170" y="194" text-anchor="middle" class="t">EMPTY</text>
+    <rect x="38" y="245" width="264" height="105" rx="12" class="accent"/><text x="170" y="280" text-anchor="middle" class="mono">next(head) == tail</text><text x="170" y="313" text-anchor="middle" class="t">FULL</text>
+    <text x="170" y="405" text-anchor="middle" class="t">容量 N</text><text x="170" y="440" text-anchor="middle" class="t">最多保存 N - 1</text><text x="170" y="490" text-anchor="middle" class="note">简单、快速、非常适合</text><text x="170" y="520" text-anchor="middle" class="note">SPSC 基础模型</text>
+  </g>
+  <g transform="translate(430 90)">
+    <rect width="340" height="560" rx="18" class="panel"/><text x="170" y="52" text-anchor="middle" class="head">B. Mirror Bit</text><text x="170" y="86" text-anchor="middle" class="note">RT-Thread rt_ringbuffer</text>
+    <rect x="30" y="125" width="280" height="105" rx="12" class="accent"/><text x="170" y="160" text-anchor="middle" class="mono">index 相同</text><text x="170" y="190" text-anchor="middle" class="mono">mirror 相同 → EMPTY</text>
+    <rect x="30" y="255" width="280" height="105" rx="12" class="accent"/><text x="170" y="290" text-anchor="middle" class="mono">index 相同</text><text x="170" y="320" text-anchor="middle" class="mono">mirror 不同 → FULL</text>
+    <text x="170" y="415" text-anchor="middle" class="t">容量 N</text><text x="170" y="450" text-anchor="middle" class="t">可以保存完整 N</text><text x="170" y="500" text-anchor="middle" class="note">跨越末尾时翻转 mirror</text><text x="170" y="530" text-anchor="middle" class="note">状态表达直观</text>
+  </g>
+  <g transform="translate(815 90)">
+    <rect width="340" height="560" rx="18" class="panel"/><text x="170" y="52" text-anchor="middle" class="head">C. 单调计数器</text><text x="170" y="86" text-anchor="middle" class="note">Linux kfifo</text>
+    <rect x="30" y="125" width="280" height="105" rx="12" class="accent"/><text x="170" y="160" text-anchor="middle" class="mono">len = in - out</text><text x="170" y="190" text-anchor="middle" class="mono">len == 0 → EMPTY</text>
+    <rect x="30" y="255" width="280" height="105" rx="12" class="accent"/><text x="170" y="290" text-anchor="middle" class="mono">len == size → FULL</text><text x="170" y="320" text-anchor="middle" class="mono">offset = counter &amp; mask</text>
+    <text x="170" y="415" text-anchor="middle" class="t">容量 N</text><text x="170" y="450" text-anchor="middle" class="t">可以保存完整 N</text><text x="170" y="500" text-anchor="middle" class="note">in / out 不在数组末尾清零</text><text x="170" y="530" text-anchor="middle" class="note">访问时再映射到物理下标</text>
+  </g>
+  <text x="600" y="692" text-anchor="middle" class="note">三种方案本质都在解决同一个问题：如何在有限数组上准确表达“读到哪里、写到哪里、现在有多少有效数据”。</text>
+</svg>
