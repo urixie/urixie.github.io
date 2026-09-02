@@ -43,6 +43,12 @@ if ! python scripts/validate_content.py; then
   exit 1
 fi
 
+if ! python scripts/validate_article_catalog.py; then
+  echo "提交已阻止：文章自动目录、重复元数据、分类路径、已知错字或 images/docs 附件治理存在问题。"
+  echo "请根据上方检查结果修复后再提交。"
+  exit 1
+fi
+
 if ! python scripts/validate_home_css.py; then
   echo "提交已阻止：首页 CSS 存在无效覆盖、优先级或分层问题。"
   echo "请根据上方检查结果修复后再提交。"
