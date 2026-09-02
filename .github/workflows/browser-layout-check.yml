@@ -11,6 +11,7 @@ on:
       - tests/article-layout-regression.html
       - tests/article-loading-race.html
       - tests/route-compat-regression.html
+      - tests/article-toc-regression.html
       - scripts/browser_layout_guard.py
       - .github/workflows/browser-layout-check.yml
   pull_request:
@@ -23,6 +24,7 @@ on:
       - tests/article-layout-regression.html
       - tests/article-loading-race.html
       - tests/route-compat-regression.html
+      - tests/article-toc-regression.html
       - scripts/browser_layout_guard.py
       - .github/workflows/browser-layout-check.yml
 
@@ -34,5 +36,5 @@ jobs:
         uses: actions/checkout@v7
       - name: 确认 Chrome 环境
         run: command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
-      - name: 检查首页、独立文章页与文章切换交互
+      - name: 检查首页、文章布局、切换交互、路由与自动目录
         run: python scripts/browser_layout_guard.py
