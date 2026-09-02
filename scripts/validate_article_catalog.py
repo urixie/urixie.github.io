@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTICLES = ROOT / "articles"
 MANIFEST = ROOT / "data" / "site-map.json"
 TEXT_SUFFIXES = {".html", ".htm", ".md", ".py", ".js", ".css", ".txt", ".json", ".yml", ".yaml"}
+KNOWN_BAD_TEXT = {
+    "职责单1": "职责单一",
+}
 
 
 class ArticleParser(HTMLParser):
@@ -119,6 +122,7 @@ def main() -> int:
             errors.append(f"站点清单文章不存在: {href}")
             continue
 
+        source_text = path.read_text(encoding="utf-8")
         parser = parse_article(path)
         if not parser.has_sidebar:
             errors.append(f"{relative}: 缺少统一 article-sidebar")
@@ -130,6 +134,10 @@ def main() -> int:
             title_paths[parser.h1].append(relative)
         if parser.description:
             description_paths[parser.description].append(relative)
+
+        for bad_text, replacement in KNOWN_BAD_TEXT.items():
+            if bad_text in source_text:
+                errors.append(f"{relative}: 发现已知错误文本 {bad_text!r}，应为 {replacement!r}")
 
         expected_parts = ("articles", topic_id, category_id)
         actual_parts = path.relative_to(ROOT).parts[:3]
@@ -155,7 +163,7 @@ def main() -> int:
 
     print(
         f"Article catalog validation passed: {len(articles)} registered articles have unified automatic TOC shells, "
-        "unique metadata, consistent catalog paths, and no unreferenced images/docs assets."
+        "unique metadata, consistent catalog paths, no known typo regressions, and no unreferenced images/docs assets."
     )
     return 0
 
