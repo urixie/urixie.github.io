@@ -1,0 +1,33 @@
+name: One-shot cache version synchronization
+
+on:
+  push:
+    paths:
+      - .github/workflows/sync-cache-version.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v7
+      - name: 同步静态资源缓存版本
+        run: |
+          python scripts/bump_cache_version_from_git.py
+          python scripts/bump_cache_version_from_git.py --check
+          python scripts/validate_content.py
+          git diff --check
+      - name: 提交缓存版本
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html articles
+          if git diff --cached --quiet; then
+            echo "Cache versions are already synchronized."
+            exit 0
+          fi
+          git commit -m "chore: synchronize static cache version"
+          git push
