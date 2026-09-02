@@ -26,7 +26,11 @@ class PageParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.in_title = False
+        self.in_h1 = False
+        self.in_article_summary = False
         self.title_parts: list[str] = []
+        self.h1_parts: list[str] = []
+        self.article_summary_parts: list[str] = []
         self.description: str | None = None
         self.h1_count = 0
         self.ids: list[str] = []
@@ -54,6 +58,11 @@ class PageParser(HTMLParser):
             self.headings.append((level, self.getpos()[0]))
             if level == 1:
                 self.h1_count += 1
+                self.in_h1 = True
+        elif tag == "p":
+            classes = set((values.get("class") or "").split())
+            if "article-summary" in classes:
+                self.in_article_summary = True
         elif tag == "img":
             if "alt" not in values:
                 self.images_without_alt += 1
@@ -78,16 +87,37 @@ class PageParser(HTMLParser):
                 self.resources.append((f"{tag} 资源", src))
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.lower() == "title":
+        tag = tag.lower()
+        if tag == "title":
             self.in_title = False
+        elif tag == "h1":
+            self.in_h1 = False
+        elif tag == "p" and self.in_article_summary:
+            self.in_article_summary = False
 
     def handle_data(self, data: str) -> None:
         if self.in_title:
             self.title_parts.append(data)
+        if self.in_h1:
+            self.h1_parts.append(data)
+        if self.in_article_summary:
+            self.article_summary_parts.append(data)
+
+    @staticmethod
+    def normalized_text(parts: list[str]) -> str:
+        return re.sub(r"\s+", " ", "".join(parts)).strip()
 
     @property
     def title(self) -> str:
-        return "".join(self.title_parts).strip()
+        return self.normalized_text(self.title_parts)
+
+    @property
+    def h1_text(self) -> str:
+        return self.normalized_text(self.h1_parts)
+
+    @property
+    def article_summary(self) -> str:
+        return self.normalized_text(self.article_summary_parts)
 
 
 def is_within(path: Path, directory: Path) -> bool:
@@ -204,6 +234,26 @@ def validate_heading_order(path: Path, headings: list[tuple[int, int]]) -> list[
     return errors
 
 
+def validate_article_metadata(path: Path, parser: PageParser) -> list[str]:
+    relative = path.relative_to(ROOT).as_posix()
+    errors: list[str] = []
+    if parser.h1_text:
+        expected_title = f"{parser.h1_text} - XYJ"
+        if parser.title != expected_title:
+            errors.append(
+                f"{relative}: <title> 与 H1 不一致，应为 {expected_title!r}，当前为 {parser.title!r}"
+            )
+
+    if parser.article_summary:
+        if not parser.description:
+            errors.append(f"{relative}: article-summary 存在，但 meta description 为空")
+        elif parser.article_summary != parser.description:
+            errors.append(
+                f"{relative}: article-summary 必须与 meta description 完全一致"
+            )
+    return errors
+
+
 def validate_page(path: Path) -> list[str]:
     parser = parse_page(path)
     relative = path.relative_to(ROOT).as_posix()
@@ -223,6 +273,8 @@ def validate_page(path: Path) -> list[str]:
         errors.append(f"{relative}: 有 {parser.images_without_lazy} 个文章图片未设置 loading=\"lazy\"")
     if is_article and parser.images_without_async_decoding:
         errors.append(f"{relative}: 有 {parser.images_without_async_decoding} 个文章图片未设置 decoding=\"async\"")
+    if is_article:
+        errors.extend(validate_article_metadata(path, parser))
 
     duplicate_ids = sorted(key for key, count in Counter(parser.ids).items() if count > 1)
     if duplicate_ids:
@@ -254,7 +306,7 @@ def main() -> int:
         return 1
 
     print(
-        f"Content validation passed: {len(pages)} production HTML pages checked for metadata, "
+        f"Content validation passed: {len(pages)} production HTML pages checked for metadata/body consistency, "
         "headings, ids, local links, routes, anchors, assets, article image loading hints, and template tokens."
     )
     return 0
