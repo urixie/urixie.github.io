@@ -12,20 +12,30 @@
 </head>
 <body>
   <main class="article-page-shell">
-    <div class="article-topbar">
-      <a href="{{ROOT}}index.html">← 返回首页</a>
-      <a href="{{ROOT}}index.html#{{TOPIC}}/{{CATEGORY}}">返回对应专题</a>
-    </div>
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="{{ROOT}}index.html">← 返回首页</a>
+          <a href="{{ROOT}}index.html#{{TOPIC}}/{{CATEGORY}}">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
 
     <article class="article card">
       <div class="post-meta">{{META}}</div>
       <h1>{{TITLE}}</h1>
-      <p>{{DESCRIPTION}}</p>
+      <p class="article-summary">{{DESCRIPTION}}</p>
 
       <!-- 本文图片放在同目录 images/，附件放在 docs/。新增本地资源后运行缓存版本更新脚本。 -->
+      <!-- h2 / h3 可以不手写 id；main.js 会按标题内容生成稳定锚点并同步到左侧目录。 -->
       <section>
         <h2>1.章节标题</h2>
         <p>这里填写正文。</p>
+
+        <h3>1.1 子章节标题</h3>
+        <p>这里填写子章节正文。</p>
       </section>
 
       <div class="article-footer">
