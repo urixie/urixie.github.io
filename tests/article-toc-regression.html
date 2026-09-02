@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Article TOC regression harness</title>
+  <meta name="description" content="Automatic article TOC and keyboard zoom regression harness.">
+  <style>
+    body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; }
+    #layout-result { white-space: pre-wrap; word-break: break-word; }
+    .article img { width: 40px; height: 40px; }
+  </style>
+</head>
+<body>
+  <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+  <article class="article">
+    <h1>自动目录测试</h1>
+    <h2>1.基础介绍</h2>
+    <h3>1.1 子章节</h3>
+    <h2 id="fixed-anchor">2.固定锚点</h2>
+    <h2>1.基础介绍</h2>
+    <figure>
+      <img
+        alt="缩放测试图"
+        loading="lazy"
+        decoding="async"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23999'/%3E%3C/svg%3E"
+      >
+    </figure>
+  </article>
+  <pre id="layout-result" data-status="pending">pending</pre>
+
+  <script src="../assets/js/main.js"></script>
+  <script>
+    (() => {
+      const result = document.querySelector('#layout-result');
+      const failures = [];
+      const assert = (condition, message) => {
+        if (!condition) failures.push(message);
+      };
+
+      const headings = Array.from(document.querySelectorAll('.article h2, .article h3'));
+      const links = Array.from(document.querySelectorAll('#articleToc a'));
+      assert(links.length === 4, `expected 4 TOC links, got ${links.length}`);
+      assert(headings[0]?.id === '1-基础介绍', `unexpected generated id: ${headings[0]?.id}`);
+      assert(headings[1]?.id === '1-1-子章节', `unexpected h3 id: ${headings[1]?.id}`);
+      assert(headings[2]?.id === 'fixed-anchor', 'existing heading id must be preserved');
+      assert(headings[3]?.id === '1-基础介绍-2', `duplicate heading id was not disambiguated: ${headings[3]?.id}`);
+      assert(links[1]?.classList.contains('article-nav-sub'), 'h3 TOC entry must be marked as a subsection');
+      assert(links[2]?.getAttribute('href') === '#fixed-anchor', 'TOC link must point to existing explicit id');
+
+      const zoomContainer = document.querySelector('.article-image-zoom-container');
+      const zoomLabel = document.querySelector('.article-image-zoom-reset');
+      assert(Boolean(zoomContainer && zoomLabel), 'image zoom enhancement is missing');
+      if (zoomContainer && zoomLabel) {
+        zoomContainer.dispatchEvent(new KeyboardEvent('keydown', { key: '+', bubbles: true }));
+        assert(zoomLabel.textContent === '120%', `keyboard zoom-in failed: ${zoomLabel.textContent}`);
+        zoomContainer.dispatchEvent(new KeyboardEvent('keydown', { key: '0', bubbles: true }));
+        assert(zoomLabel.textContent === '100%', `keyboard zoom reset failed: ${zoomLabel.textContent}`);
+      }
+
+      const report = {
+        mode: 'article-toc',
+        failures,
+        generatedIds: headings.map(heading => heading.id),
+        tocHrefs: links.map(link => link.getAttribute('href')),
+        zoomLabel: zoomLabel?.textContent || '',
+      };
+      result.dataset.status = failures.length ? 'fail' : 'pass';
+      result.textContent = JSON.stringify(report, null, 2);
+      document.title = failures.length ? 'ARTICLE_TOC_FAIL' : 'ARTICLE_TOC_PASS';
+    })();
+  </script>
+</body>
+</html>
