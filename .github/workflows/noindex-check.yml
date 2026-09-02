@@ -10,6 +10,16 @@ jobs:
     steps:
       - name: 检出仓库
         uses: actions/checkout@v7
+      - name: 检查文章脚手架模板
+        run: >-
+          python scripts/new_article.py
+          --topic foundation
+          --category c-basic
+          --slug ci-article-scaffold-check
+          --title "CI 文章脚手架检查"
+          --description "验证文章模板、自动目录标记和站点目录解析逻辑。"
+          --tags CI scaffold
+          --dry-run
       - name: 检查导航数据生成一致性
         run: python scripts/generate_home_data.py --check
       - name: 检查 HTML noindex 配置
