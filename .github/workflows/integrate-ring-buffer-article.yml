@@ -1,0 +1,78 @@
+name: One-shot ring buffer article integration
+
+on:
+  push:
+    paths:
+      - .github/workflows/integrate-ring-buffer-article.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v7
+      - name: 注册文章并刷新生成数据
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('data/site-map.json')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          href = 'articles/foundation/data-structure/ring-buffer/ring-buffer.html'
+          entry = {
+              'navTitle': '环形缓冲区 · 原理、Linux 与 RT-Thread 实现',
+              'navDesc': 'Ring Buffer / head-tail / mirror bit / Linux circ_buf / kfifo / RT-Thread / SPSC / UART / DMA',
+              'href': href,
+              'tags': ['Ring Buffer', 'Linux', 'RT-Thread', '数据结构']
+          }
+
+          for topic in data:
+              if topic.get('id') != 'foundation':
+                  continue
+              for category in topic.get('children', []):
+                  if category.get('id') != 'data-structure':
+                      continue
+                  category['title'] = '数据结构与数据组织'
+                  category['desc'] = '整理结构体、协议数据组织、队列、环形缓冲区等可复用基础数据结构与工程实现。'
+                  articles = category.setdefault('articles', [])
+                  if not any(item.get('href') == href for item in articles):
+                      articles.append(entry)
+                  break
+              else:
+                  raise SystemExit('foundation/data-structure category not found')
+              break
+          else:
+              raise SystemExit('foundation topic not found')
+
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          python scripts/generate_home_data.py
+          python scripts/bump_cache_version_from_git.py
+          python scripts/website_privacy_guard.py --check
+          python scripts/validate_site_structure.py
+          python scripts/validate_content.py
+          python scripts/validate_article_catalog.py
+          python scripts/validate_home_css.py
+          python scripts/validate_css_ownership.py
+          python scripts/validate_style_css_usage.py
+          python scripts/validate_orphan_assets.py
+          python scripts/validate_asset_budget.py
+          python scripts/validate_javascript.py
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
+          python scripts/browser_layout_guard.py
+          git diff --check
+      - name: 提交站点集成结果
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/site-map.json assets/js/home-data.js index.html articles
+          if git diff --cached --quiet; then
+            echo "No integration changes were needed."
+            exit 0
+          fi
+          git commit -m "docs: integrate ring buffer article into site navigation"
+          git push
