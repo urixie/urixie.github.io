@@ -16,25 +16,60 @@ document.querySelectorAll('#work-experience, #work-experience-about').forEach(ta
   target.textContent = getWorkExperience(2022, 1);
 });
 
-function normalizeHeadingId(index) {
-  return `section-${index + 1}`;
+function headingSlug(text) {
+  const normalized = String(text || '')
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'section';
+}
+
+function assignStableHeadingIds(headings, article) {
+  const usedIds = new Set(
+    Array.from(article.querySelectorAll('[id]'))
+      .filter(element => !headings.includes(element))
+      .map(element => element.id)
+      .filter(Boolean)
+  );
+
+  headings.forEach(heading => {
+    if (heading.id) {
+      usedIds.add(heading.id);
+      return;
+    }
+
+    const base = headingSlug(heading.textContent);
+    let candidate = base;
+    let suffix = 2;
+    while (usedIds.has(candidate)) {
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    heading.id = candidate;
+    usedIds.add(candidate);
+  });
 }
 
 function buildArticleToc(root = document) {
-  const toc = root.querySelector('#articleToc');
+  const toc = root.querySelector('#articleToc[data-auto-toc], [data-auto-toc].article-nav');
   const article = root.querySelector('.article');
   if (!toc || !article) return;
 
-  const headings = Array.from(article.querySelectorAll('h2'));
+  const headings = Array.from(article.querySelectorAll('h2, h3'));
+  assignStableHeadingIds(headings, article);
   toc.replaceChildren();
 
-  headings.forEach((heading, index) => {
-    if (!heading.id) heading.id = normalizeHeadingId(index);
+  headings.forEach(heading => {
     const link = document.createElement('a');
     link.href = `#${heading.id}`;
     link.textContent = heading.textContent;
+    if (heading.tagName === 'H3') link.classList.add('article-nav-sub');
     toc.appendChild(link);
   });
+
+  toc.hidden = headings.length === 0;
 }
 
 function initCopyButtons(root = document) {
@@ -93,8 +128,8 @@ function enhanceArticleImageZoom(root = document) {
     const container = document.createElement('div');
     container.className = 'article-image-zoom-container';
     container.tabIndex = 0;
-    container.setAttribute('aria-label', '文章图片，可使用鼠标滚轮缩放');
-    container.title = '滚轮放大或缩小，放大后可拖拽查看';
+    container.setAttribute('aria-label', '文章图片，可使用滚轮或加减键缩放，按 0 或 Escape 复位');
+    container.title = '滚轮或 +/- 缩放，放大后可拖拽，按 0 复位';
     image.parentNode.insertBefore(container, image);
     container.appendChild(image);
 
@@ -154,6 +189,19 @@ function enhanceArticleImageZoom(root = document) {
       event.preventDefault();
       setScale(scale + (deltaY < 0 ? 0.2 : -0.2), event.clientX, event.clientY);
     }, { passive: false });
+
+    container.addEventListener('keydown', event => {
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        setScale(scale + 0.2);
+      } else if (event.key === '-' || event.key === '_') {
+        event.preventDefault();
+        setScale(scale - 0.2);
+      } else if (event.key === '0' || event.key === 'Escape') {
+        event.preventDefault();
+        setScale(1);
+      }
+    });
 
     zoomOutButton.addEventListener('click', () => setScale(scale - 0.2));
     resetButton.addEventListener('click', () => setScale(1));
