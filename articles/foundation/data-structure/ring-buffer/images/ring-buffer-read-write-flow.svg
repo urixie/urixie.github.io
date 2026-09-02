@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">环形缓冲区写入与读取流程</title>
+  <desc id="desc">展示写入时先检查空间，再判断是否跨越数组末尾；读取时先检查数据量，再判断是否跨越数组末尾；跨界时拆成两段复制。</desc>
+  <style>
+    text{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;fill:#1f2937}.node{fill:#fff;stroke:#64748b;stroke-width:2}.decision{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.action{fill:#f8fafc;stroke:#475569;stroke-width:2}.arrow{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#m)}.title{font-size:30px;font-weight:700}.t{font-size:22px}.s{font-size:19px;fill:#475569}
+  </style>
+  <defs><marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker></defs>
+  <text x="600" y="48" text-anchor="middle" class="title">写入 / 读取的核心：先限长，再判断是否跨界</text>
+  <g transform="translate(70 90)">
+    <text x="240" y="0" text-anchor="middle" class="title">写入</text>
+    <rect x="120" y="30" width="240" height="66" rx="12" class="node"/><text x="240" y="72" text-anchor="middle" class="t">计算剩余空间</text>
+    <path d="M240 96 V130" class="arrow"/>
+    <polygon points="240,130 360,190 240,250 120,190" class="decision"/><text x="240" y="184" text-anchor="middle" class="t">请求长度 &gt; 空间？</text><text x="240" y="210" text-anchor="middle" class="s">是：截断或覆盖旧数据</text>
+    <path d="M240 250 V290" class="arrow"/>
+    <polygon points="240,290 370,355 240,420 110,355" class="decision"/><text x="240" y="348" text-anchor="middle" class="t">尾部连续空间</text><text x="240" y="375" text-anchor="middle" class="t">够不够？</text>
+    <path d="M110 355 H45 V500 H120" class="arrow"/><text x="55" y="330" class="s">够</text>
+    <rect x="120" y="465" width="240" height="70" rx="12" class="action"/><text x="240" y="507" text-anchor="middle" class="t">一次 memcpy</text>
+    <path d="M370 355 H440 V500 H360" class="arrow"/><text x="395" y="330" class="s">不够</text>
+    <rect x="120" y="570" width="240" height="84" rx="12" class="action"/><text x="240" y="604" text-anchor="middle" class="t">尾部 memcpy + 头部 memcpy</text><text x="240" y="634" text-anchor="middle" class="s">然后推进 write/head</text>
+    <path d="M240 535 V570" class="arrow"/>
+  </g>
+  <g transform="translate(650 90)">
+    <text x="240" y="0" text-anchor="middle" class="title">读取</text>
+    <rect x="120" y="30" width="240" height="66" rx="12" class="node"/><text x="240" y="72" text-anchor="middle" class="t">计算已有数据量</text>
+    <path d="M240 96 V130" class="arrow"/>
+    <polygon points="240,130 360,190 240,250 120,190" class="decision"/><text x="240" y="184" text-anchor="middle" class="t">请求长度 &gt; 数据量？</text><text x="240" y="210" text-anchor="middle" class="s">是：只读取现有数据</text>
+    <path d="M240 250 V290" class="arrow"/>
+    <polygon points="240,290 370,355 240,420 110,355" class="decision"/><text x="240" y="348" text-anchor="middle" class="t">尾部连续数据</text><text x="240" y="375" text-anchor="middle" class="t">够不够？</text>
+    <path d="M110 355 H45 V500 H120" class="arrow"/><text x="55" y="330" class="s">够</text>
+    <rect x="120" y="465" width="240" height="70" rx="12" class="action"/><text x="240" y="507" text-anchor="middle" class="t">一次 memcpy</text>
+    <path d="M370 355 H440 V500 H360" class="arrow"/><text x="395" y="330" class="s">不够</text>
+    <rect x="120" y="570" width="240" height="84" rx="12" class="action"/><text x="240" y="604" text-anchor="middle" class="t">尾部 memcpy + 头部 memcpy</text><text x="240" y="634" text-anchor="middle" class="s">然后推进 read/tail</text>
+    <path d="M240 535 V570" class="arrow"/>
+  </g>
+</svg>
