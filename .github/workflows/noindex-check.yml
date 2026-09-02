@@ -30,6 +30,8 @@ jobs:
         run: python scripts/validate_site_structure.py
       - name: 检查页面内容质量与本地引用
         run: python scripts/validate_content.py
+      - name: 检查文章目录、重复元数据与本地附件治理
+        run: python scripts/validate_article_catalog.py
       - name: 检查首页 CSS 无效覆盖
         run: python scripts/validate_home_css.py
       - name: 检查 CSS 职责边界
