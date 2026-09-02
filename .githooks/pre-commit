@@ -13,6 +13,12 @@ if ! python scripts/validate_site_structure.py; then
   exit 1
 fi
 
+if ! python scripts/validate_content.py; then
+  echo "提交已阻止：页面标题、描述、H1、图片 alt 或 DOM id 存在内容质量问题。"
+  echo "请根据上方检查结果修复后再提交。"
+  exit 1
+fi
+
 if ! python scripts/validate_home_css.py; then
   echo "提交已阻止：首页 CSS 存在无效覆盖、优先级或分层问题。"
   echo "请根据上方检查结果修复后再提交。"
@@ -28,6 +34,12 @@ fi
 if ! python scripts/validate_orphan_assets.py; then
   echo "提交已阻止：assets/js 或 assets/css 中存在无人引用的运行时资源。"
   echo "请删除迁移残留文件，或补齐生产页面引用后再提交。"
+  exit 1
+fi
+
+if ! python scripts/validate_asset_budget.py; then
+  echo "提交已阻止：静态 JavaScript/CSS 体积超过当前站点预算。"
+  echo "请拆分或精简资源，确需扩大预算时应同步说明原因。"
   exit 1
 fi
 
