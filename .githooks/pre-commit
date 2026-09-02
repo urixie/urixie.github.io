@@ -1,8 +1,26 @@
 #!/usr/bin/env sh
 
+if ! python scripts/new_article.py \
+  --topic foundation \
+  --category c-basic \
+  --slug precommit-article-scaffold-check \
+  --title "Pre-commit 文章脚手架检查" \
+  --description "验证文章模板、自动目录标记和站点目录解析逻辑。" \
+  --tags precommit scaffold \
+  --dry-run; then
+  echo "提交已阻止：文章脚手架模板或目录解析逻辑异常。"
+  exit 1
+fi
+
 if ! python scripts/generate_home_data.py --check; then
   echo "提交已阻止：assets/js/home-data.js 与 data/site-map.json 不一致。"
   echo "请运行：python scripts/generate_home_data.py"
+  exit 1
+fi
+
+if ! python scripts/bump_cache_version_from_git.py --check; then
+  echo "提交已阻止：生产 HTML 的静态资源缓存版本已过期。"
+  echo "请运行：python scripts/bump_cache_version_from_git.py"
   exit 1
 fi
 
@@ -20,7 +38,7 @@ if ! python scripts/validate_site_structure.py; then
 fi
 
 if ! python scripts/validate_content.py; then
-  echo "提交已阻止：页面元数据、标题层级、本地链接/锚点、图片资源或模板标记存在问题。"
+  echo "提交已阻止：页面元数据/正文、标题层级、本地链接/锚点、图片资源或模板标记存在问题。"
   echo "请根据上方检查结果修复后再提交。"
   exit 1
 fi
