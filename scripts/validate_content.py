@@ -31,6 +31,8 @@ class PageParser(HTMLParser):
         self.h1_count = 0
         self.ids: list[str] = []
         self.images_without_alt = 0
+        self.images_without_lazy = 0
+        self.images_without_async_decoding = 0
         self.links: list[str] = []
         self.resources: list[tuple[str, str]] = []
         self.headings: list[tuple[int, int]] = []
@@ -55,6 +57,10 @@ class PageParser(HTMLParser):
         elif tag == "img":
             if "alt" not in values:
                 self.images_without_alt += 1
+            if (values.get("loading") or "").strip().lower() != "lazy":
+                self.images_without_lazy += 1
+            if (values.get("decoding") or "").strip().lower() != "async":
+                self.images_without_async_decoding += 1
             src = (values.get("src") or "").strip()
             if src:
                 self.resources.append(("图片", src))
@@ -203,6 +209,7 @@ def validate_page(path: Path) -> list[str]:
     relative = path.relative_to(ROOT).as_posix()
     errors: list[str] = []
     source_text = path.read_text(encoding="utf-8")
+    is_article = is_within(path, ARTICLES_DIR) and not is_within(path, TEMPLATES_DIR)
 
     if not parser.title:
         errors.append(f"{relative}: 缺少非空 <title>")
@@ -212,6 +219,10 @@ def validate_page(path: Path) -> list[str]:
         errors.append(f"{relative}: 应恰好包含 1 个 <h1>，当前为 {parser.h1_count}")
     if parser.images_without_alt:
         errors.append(f"{relative}: 有 {parser.images_without_alt} 个 <img> 缺少 alt 属性")
+    if is_article and parser.images_without_lazy:
+        errors.append(f"{relative}: 有 {parser.images_without_lazy} 个文章图片未设置 loading=\"lazy\"")
+    if is_article and parser.images_without_async_decoding:
+        errors.append(f"{relative}: 有 {parser.images_without_async_decoding} 个文章图片未设置 decoding=\"async\"")
 
     duplicate_ids = sorted(key for key, count in Counter(parser.ids).items() if count > 1)
     if duplicate_ids:
@@ -244,7 +255,7 @@ def main() -> int:
 
     print(
         f"Content validation passed: {len(pages)} production HTML pages checked for metadata, "
-        "headings, ids, local links, routes, anchors, assets, and template tokens."
+        "headings, ids, local links, routes, anchors, assets, article image loading hints, and template tokens."
     )
     return 0
 
