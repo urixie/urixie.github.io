@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -10,6 +11,7 @@ from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SITE_MAP = ROOT / "data/site-map.json"
 HOME_DATA = ROOT / "assets/js/home-data.js"
 ARTICLE_READER = ROOT / "assets/js/article-reader.js"
 ARTICLE_PATH_MAP = ROOT / "assets/js/article-path-map.js"
@@ -17,13 +19,8 @@ LEGACY_ROUTES = ROOT / "assets/js/legacy-routes.js"
 ROUTE_COMPAT = ROOT / "assets/js/route-compat.js"
 INDEX = ROOT / "index.html"
 
-HOME_HREF_RE = re.compile(r"href\s*:\s*['\"](articles/[^'\"]+\.html(?:[?#][^'\"]*)?)['\"]")
 LEGACY_ROUTE_RE = re.compile(r"^\s*['\"]([^'\"]+)['\"]\s*:\s*['\"]([^'\"]+)['\"]\s*,?\s*$", re.MULTILINE)
 SCRIPT_RE = re.compile(r"<script\s+[^>]*src=['\"]([^'\"]+)['\"][^>]*>", re.IGNORECASE)
-
-
-def local_path(value: str) -> Path:
-    return ROOT / urlsplit(value).path.lstrip("/")
 
 
 def require_file(path: Path, errors: list[str], context: str) -> None:
@@ -91,34 +88,82 @@ def validate_index(errors: list[str]) -> None:
         errors.append("javascript layout: article-reader.js must fetch canonical articles directly without proxy-source parsing")
 
 
-def validate_home_data(errors: list[str]) -> None:
-    text = HOME_DATA.read_text(encoding="utf-8")
-
-    forbidden_cache_coupling = (
-        "withVersion(",
-        "cacheVersion",
-        "assets/css/style.css",
-    )
-    for marker in forbidden_cache_coupling:
-        if marker in text:
-            errors.append(f"home-data: article routing must not depend on asset cache versions: {marker}")
-
-    hrefs = HOME_HREF_RE.findall(text)
-    if not hrefs:
-        errors.append("home-data: no article href entries found")
+def validate_site_map(errors: list[str]) -> None:
+    try:
+        site_map = json.loads(SITE_MAP.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        errors.append(f"site-map: invalid JSON: {error}")
         return
 
-    seen: set[str] = set()
-    for href in hrefs:
-        parsed = urlsplit(href)
-        if parsed.query or parsed.fragment:
-            errors.append(f"home-data: article href must be a pure canonical path: {href}")
+    if not isinstance(site_map, list) or not site_map:
+        errors.append("site-map: top-level value must be a non-empty array")
+        return
 
-        canonical = parsed.path
-        if canonical in seen:
-            errors.append(f"home-data: duplicate article href: {canonical}")
-        seen.add(canonical)
-        require_file(ROOT / canonical, errors, "home-data route")
+    topic_ids: set[str] = set()
+    article_hrefs: set[str] = set()
+
+    for topic in site_map:
+        if not isinstance(topic, dict):
+            errors.append("site-map: every topic must be an object")
+            continue
+        topic_id = topic.get("id")
+        if not isinstance(topic_id, str) or not topic_id:
+            errors.append("site-map: topic id must be a non-empty string")
+            continue
+        if topic_id in topic_ids:
+            errors.append(f"site-map: duplicate topic id: {topic_id}")
+        topic_ids.add(topic_id)
+
+        category_ids: set[str] = set()
+        children = topic.get("children", [])
+        if not isinstance(children, list):
+            errors.append(f"site-map: children must be an array for topic: {topic_id}")
+            continue
+
+        for category in children:
+            if not isinstance(category, dict):
+                errors.append(f"site-map: category under {topic_id} must be an object")
+                continue
+            category_id = category.get("id")
+            if not isinstance(category_id, str) or not category_id:
+                errors.append(f"site-map: category id under {topic_id} must be non-empty")
+                continue
+            if category_id in category_ids:
+                errors.append(f"site-map: duplicate category id under {topic_id}: {category_id}")
+            category_ids.add(category_id)
+
+            articles = category.get("articles", [])
+            if not isinstance(articles, list):
+                errors.append(f"site-map: articles must be an array for {topic_id}/{category_id}")
+                continue
+
+            for article in articles:
+                if not isinstance(article, dict):
+                    errors.append(f"site-map: article under {topic_id}/{category_id} must be an object")
+                    continue
+                href = article.get("href")
+                if not isinstance(href, str) or not href:
+                    errors.append(f"site-map: article href missing under {topic_id}/{category_id}")
+                    continue
+
+                parsed = urlsplit(href)
+                if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment:
+                    errors.append(f"site-map: article href must be a pure canonical path: {href}")
+                    continue
+                if not href.startswith("articles/") or not href.endswith(".html"):
+                    errors.append(f"site-map: invalid canonical article path: {href}")
+                    continue
+                if href in article_hrefs:
+                    errors.append(f"site-map: duplicate article href: {href}")
+                article_hrefs.add(href)
+                require_file(ROOT / href, errors, "site-map route")
+
+    home_data = HOME_DATA.read_text(encoding="utf-8")
+    if not home_data.startswith("// Generated by scripts/generate_home_data.py"):
+        errors.append("home-data: runtime data must be generated from data/site-map.json")
+    for marker in ("withVersion(", "cacheVersion", "assets/css/style.css"):
+        if marker in home_data:
+            errors.append(f"home-data: article routing must not depend on asset cache versions: {marker}")
 
 
 def validate_no_article_proxies(errors: list[str]) -> None:
@@ -203,12 +248,12 @@ def validate_canonical_layout(errors: list[str]) -> None:
 def main() -> int:
     errors: list[str] = []
 
-    for required in (HOME_DATA, ARTICLE_READER, LEGACY_ROUTES, ROUTE_COMPAT, INDEX):
+    for required in (SITE_MAP, HOME_DATA, ARTICLE_READER, LEGACY_ROUTES, ROUTE_COMPAT, INDEX):
         require_file(required, errors, "site structure")
 
     if not errors:
         validate_index(errors)
-        validate_home_data(errors)
+        validate_site_map(errors)
         validate_no_article_proxies(errors)
         validate_legacy_routes(errors)
         validate_canonical_layout(errors)
