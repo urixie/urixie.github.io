@@ -14,6 +14,7 @@ HOME_DATA = ROOT / "assets/js/home-data.js"
 ARTICLE_READER = ROOT / "assets/js/article-reader.js"
 ARTICLE_PATH_MAP = ROOT / "assets/js/article-path-map.js"
 LEGACY_ROUTES = ROOT / "assets/js/legacy-routes.js"
+ROUTE_COMPAT = ROOT / "assets/js/route-compat.js"
 INDEX = ROOT / "index.html"
 
 HOME_HREF_RE = re.compile(r"href\s*:\s*['\"](articles/[^'\"]+\.html(?:[?#][^'\"]*)?)['\"]")
@@ -52,11 +53,10 @@ def validate_index(errors: list[str]) -> None:
     required_order = [
         "assets/js/home-data.js",
         "assets/js/legacy-routes.js",
-        "assets/js/hash-compat.js",
+        "assets/js/route-compat.js",
         "assets/js/main.js",
         "assets/js/article-reader.js",
         "assets/js/home.js",
-        "assets/js/inline-reader-guard.js",
     ]
     positions = []
     for script in required_order:
@@ -145,14 +145,19 @@ def validate_legacy_routes(errors: list[str]) -> None:
         if not target:
             errors.append(f"legacy-routes: empty route target for: {key}")
 
-    consumers = {
-        ROOT / "assets/js/hash-compat.js": "resolveLegacyHomeRoute",
-        ROOT / "assets/js/inline-reader-guard.js": "isLegacyHomeRoute",
-    }
-    for consumer, helper in consumers.items():
-        text = consumer.read_text(encoding="utf-8")
-        if helper not in text:
-            errors.append(f"{consumer.name}: must consume {helper} from legacy-routes.js")
+    if not ROUTE_COMPAT.is_file():
+        errors.append("route-compat.js: consolidated hash compatibility layer is missing")
+        return
+
+    route_text = ROUTE_COMPAT.read_text(encoding="utf-8")
+    required_markers = (
+        "resolveLegacyHomeRoute",
+        "decodeURIComponent",
+        "stopImmediatePropagation",
+    )
+    for marker in required_markers:
+        if marker not in route_text:
+            errors.append(f"route-compat.js: missing routing safety marker: {marker}")
 
 
 def validate_canonical_layout(errors: list[str]) -> None:
@@ -181,6 +186,10 @@ def validate_canonical_layout(errors: list[str]) -> None:
     if ARTICLE_PATH_MAP.exists():
         errors.append("article layout: assets/js/article-path-map.js must not exist")
 
+    for legacy_script in ("hash-compat.js", "inline-reader-guard.js"):
+        if (ROOT / "assets/js" / legacy_script).exists():
+            errors.append(f"javascript layout: superseded routing helper must not exist: {legacy_script}")
+
     for legacy_stylesheet in (
         "home-layout-tuning.css",
         "inline-section-reader.css",
@@ -194,7 +203,7 @@ def validate_canonical_layout(errors: list[str]) -> None:
 def main() -> int:
     errors: list[str] = []
 
-    for required in (HOME_DATA, ARTICLE_READER, LEGACY_ROUTES, INDEX):
+    for required in (HOME_DATA, ARTICLE_READER, LEGACY_ROUTES, ROUTE_COMPAT, INDEX):
         require_file(required, errors, "site structure")
 
     if not errors:
