@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Write a current site-content version into local HTML resource URLs.
+"""Write or validate the current site-content version in local HTML resource URLs.
 
-This script deliberately does not stage, commit, or push anything.  It is
-intended to be run immediately before a manual VS Code Git commit.
+The script never commits or pushes changes. Run it before a manual commit, or
+use ``--check`` in CI/local validation when cache versions should already be
+synchronized.
 """
 
 from __future__ import annotations
 
+import argparse
 import re
 import subprocess
 import sys
@@ -21,6 +23,16 @@ RESOURCE_SUFFIXES = {
 }
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "tel:", "#", "data:", "javascript:")
 ATTRIBUTE_RE = re.compile(r"(?P<attr>\b(?:href|src))(?P<space>\s*=\s*)(?P<quote>['\"])(?P<url>.*?)(?P=quote)", re.IGNORECASE)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Synchronize static-site cache-buster versions.")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="do not write files; fail when any production HTML page has a stale cache version",
+    )
+    return parser.parse_args()
 
 
 def git_output(repo_hint: Path, *args: str) -> str:
@@ -132,13 +144,7 @@ def read_html(html_file: Path) -> str:
 
 
 def content_version(repo_root: Path, sources: list[Path]) -> str:
-    """Hash site-source paths and contents, excluding generated ``v`` parameters.
-
-    Including relative paths makes article additions and removals affect the
-    version.  Including local cacheable assets refreshes their URL when they
-    change.  Removing only generated cache-buster parameters keeps repeated
-    runs stable when no source content has changed.
-    """
+    """Hash site-source paths and contents, excluding generated ``v`` parameters."""
     digest = sha256()
     for source_file in sources:
         relative_path = source_file.relative_to(repo_root).as_posix()
@@ -155,6 +161,7 @@ def content_version(repo_root: Path, sources: list[Path]) -> str:
 
 
 def main() -> int:
+    args = parse_args()
     try:
         repo_root = Path(git_output(Path.cwd(), "rev-parse", "--show-toplevel"))
     except RuntimeError as error:
@@ -168,19 +175,31 @@ def main() -> int:
     for html_file in html_files:
         original = read_html(html_file)
         updated = ATTRIBUTE_RE.sub(lambda match: replace_attribute(match, version), original)
-        if updated != original:
-            # newline="" preserves each page's existing line-ending convention.
-            with html_file.open("w", encoding="utf-8", newline="") as output:
-                output.write(updated)
-            changed_files.append(html_file.relative_to(repo_root))
+        if updated == original:
+            continue
+
+        changed_files.append(html_file.relative_to(repo_root))
+        if args.check:
+            continue
+
+        with html_file.open("w", encoding="utf-8", newline="") as output:
+            output.write(updated)
 
     print(f"Cache version: {version}")
-    if changed_files:
-        print("Modified HTML files:")
+    if not changed_files:
+        print("Cache versions are already synchronized.")
+        return 0
+
+    if args.check:
+        print("Stale cache versions detected:", file=sys.stderr)
         for html_file in changed_files:
-            print(f"  {html_file.as_posix()}")
-    else:
-        print("no files changed")
+            print(f"  {html_file.as_posix()}", file=sys.stderr)
+        print("Run: python scripts/bump_cache_version_from_git.py", file=sys.stderr)
+        return 1
+
+    print("Modified HTML files:")
+    for html_file in changed_files:
+        print(f"  {html_file.as_posix()}")
     return 0
 
 
