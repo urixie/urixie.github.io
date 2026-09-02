@@ -20,7 +20,7 @@ if ! python scripts/validate_site_structure.py; then
 fi
 
 if ! python scripts/validate_content.py; then
-  echo "提交已阻止：页面标题、描述、H1、图片 alt 或 DOM id 存在内容质量问题。"
+  echo "提交已阻止：页面元数据、标题层级、本地链接/锚点、图片资源或模板标记存在问题。"
   echo "请根据上方检查结果修复后再提交。"
   exit 1
 fi
@@ -28,6 +28,12 @@ fi
 if ! python scripts/validate_home_css.py; then
   echo "提交已阻止：首页 CSS 存在无效覆盖、优先级或分层问题。"
   echo "请根据上方检查结果修复后再提交。"
+  exit 1
+fi
+
+if ! python scripts/validate_css_ownership.py; then
+  echo "提交已阻止：公共 style.css 与首页 home.css 的职责边界被破坏。"
+  echo "首页专属 selector 应只放在 home.css，且 home.css 只由 index.html 加载。"
   exit 1
 fi
 
