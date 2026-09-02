@@ -22,6 +22,8 @@ jobs:
           --dry-run
       - name: 检查导航数据生成一致性
         run: python scripts/generate_home_data.py --check
+      - name: 检查静态资源缓存版本
+        run: python scripts/bump_cache_version_from_git.py --check
       - name: 检查 HTML noindex 配置
         run: python scripts/website_privacy_guard.py --check
       - name: 检查站点目录与路由一致性
