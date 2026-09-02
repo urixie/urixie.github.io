@@ -179,9 +179,9 @@ HOME_PRELUDE = r'''/* 首页专属基础布局与导航：公共 style.css 只�
     top: 20px;
     height: calc(100dvh - 40px);
   }
-}
+}'''
 
-@media (max-width: 900px) {
+MEDIA_900 = r'''
   .home-shell,
   .home-shell.is-about {
     min-height: 100dvh;
@@ -211,9 +211,9 @@ HOME_PRELUDE = r'''/* 首页专属基础布局与导航：公共 style.css 只�
     min-width: 156px;
     scroll-snap-align: start;
   }
-}
+'''
 
-@media (max-width: 640px) {
+MEDIA_640 = r'''
   .home-shell,
   .home-shell.is-about {
     padding: 12px;
@@ -244,7 +244,7 @@ HOME_PRELUDE = r'''/* 首页专属基础布局与导航：公共 style.css 只�
   .section-title h2 {
     font-size: 22px;
   }
-}'''
+'''
 
 
 def extract_between(text: str, start_marker: str, end_marker: str) -> str:
@@ -307,6 +307,12 @@ def remove_home_prefix_from_1280(text: str) -> str:
     return text[:start] + replacement + text[close_index + 1:]
 
 
+def inject_media_prefix(text: str, media_header: str, rules: str) -> str:
+    start = text.index(media_header)
+    open_index = text.index("{", start)
+    return text[:open_index + 1] + rules.rstrip() + "\n" + text[open_index + 1:]
+
+
 def main() -> int:
     style = STYLE.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
@@ -314,10 +320,9 @@ def main() -> int:
     style = extract_between(style, ".home-shell {", ".page-shell {")
 
     old_focus = ".primary-nav-button:focus-visible,\n.secondary-nav-button:focus-visible,\nbutton:focus-visible,\na:focus-visible {"
-    new_focus = "button:focus-visible,\na:focus-visible {"
     if old_focus not in style:
         raise RuntimeError("homepage focus selector group not found in style.css")
-    style = style.replace(old_focus, new_focus, 1)
+    style = style.replace(old_focus, "button:focus-visible,\na:focus-visible {", 1)
 
     style = remove_home_prefix_from_1280(style)
     style = remove_media_containing(style, "@media (max-width: 900px)", ".home-shell")
@@ -327,8 +332,12 @@ def main() -> int:
     if marker in home:
         raise RuntimeError("home.css already contains migrated homepage base rules")
 
+    home = inject_media_prefix(home, "@media (max-width: 900px)", MEDIA_900)
+    home = inject_media_prefix(home, "@media (max-width: 640px)", MEDIA_640)
+    home = HOME_PRELUDE + "\n\n" + home.lstrip()
+
     STYLE.write_text(style.rstrip() + "\n", encoding="utf-8", newline="\n")
-    HOME.write_text(HOME_PRELUDE + "\n\n" + home.lstrip(), encoding="utf-8", newline="\n")
+    HOME.write_text(home, encoding="utf-8", newline="\n")
 
     forbidden = (
         ".home-shell",
