@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Linux SD 卡格式化与文件复制：设备识别、FAT32 与完整性校验 - XYJ</title>
+  <meta name="description" content="记录通过 SSH 识别 SD 卡、格式化 FAT32、复制目录全部内容，并通过文件系统检查、SHA-256 和目录清单验证结果的完整流程。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=fa707fc16217">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=fa707fc16217">← 返回首页</a>
+          <a href="../../../../index.html?v=fa707fc16217#soc-linux/linux-basic">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <div class="post-meta">SOC/Linux开发 · Linux基础 · 2026-10-19</div>
+      <h1>Linux SD 卡格式化与文件复制：设备识别、FAT32 与完整性校验</h1>
+      <p class="article-summary">记录通过 SSH 识别 SD 卡、格式化 FAT32、复制目录全部内容，并通过文件系统检查、SHA-256 和目录清单验证结果的完整流程。</p>
+
+      <p>整理日期：2026 年 10 月 19 日。本文基于一次嵌入式 Linux 设备的实际操作整理，内网地址、密码、主机指纹、SD 卡 CID 和个人工作目录已从公开版本中移除。</p>
+      <h2>1. 任务与最终结果</h2>
+      <p>本次任务是登录 Linux 设备，格式化 SD 卡，再将 <code>/root/cd/</code> 中的全部内容复制到卡根目录。需要复制的是目录里的内容，因此卡中应直接出现 <code>private/</code> 和两个说明文件，而不是先出现一层 <code>cd/</code>。</p>
+      <table><thead><tr><th scope="col">项目</th><th scope="col">结果</th></tr></thead><tbody>
+      <tr><td>目标设备与分区</td><td>SD 卡 <code>/dev/mmcblk1</code>，分区 <code>/dev/mmcblk1p1</code></td></tr>
+      <tr><td>原始容量</td><td>8,053,063,680 字节，工具显示约 7.5G</td></tr>
+      <tr><td>格式化结果</td><td>FAT32，卷标 <code>TF_CARD</code></td></tr>
+      <tr><td>源数据规模</td><td>约 2.7 MB，11 个普通文件，5 个子目录</td></tr>
+      <tr><td>复制结果</td><td>文件、中文文件名和空目录均已复制</td></tr>
+      <tr><td>完整性校验</td><td>11 个文件 SHA-256 全部通过，文件与目录清单一致</td></tr>
+      <tr><td>源文件复核</td><td>操作前后源文件 SHA-256 一致</td></tr>
+      <tr><td>文件系统检查</td><td><code>fsck.vfat -n</code> 通过</td></tr>
+      <tr><td>最终状态</td><td>完成同步并卸载，无挂载点</td></tr>
+      </tbody></table>
+      <blockquote><p>格式化会清除目标分区原有内容。本文记录的设备名称仅适用于本次设备；用于其他机器前，必须重新识别目标磁盘、分区和源数据位置。本次保留了原分区表，没有执行整卡安全擦除。</p></blockquote>
+      <h2>2. 先区分系统盘与 SD 卡</h2>
+      <h3>2.1 读取块设备和挂载信息</h3>
+      <p>实际操作从只读检查开始：</p>
+      <pre><code class="language-bash">uname -a
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,LABEL,UUID,MOUNTPOINTS,MODEL,TRAN,RM
+findmnt
+ls -la /root/cd/
+du -sh /root/cd/
+</code></pre>
+      <p>这台设备的系统为 Linux 5.10.160、aarch64。系统盘是约 29.1G 的 <code>/dev/mmcblk0</code>，根分区 <code>/dev/mmcblk0p6</code> 使用 ext4；另一张卡是约 7.5G 的 <code>/dev/mmcblk1</code>，只有一个 FAT 分区 <code>/dev/mmcblk1p1</code>，卷标为 <code>TF_CARD</code>。</p>
+      <p>本次 <code>lsblk</code> 输出中，SD 卡的 <code>RM</code> 也为 0。因此，没有只凭“可移动设备”标志或 <code>mmcblk</code> 序号决定格式化对象，而是继续核对硬件类型、容量和系统挂载来源。</p>
+      <h3>2.2 通过 sysfs 核实硬件类型</h3>
+      <pre><code class="language-bash">cat /sys/block/mmcblk0/device/type
+cat /sys/block/mmcblk1/device/type
+cat /sys/block/mmcblk1/device/name
+cat /sys/block/mmcblk1/device/cid
+blockdev --getsize64 /dev/mmcblk1
+findmnt -T /root/cd -o SOURCE,TARGET,FSTYPE
+</code></pre>
+      <p>实际结果为：<code>mmcblk0</code> 的类型是 <code>MMC</code>，<code>mmcblk1</code> 的类型是 <code>SD</code>，SD 卡容量为 8,053,063,680 字节；源目录所在分区为 <code>/dev/mmcblk0p6</code>。卡片 CID 已在执行前记录，脚本在格式化前再次比对，以确认操作对象没有变化。</p>
+      <p>这些 sysfs 路径对应本次通过 MMC 子系统接入的卡。通过 USB 读卡器连接的卡可能显示为其他设备名，需要按其实际硬件路径重新核实。</p>
+      <h3>2.3 确认没有挂载或被其他块设备持有</h3>
+      <pre><code class="language-bash">lsblk -o NAME,PTTYPE,PARTTYPE,SIZE,FSTYPE /dev/mmcblk1
+ls -la /mnt/sdcard
+ls -l /sys/class/block/mmcblk1/holders /sys/class/block/mmcblk1p1/holders
+cat /etc/fstab
+</code></pre>
+      <p>本次目标分区未挂载，<code>/mnt/sdcard</code> 已存在且为空，holders 目录为空。现有分区表为 DOS/MBR，分区类型为 <code>0xc</code>，因此直接格式化已有分区，保留分区布局。</p>
+      <h2>3. 检查源目录与 FAT32 兼容性</h2>
+      <p>正式格式化前，确认工具可用，并检查源数据类型和数量：</p>
+      <pre><code class="language-bash">command -v mkfs.vfat
+command -v fsck.vfat
+command -v sha256sum
+command -v mount
+command -v umount
+
+find /root/cd -type l -print
+find /root/cd -type f -size +4095M -print
+find /root/cd -mindepth 1 ! -type d ! -type f -print
+find /root/cd -type f | wc -l
+find /root/cd -type d | wc -l
+find /root/cd -type f -printf &quot;%P\n&quot;
+</code></pre>
+      <p>本次得到 11 个普通文件和 6 个目录，目录数包含源目录本身。没有发现符号链接、其他特殊文件或大于 4095 MiB 的文件。两个说明文件原本均为 0 字节，<code>private/sounds/</code> 和 <code>private/videos/</code> 是空目录。</p>
+      <p>源卡原本使用 FAT 文件系统，因此沿用 FAT32。本次验证关注文件内容、名称及目录结构，不将 Linux 的权限、所有权和时间戳作为复制一致性指标。</p>
+      <h2>4. 格式化、挂载与复制</h2>
+      <h3>4.1 格式化目标分区</h3>
+      <pre><code class="language-bash">mkfs.vfat -F 32 -n TF_CARD /dev/mmcblk1p1
+</code></pre>
+      <p>这里的目标是已有分区 <code>/dev/mmcblk1p1</code>。参数 <code>-F 32</code> 指定 FAT32，<code>-n TF_CARD</code> 设置卷标。本次工具输出版本为 <code>mkfs.fat 4.2 (2021-01-31)</code>。</p>
+      <h3>4.2 挂载后复制目录内容</h3>
+      <pre><code class="language-bash">mount -t vfat -o iocharset=utf8 /dev/mmcblk1p1 /mnt/sdcard
+cp -r /root/cd/. /mnt/sdcard/
+sync
+df -h /mnt/sdcard
+umount /mnt/sdcard
+</code></pre>
+      <p><code>/root/cd/.</code> 表示复制该目录内部的全部内容，包含隐藏项；同时保留子目录和空目录。没有使用 <code>/root/cd/*</code>，避免遗漏隐藏项。挂载选项显式使用 UTF-8，以处理本次存在的中文文件名。</p>
+      <p>复制后，<code>df -h</code> 显示目标分区容量约 7.5G，占用约 2.7M。脚本先同步并卸载，再进行文件系统检查和只读重挂载校验。</p>
+      <h2>5. 分三层校验复制结果</h2>
+      <h3>5.1 检查 FAT 文件系统</h3>
+      <pre><code class="language-bash">fsck.vfat -n /dev/mmcblk1p1
+</code></pre>
+      <p>检查在未挂载状态下进行。<code>-n</code> 用于检查而不执行修复。本次输出为：</p>
+      <pre><code class="language-text">fsck.fat 4.2 (2021-01-31)
+/dev/mmcblk1p1: 17 files, 681/1962238 clusters
+</code></pre>
+      <p>这里的“17 files”是工具报告的文件系统条目计数，不等同于 <code>find -type f</code> 得到的普通文件数。实际普通文件为 11 个。</p>
+      <h3>5.2 重新只读挂载并逐文件校验</h3>
+      <p>在格式化前，脚本已经为源文件生成 SHA-256 清单。写入并卸载后，再只读挂载目标分区，检查从卡上读出的每个文件：</p>
+      <pre><code class="language-bash">mount -t vfat -o ro,iocharset=utf8 /dev/mmcblk1p1 /mnt/sdcard
+cd /mnt/sdcard
+sha256sum -c /tmp/sd-card-copy.cZ0pLs/source.sha256
+</code></pre>
+      <p><code>/tmp/sd-card-copy.cZ0pLs/</code> 是本次通过 <code>mktemp</code> 创建的实际审计目录；其他运行会生成不同的路径。11 个文件全部返回 <code>OK</code>，包括两个 0 字节说明文件。</p>
+      <h3>5.3 比较目录结构并复查源文件</h3>
+      <p>仅校验已有文件的摘要还不足以覆盖空目录或额外条目，因此同时比较两侧的文件类型和相对路径：</p>
+      <pre><code class="language-bash">diff -u &quot;$audit/source-tree.txt&quot; &quot;$audit/destination-tree.txt&quot;
+diff -u &quot;$audit/source.sha256&quot; &quot;$audit/source-after.sha256&quot;
+</code></pre>
+      <p>第一项比较源与目标的文件/目录清单，覆盖空目录和额外条目；第二项比较操作前后的源文件摘要，确认源文件内容在复制期间没有变化。两次比较都无差异，脚本最终退出码为 0。</p>
+      <h2>6. 完整执行脚本的公开版</h2>
+      <p>以下为实际 Bash 脚本的脱敏版：卡片 CID 改为需要手动填写的变量，并增加占位值检查，避免直接运行未配置的示例。其余主体流程保留了本次设备的实际配置。</p>
+      <p>脚本假定源目录为 <code>/root/cd</code>、系统根分区为 <code>/dev/mmcblk0p6</code>、SD 卡容量为 8,053,063,680 字节、目标分区未挂载且挂载点已存在。迁移到其他环境时必须逐项调整并重新核实。脚本中任一步骤失败都会中止后续流程；失败后应检查当前挂载状态，不应直接从头重复格式化。</p>
+      <pre><code class="language-bash">#!/bin/bash
+set -euo pipefail
+export LC_ALL=C.UTF-8
+
+src=/root/cd
+dst=/mnt/sdcard
+dev=/dev/mmcblk1p1
+disk=/dev/mmcblk1
+
+# Replace this value with the CID confirmed during read-only inspection.
+expected_cid=&#x27;REPLACE_WITH_VERIFIED_SD_CID&#x27;
+test &quot;$expected_cid&quot; != REPLACE_WITH_VERIFIED_SD_CID
+
+# Recheck the physical card and protect the system disk.
+test &quot;$(cat /sys/block/mmcblk1/device/type)&quot; = SD
+test &quot;$(cat /sys/block/mmcblk1/device/cid)&quot; = &quot;$expected_cid&quot;
+test &quot;$(blockdev --getsize64 &quot;$disk&quot;)&quot; = 8053063680
+test &quot;$(findmnt -n -o SOURCE /)&quot; = /dev/mmcblk0p6
+test &quot;$(findmnt -n -o SOURCE -T &quot;$src&quot;)&quot; = /dev/mmcblk0p6
+test -b &quot;$dev&quot;
+test -d &quot;$src&quot;
+test -d &quot;$dst&quot;
+test -z &quot;$(find &quot;$dst&quot; -mindepth 1 -maxdepth 1 -print -quit)&quot;
+if lsblk -nr -o MOUNTPOINTS &quot;$disk&quot; | grep -q &#x27;[^[:space:]]&#x27;; then
+    echo &quot;STOP: SD card has a mounted filesystem.&quot; &gt;&amp;2
+    exit 1
+fi
+test -z &quot;$(ls -A /sys/class/block/mmcblk1/holders)&quot;
+test -z &quot;$(ls -A /sys/class/block/mmcblk1p1/holders)&quot;
+
+audit=$(mktemp -d /tmp/sd-card-copy.XXXXXX)
+echo &quot;Audit directory: $audit&quot;
+(
+    cd &quot;$src&quot;
+    find . -type f -exec sha256sum {} + | sort
+) &gt; &quot;$audit/source.sha256&quot;
+(
+    cd &quot;$src&quot;
+    find . -printf &#x27;%y %P\n&#x27; | sort
+) &gt; &quot;$audit/source-tree.txt&quot;
+
+echo &#x27;Formatting SD partition as FAT32...&#x27;
+mkfs.vfat -F 32 -n TF_CARD &quot;$dev&quot;
+mount -t vfat -o iocharset=utf8 &quot;$dev&quot; &quot;$dst&quot;
+test &quot;$(findmnt -n -o SOURCE --target &quot;$dst&quot;)&quot; = &quot;$dev&quot;
+
+echo &#x27;Copying all source contents, including hidden entries...&#x27;
+cp -r &quot;$src&quot;/. &quot;$dst&quot;/
+sync
+df -h &quot;$dst&quot;
+umount &quot;$dst&quot;
+
+echo &#x27;Checking FAT32 filesystem after writing...&#x27;
+fsck.vfat -n &quot;$dev&quot;
+
+echo &#x27;Remounting read-only and verifying stored data...&#x27;
+mount -t vfat -o ro,iocharset=utf8 &quot;$dev&quot; &quot;$dst&quot;
+(
+    cd &quot;$dst&quot;
+    sha256sum -c &quot;$audit/source.sha256&quot;
+)
+(
+    cd &quot;$dst&quot;
+    find . -printf &#x27;%y %P\n&#x27; | sort
+) &gt; &quot;$audit/destination-tree.txt&quot;
+diff -u &quot;$audit/source-tree.txt&quot; &quot;$audit/destination-tree.txt&quot;
+(
+    cd &quot;$src&quot;
+    find . -type f -exec sha256sum {} + | sort
+) &gt; &quot;$audit/source-after.sha256&quot;
+diff -u &quot;$audit/source.sha256&quot; &quot;$audit/source-after.sha256&quot;
+printf &#x27;Verified files: &#x27;
+find &quot;$dst&quot; -type f | wc -l
+printf &#x27;Verified directories including root: &#x27;
+find &quot;$dst&quot; -type d | wc -l
+ls -la &quot;$dst&quot;
+sync
+umount &quot;$dst&quot;
+lsblk -o NAME,SIZE,FSTYPE,LABEL,UUID,MOUNTPOINTS &quot;$disk&quot;
+echo &#x27;SUCCESS: format, copy, filesystem check, SHA-256 verification, and unmount completed.&#x27;
+</code></pre>
+      <h2>7. 实际校验输出与目录结构</h2>
+      <p>本次校验的关键输出：</p>
+      <pre><code class="language-text">./private/bin/pinyin.bin: OK
+./private/bin/system.bin: OK
+./private/truefont/truefont.ini: OK
+./private/main.lua: OK
+./private/bin/font.idx: OK
+./private/bin/image.bin: OK
+./private/bin/image.idx: OK
+./private/bin/screen.bin: OK
+./!!!Copy [private] directory to the root directory of  SD Card.txt: OK
+./!!!直接复制private文件夹到SD卡根目录.txt: OK
+./private/truefont/wqymicrohei.ttf: OK
+Verified files: 11
+Verified directories including root: 6
+SUCCESS: format, copy, filesystem check, SHA-256 verification, and unmount completed.
+</code></pre>
+      <p>SD 卡根目录的最终内容：</p>
+      <pre><code class="language-text">SD_CARD_ROOT/
+├── !!!Copy [private] directory to the root directory of  SD Card.txt
+├── !!!直接复制private文件夹到SD卡根目录.txt
+└── private/
+    ├── main.lua
+    ├── bin/
+    │   ├── font.idx
+    │   ├── image.bin
+    │   ├── image.idx
+    │   ├── pinyin.bin
+    │   ├── screen.bin
+    │   └── system.bin
+    ├── sounds/
+    ├── truefont/
+    │   ├── truefont.ini
+    │   └── wqymicrohei.ttf
+    └── videos/
+</code></pre>
+      <p>最后执行 <code>sync</code>、<code>umount /mnt/sdcard</code>，再用 <code>lsblk</code> 确认目标分区没有挂载点。最终显示文件系统为 <code>vfat</code>、卷标为 <code>TF_CARD</code>，卡可以取出。</p>
+      <h2>8. 执行中遇到的问题</h2>
+      <table><thead><tr><th scope="col">问题</th><th scope="col">实际处理</th></tr></thead><tbody>
+      <tr><td>本地 Python 没有安装 Paramiko</td><td>使用已安装的 PuTTY Plink，通过 SSH 执行服务器端 Bash</td></tr>
+      <tr><td>初次批处理 SSH 没有缓存主机密钥</td><td>读取主机指纹，后续通过 Plink 的 hostkey 参数固定；本次没有另行进行独立渠道核验</td></tr>
+      <tr><td>受限执行环境阻止首次网络连接</td><td>使用执行环境提供的网络权限流程继续</td></tr>
+      <tr><td>服务器未安装 fdisk</td><td>使用 lsblk、sysfs、blockdev 和 findmnt 完成设备核对</td></tr>
+      <tr><td>服务器的 lsblk 不支持 START 列</td><td>移除不支持的列，继续使用可用列检查</td></tr>
+      </tbody></table>
+      <p>这些问题均发生在正式格式化之前。最终脚本执行成功，没有遗留未完成的复制或校验步骤。</p>
+      <h2>9. 复用流程时保留的检查点</h2>
+      <ul>
+      <li>先通过挂载来源、硬件类型、容量和卡片标识识别设备，再指定格式化分区。</li>
+      <li>源数据与目标分区必须分离；本次源数据位于系统盘，格式化对象是独立 SD 卡分区。</li>
+      <li>复制目录内容时使用 <code>源目录/.</code>，同时覆盖隐藏项和空目录。</li>
+      <li>写入后先同步和卸载，再检查文件系统，并通过只读重挂载进行文件校验。</li>
+      <li>逐文件摘要与目录清单分别验证内容和结构；操作前后源文件摘要用于检查源内容变化。</li>
+      <li>最后确认已卸载。临时审计目录可能被系统清理，需要长期保存的清单应另行归档。</li>
+      </ul>
+      <p>本篇公开版保留操作方法、完整命令和实际验证结果；原始私有操作记录另行保存在设备与本地工作目录，登录凭据和硬件唯一标识不随文章发布。</p>
+      <h2>10. 下载本文 Markdown</h2>
+      <p><a href="docs/linux-sd-card-format-copy.md">下载脱敏后的 Markdown 文档</a></p>
+      <p>下载文件与本页正文使用同一份 Markdown 来源，便于离线查阅和后续维护。</p>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=fa707fc16217#soc-linux/linux-basic">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=fa707fc16217"></script>
+</body>
+</html>

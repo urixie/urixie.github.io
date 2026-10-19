@@ -515,6 +515,18 @@
                 "Shell",
                 "systemd"
               ]
+            },
+            {
+              "title": "Linux SD 卡格式化与文件复制：设备识别、FAT32 与完整性校验",
+              "desc": "记录通过 SSH 识别 SD 卡、格式化 FAT32、复制目录全部内容，并通过文件系统检查、SHA-256 和目录清单验证结果的完整流程。",
+              "href": "articles/soc-linux/linux-basic/linux-sd-card-format-copy/linux-sd-card-format-copy.html",
+              "tags": [
+                "Linux",
+                "SD卡",
+                "FAT32",
+                "SSH",
+                "SHA-256"
+              ]
             }
           ]
         },
