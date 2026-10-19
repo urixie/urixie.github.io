@@ -748,6 +748,17 @@
           "desc": "参数配置、数据查看、设备控制和远程调试工具记录。",
           "articles": [
             {
+              "title": "Windows 远程桌面 · LSA 与 ForceGuest 修复实录",
+              "desc": "3389 可达仍登录失败 / 4625 日志 / SMB 1272 / ForceGuest 策略 / RDP 1149 验证",
+              "href": "articles/host-tools/debug-config/windows-rdp-lsa-forceguest/windows-rdp-lsa-forceguest.html",
+              "tags": [
+                "Windows",
+                "RDP",
+                "ForceGuest",
+                "LSA"
+              ]
+            },
+            {
               "title": "调试上位机",
               "desc": "参数配置、数据查看、设备控制 · VS Code 远程调试 Linux C/C++ 程序",
               "href": "articles/host-tools/debug-config/windows-vscode-remote-linux-cpp-debug/windows-vscode-remote-linux-cpp-debug.html",
