@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="description" content="真实 Windows RDP 故障复盘：3389 可达、密码有效但出现 LSA 身份验证错误，结合事件日志、SMB 1272 和 ForceGuest 策略逐层定位并验证修复。">
+  <title>Windows 远程桌面 LSA 认证失败：ForceGuest 排查与修复案例 - XYJ</title>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=7d4d6e9cd35b">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html">← 返回首页</a>
+          <a href="../../../../index.html#host-tools/debug-config">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+    <article class="article card">
+      <div class="post-meta">WINDOWS 10 · RDP · LSA · NLA · FORCEGUEST · 2026-10-19</div>
+      <h1>Windows 远程桌面 LSA 认证失败：ForceGuest 排查与修复案例</h1>
+      <p class="article-summary">真实 Windows RDP 故障复盘：3389 可达、密码有效但出现 LSA 身份验证错误，结合事件日志、SMB 1272 和 ForceGuest 策略逐层定位并验证修复。</p>
+      <div class="article-note">
+        <strong>案例结果：</strong>目标电脑原本可以建立 TCP 3389 连接，Windows 凭据在目标机器上也有效，但 RDP 始终报“无法连接到本地安全机构”。进一步发现 <code>forceguest=1</code> 和 SMB 网络认证错误 <code>1272</code>；将 <code>forceguest</code> 改为 <code>0</code> 后，实际进入远程桌面，并获得服务器端 <code>1149</code> 认证成功事件。
+      </div>
+      <p>本文根据一次实际调试记录整理。为适合公开网站，主机名统一写作 <code>TARGET-PC</code>，IP 使用文档专用示例地址 <code>192.0.2.219</code>、<code>192.0.2.157</code>（不是原始现场地址）。所有命令中的示例名称或地址都需替换为实际值；不公开密码。</p>
+
+      <section>
+        <h2>1. 故障现象与结论</h2>
+        <p>在 Windows 自带的远程桌面连接 <code>mstsc.exe</code> 中连接目标主机，输入本地管理员账号后，客户端提示：</p>
+        <pre><code>出现身份验证错误。
+无法连接到本地安全机构
+
+这可能是由于密码已过期。
+如果密码已过期，请更新密码。</code></pre>
+        <p>其中“可能密码已过期”只是 Windows 给出的候选解释，<strong>本案例没有证据支持密码实际过期，也没有重置密码</strong>。初始验证已经显示 RDP 服务和监听端口正常，因此应继续区分网络、凭据、协商、策略和会话各阶段。</p>
+        <div class="article-warning">
+          <strong>结论边界：</strong><code>ForceGuest</code> 管理的是本地账户进行<strong>网络登录</strong>时的身份映射，不能简单宣称它直接控制所有 RDP 交互式登录。此例证实了修改配置与网络管理认证及 RDP 恢复之间的时间顺序，但没有通过 CredSSP/NTLM 完整抓包证明内部每一步的因果机制。它不是所有 LSA 错误的通用修复。
+        </div>
+      </section>
+
+      <section>
+        <h2>2. 排查环境与初始状态</h2>
+        <div class="article-table-scroll"><table><thead><tr><th>项目</th><th>记录</th></tr></thead><tbody><tr><td>目标操作系统</td><td>Windows（目标系统版本未完整采集，不能冒用诊断端的版本）</td></tr><tr><td>诊断端系统</td><td>Windows 10 Education 22H2，构建 19045.6456；PowerShell 7.6.5</td></tr><tr><td>远程连接工具</td><td>Windows 远程桌面客户端 <code>mstsc.exe</code></td></tr><tr><td>辅助访问</td><td>向日葵远程控制（用于在目标机器操作）</td></tr><tr><td>目标设备与账号</td><td><code>TARGET-PC</code>，本地 <code>Administrator</code>（公开版示例）</td></tr><tr><td>连接地址</td><td><code>192.0.2.219</code>（脱敏示例，非真实 IP）</td></tr><tr><td>安全要求</td><td>NLA 启用，TLS 安全层；本次没有降低加密或关闭 NLA</td></tr></tbody></table></div>
+        <p>首先通过目标电脑管理员 PowerShell 启用远程桌面和防火墙入站规则，并检查注册表 <code>fDenyTSConnections=0</code>；随后确认 TCP <code>3389</code> 处于监听状态。这些结果说明“开关没打开”不是后续认证失败的主要线索。</p>
+        <pre><code>Get-ItemPropertyValue 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections
+Get-NetTCPConnection -LocalPort 3389 -State Listen -ErrorAction SilentlyContinue
+# 在客户端执行；把示例 IP 换成目标实际地址
+Test-NetConnection -ComputerName 192.0.2.219 -Port 3389 -InformationLevel Detailed</code></pre>
+      </section>
+
+      <section>
+        <h2>3. 关键证据链：为什么不应先改密码</h2>
+        <div class="article-table-scroll"><table><thead><tr><th>诊断阶段</th><th>实际结果</th><th>能够支持的判断</th></tr></thead><tbody><tr><td>TCP 3389</td><td>端口可连接；曾测得约 6 ms 延迟</td><td>基本链路存在，不能归因为端口完全封闭</td></tr><tr><td>RDP 客户端</td><td>本地用户名及 <code>TARGET-PC\Administrator</code> 均报 LSA 错误</td><td>加计算机名前缀没有直接解决问题</td></tr><tr><td>目标安全事件 <code>4625</code></td><td><code>0xC000006A</code>，登录类型 <code>2</code>，调用方 <code>AweSun.exe</code></td><td>属于早于 RDP 重现的向日葵本地登录尝试，不能当成本次 RDP 的直接证据</td></tr><tr><td>本地密码验证</td><td>同一 Windows 密码通过 <code>runas</code> 启动记事本</td><td>凭据可通过目标机本地验证，不等同于 RDP 授权成功</td></tr><tr><td>证书与 TLS</td><td>目标证书在有效期；独立 TLS 1.2 握手成功</td><td>基本 TLS 能力存在，不能直接归因为 TLS 版本过低</td></tr><tr><td>远程事件日志</td><td>修改前提示“特定的安全程序包错误”</td><td>存在网络管理认证异常</td></tr><tr><td>SMB 临时认证</td><td>返回 <code>1272</code> 来宾访问受阻</td><td>指向 Guest 网络身份映射</td></tr><tr><td>目标 LSA 策略</td><td><code>forceguest=1</code></td><td>与 Guest 线索一致</td></tr><tr><td>改为 <code>0</code> 后</td><td>远程日志恢复读取；RDP 可进入桌面，出现成功事件 <code>1149</code></td><td>本次实际恢复成功</td></tr></tbody></table></div>
+        <p>现场还遇到向日葵自动化截屏超时（<code>FrameArrived timed out</code> / <code>window capture timed out</code>）。这是辅助工具的画面采集限制，并不能证明 RDP 服务损坏，因此后续使用只读日志、网络测试和用户对目标机的直接操作继续诊断。</p>
+      </section>
+
+      <section>
+        <h2>4. 分层排查方法</h2>
+        <h3>4.1 先复现，再限定时间查询客户端日志</h3>
+        <p>在客户端重试一次连接，记下精确时间。查看 <code>Microsoft-Windows-TerminalServices-RDPClient/Operational</code>：</p>
+        <pre><code>$end = Get-Date
+Get-WinEvent -FilterHashtable @{
+    LogName   = 'Microsoft-Windows-TerminalServices-RDPClient/Operational'
+    StartTime = $end.AddMinutes(-30)
+    EndTime   = $end
+} -MaxEvents 30 -ErrorAction Stop |
+    Select-Object TimeCreated, Id, Message | Format-List</code></pre>
+        <p>现场出现事件 <code>1024</code>（尝试连接）、<code>1028</code>（服务器支持 SSL）、<code>226</code>（<code>TsSslEventHandshakeContinueFailed</code>，<code>0x80004005</code>）和 <code>1026</code>（断开原因 <code>519</code>）。这些是连接失败的客户端迹象，不能单凭代码判定“密码错误”或“证书已过期”。</p>
+        <h3>4.2 正确阅读目标的 4625 失败事件</h3>
+        <pre><code>$end = Get-Date
+Get-WinEvent -FilterHashtable @{
+    LogName   = 'Security'
+    Id        = 4625
+    StartTime = $end.AddMinutes(-30)
+    EndTime   = $end
+} -MaxEvents 10 -ErrorAction Stop |
+    Select-Object TimeCreated, Id, Message | Format-List</code></pre>
+        <p>需要联合核对 <strong>发生时间、账号域、登录类型、调用进程、状态码及来源地址</strong>。其中 <code>0xC000006D</code> 是登录失败的概括状态，<code>0xC000006A</code> 是密码不匹配子状态。登录类型 <code>2</code> 是交互式登录，<code>3</code> 是网络登录，<code>10</code> 是远程交互式登录。</p>
+        <p>本例两条失败事件发生于先前的向日葵操作，调用方为 <code>AweSun.exe</code>、类型为 <code>2</code>；不能把它们当成随后 RDP 尝试的密码错误证明。</p>
+        <h3>4.3 在目标电脑核对相同的 Windows 密码</h3>
+        <pre><code>runas /user:TARGET-PC\Administrator &quot;notepad.exe&quot;</code></pre>
+        <p>在目标电脑执行，按提示手动输入与 RDP 相同的 Windows 账号密码。现场记事本成功打开，因此密码可通过本机身份验证。<code>runas</code> 不验证 RDP 登录权限，也不等于 NLA 或网络认证一定正常；PIN、向日葵密码和 Windows 账户密码也不可混用。</p>
+        <h3>4.4 核对 NLA、TLS 和 NTLM 参数</h3>
+        <pre><code>Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0' |
+    Format-List RestrictReceivingNTLMTraffic, NtlmMinServerSec, NtlmMinClientSec
+
+Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' |
+    Format-List UserAuthentication, SecurityLayer, MinEncryptionLevel</code></pre>
+        <p>现场读到 <code>UserAuthentication=1</code>（启用 NLA）、<code>SecurityLayer=2</code>（要求 TLS）、<code>MinEncryptionLevel=2</code>；NTLM 最低会话安全的客户端及服务端值均为 <code>536870912</code>（<code>0x20000000</code>）。该数值表示要求 128 位会话安全，不等于“禁用 NTLM”。</p>
+        <p>独立 TLS 检测成功协商 <code>Tls12</code>，加密套件为 <code>TLS_RSA_WITH_AES_256_GCM_SHA384</code>；证书主题与目标计算机名一致且在有效期内。诊断期间未导入证书或改变信任存储。独立探测使用当次证书指纹校验，它不能证明系统已建立正常的 CA 信任，更不能证明 RDP 登录成功。</p>
+        <h3>4.5 从远程管理与 SMB 获取 Guest 线索</h3>
+        <p>管理端口探测得到 <code>135</code>、<code>445</code> 可连接，<code>5985</code>、<code>5986</code> 超时。尝试读取远程日志时提示“出现了特定的安全程序包错误”；针对 <code>IPC$</code> 的一次临时网络认证测试又返回：</p>
+        <pre><code>SMB_AUTH_RESULT=1272
+你不能访问此共享文件夹，因为你组织的安全策略阻止未经身份验证的来宾访问。</code></pre>
+        <p><strong>1272 与来宾访问提示</strong>是下一步检查网络账户映射模式的关键线索。上述管理协议测试只是现场取证，不要求所有读者为了排查而开放更多网络管理端口。</p>
+        <h3>4.6 读取 ForceGuest 与认证组件配置</h3>
+        <pre><code>Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' |
+    Format-List forceguest, LmCompatibilityLevel, 'Security Packages', 'Authentication Packages'
+
+Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders' |
+    Format-List SecurityProviders</code></pre>
+        <p>目标电脑明确返回 <code>forceguest : 1</code>，与此同时其他组件字段有的为空。字段不显示不能直接说明 DLL 损坏；本次没有擅自改写 <code>Security Packages</code>、<code>Authentication Packages</code> 或 <code>SecurityProviders</code>。</p>
+      </section>
+
+      <section>
+        <h2>5. 实际修复：ForceGuest 从 1 改为 0</h2>
+        <div class="article-table-scroll"><table><thead><tr><th>配置项</th><th>实际操作</th></tr></thead><tbody><tr><td>位置</td><td>目标电脑的管理员 PowerShell</td></tr><tr><td>注册表项</td><td><code>HKLM:\SYSTEM\CurrentControlSet\Control\Lsa</code></td></tr><tr><td>键与类型</td><td><code>forceguest</code>，<code>REG_DWORD</code></td></tr><tr><td>原值</td><td><code>1</code> = Guest only（本地网络账号按 Guest 映射）</td></tr><tr><td>新值</td><td><code>0</code> = Classic（本地账号按自身身份进行网络认证）</td></tr><tr><td>重启情况</td><td>没有因本项修改重启电脑，也没有重启 RDP 服务</td></tr></tbody></table></div>
+        <p>只在确认现场存在与 Guest 映射一致的异常、了解共享策略影响后执行。先读取并记录原值：</p>
+        <pre><code>$lsa = 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa'
+$original = Get-ItemPropertyValue -LiteralPath $lsa -Name forceguest -ErrorAction Stop
+Write-Host &quot;原始 ForceGuest 值: $original&quot;
+
+# 经评估确认适用后才执行：
+Set-ItemProperty -LiteralPath $lsa -Name forceguest -Value 0
+Get-ItemPropertyValue -LiteralPath $lsa -Name forceguest</code></pre>
+        <p>现场修改后读回结果为 <code>0</code>。随后重新建立 RDP 连接；该设置变更没有要求重新配置证书、降低 TLS 安全层或禁用 NLA。</p>
+        <div class="article-warning"><strong>影响范围：</strong>从 Guest only 改为 Classic，会改变本地账号用于网络共享/管理访问时的身份与权限判断。如果这是组织策略管理的机器，必须先确认策略来源与合规要求；修改可能随后被组策略重新覆盖。</div>
+      </section>
+
+      <section>
+        <h2>6. 修复完成后的多重验证</h2>
+        <p>不能只靠注册表读回 <code>0</code> 就宣布成功。本次按“网络管理认证 → RDP 客户端 → 真实桌面 → 服务器日志”顺序交叉验证。</p>
+        <ol>
+          <li><strong>远程日志可读：</strong>修改前的安全程序包错误没有再次出现；使用相同凭据成功读取远程 Security 和 RDP 事件日志。</li>
+          <li><strong>RDP 进入证书确认阶段：</strong>出现与目标计算机名对应的自签名证书警告；用户核对目标后手动确认。不能对任意未知证书警告直接点“是”。</li>
+          <li><strong>真正进入远程桌面：</strong>用户实际确认“已点击‘是’，进入了远程桌面”。</li>
+          <li><strong>服务器侧成功事件：</strong>取得事件 <code>1149</code>，时间为 <code>2026-10-19 10:28:17</code>，账号为 <code>Administrator</code>。</li>
+        </ol>
+        <p>复用时可在满足远程事件日志访问权限的条件下，使用交互式凭据查询 <code>1149</code>：</p>
+        <pre><code>$target = '192.0.2.219' # 替换为目标实际 IP
+$cred = Get-Credential -UserName 'TARGET-PC\Administrator'
+$end = Get-Date
+Get-WinEvent -ComputerName $target -Credential $cred -FilterHashtable @{
+    LogName   = 'Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational'
+    Id        = 1149
+    StartTime = $end.AddMinutes(-15)
+    EndTime   = $end
+} -MaxEvents 5 -ErrorAction Stop |
+    Select-Object TimeCreated, Id, Message | Format-List</code></pre>
+        <div class="article-table-scroll"><table><thead><tr><th>项目</th><th>修改前</th><th>修改后</th></tr></thead><tbody><tr><td>ForceGuest</td><td><code>1</code></td><td><code>0</code></td></tr><tr><td>本地账号验证</td><td>成功</td><td>没有改密码</td></tr><tr><td>SMB 临时认证</td><td><code>1272</code></td><td>未单独复测，不宣称已验证成功</td></tr><tr><td>远程日志读取</td><td>安全程序包错误</td><td>成功</td></tr><tr><td>RDP 登录</td><td>LSA 错误</td><td>证书确认后成功进入桌面</td></tr><tr><td>服务器事件</td><td>未取得本次认证成功记录</td><td>取得 <code>1149</code> 成功事件</td></tr><tr><td>重启后的持久性</td><td>未检查</td><td>未进行持久性验证</td></tr></tbody></table></div>
+        <p>单独的 <code>1149</code> 不能替代桌面实际可用的确认；反之，仅仅出现证书确认窗口也不能宣称已进入远程桌面。本例二者都有对应证据。</p>
+      </section>
+
+      <section>
+        <h2>7. 推荐复用的排查顺序</h2>
+        <ol>
+          <li><strong>确认地址与账号范围：</strong>区分本地账号、域账号、PIN 和其他远控软件密码。</li>
+          <li><strong>检查网络及 TCP 3389：</strong>端口不通优先查服务、防火墙、路由；端口通才进入认证排查。</li>
+          <li><strong>复现并记时：</strong>记录精确时间和完整错误；客户端与目标事件日志限定同一个时间窗口。</li>
+          <li><strong>确认日志归属：</strong>检查调用进程、登录类型、账号域和来源，避免将其他软件的 <code>4625</code> 混入 RDP。</li>
+          <li><strong>验证相同的 Windows 密码：</strong>有条件时在目标机器通过 <code>runas</code> 验证，不要看到“可能过期”就先重置。</li>
+          <li><strong>核对 NLA、TLS、NTLM：</strong>区分客户端错误文本和实际 TLS 协商能力，不要直接降低加密要求。</li>
+          <li><strong>发现 Guest 线索再读取 ForceGuest：</strong>结合 <code>1272</code> 或同类网络认证异常，而不是所有 RDP 故障一律修改。</li>
+          <li><strong>记录原值、只改必要项目：</strong>在设备策略允许的情况下切到 Classic，重新连接。</li>
+          <li><strong>以桌面可用为验收：</strong>核验证书、真实登录结果与服务器端身份验证事件。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. 避免的误判与技术边界</h2>
+        <ul>
+          <li><strong>密码过期：</strong>Windows 提示是可能原因，不能取代密码验证；本次没有密码重置。</li>
+          <li><strong>4625 事件归因：</strong>向日葵发起的旧交互式失败，不等于这次 RDP 的失败。</li>
+          <li><strong>SSL/TLS 错误：</strong>客户端的概括性协商错误与独立 TLS 1.2 握手成功可以同时存在。</li>
+          <li><strong>日志空输出：</strong>可能来自没有事件、权限、筛选条件或错误抑制，不能直接判断组件损坏。</li>
+          <li><strong>时间异常：</strong>曾遇到本机日志中的未来时间记录，因此查询须设置 <code>StartTime</code>、<code>EndTime</code> 并校对时钟。</li>
+          <li><strong>ForceGuest 的适用边界：</strong>本案例没有 CredSSP/NTLM 内部流程抓包，也没有回滚复现；保留“实际恢复成功”和“底层因果链不完全证明”的区分。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>9. 回滚与复发处理</h2>
+        <p>本案例的原值是 <code>1</code>。只有经确认需要恢复该机器先前的 Guest 网络共享模型时，才执行以下回滚；这<strong>不是</strong>修复后必须完成的收尾步骤：</p>
+        <pre><code>$lsa = 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa'
+Set-ItemProperty -LiteralPath $lsa -Name forceguest -Value 1
+Get-ItemPropertyValue -LiteralPath $lsa -Name forceguest</code></pre>
+        <p>如果故障重现，首先确认该值是否被管理工具或组策略恢复；若依然为 <code>0</code>，应重新获取新的报错和日志证据，不要重复“改成 0”来代替诊断。此次未确认原值由谁配置、未进行回滚重现，也未进行重启后的持久性验证。</p>
+      </section>
+
+      <section>
+        <h2>10. 参考资料</h2>
+        <p>以下是原始排障记录用于核对策略语义与日志字段的 Microsoft 文档；现场故障和实际修复结果来自本次调试操作，并非官方文档对该特定故障因果链的保证。</p>
+        <ol>
+          <li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-access-sharing-and-security-model-for-local-accounts" target="_blank" rel="noopener noreferrer">微软：本地账号的共享和安全模型</a></li>
+          <li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4625" target="_blank" rel="noopener noreferrer">微软：Windows 安全事件 4625</a></li>
+          <li><a href="https://learn.microsoft.com/en-us/troubleshoot/windows-server/shell-experience/use-run-as-start-app-admin" target="_blank" rel="noopener noreferrer">微软：Run as 使用方式</a></li>
+          <li><a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-minimum-session-security-for-ntlm-ssp-based-including-secure-rpc-servers" target="_blank" rel="noopener noreferrer">微软：NTLM SSP 最低会话安全</a></li>
+          <li><a href="https://learn.microsoft.com/en-us/windows/win32/termserv/win32-tsgeneralsetting" target="_blank" rel="noopener noreferrer">微软：Terminal Services 通用设置</a></li>
+          <li><a href="https://learn.microsoft.com/en-us/windows/win32/termserv/win32-tsgeneralsetting-setsecuritylayer" target="_blank" rel="noopener noreferrer">微软：SetSecurityLayer 方法</a></li>
+          <li><a href="https://learn.microsoft.com/en-us/azure/osconfig/server2025machineconfigdoc" target="_blank" rel="noopener noreferrer">微软：安全基线注册表映射</a></li>
+        </ol>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html#host-tools/debug-config">返回调试与配置工具专题</a>
+      </div>
+    </article>
+  </main>
+  <script src="../../../../assets/js/main.js?v=7d4d6e9cd35b"></script>
+</body>
+</html>
