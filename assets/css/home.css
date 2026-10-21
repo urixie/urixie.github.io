@@ -28,6 +28,11 @@
   border-radius: 24px;
 }
 
+/* 无二级目录的页面（如“关于本站”）通过 hidden 隐藏二级侧栏；更高的特异性确保它不被 display:flex 覆盖。 */
+.secondary-sidebar[hidden] {
+  display: none;
+}
+
 .profile-compact-avatar {
   overflow: hidden;
 }
@@ -109,7 +114,7 @@
 
 .secondary-nav-title {
   color: var(--text);
-  font-size: 12.6px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -118,7 +123,7 @@
   flex: 0 0 auto;
   color: var(--weak);
   font-family: Consolas, "JetBrains Mono", monospace;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .secondary-nav-button.active .secondary-nav-count {
@@ -199,7 +204,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 14px;
+  gap: 12px;
   margin-left: -4px;
   min-width: 0;
 }
@@ -207,12 +212,12 @@
 .profile-compact-avatar {
   flex: 0 0 auto;
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: 76px;
+  height: 76px;
   margin: 0;
   padding: 3px;
   border: 1px solid rgba(0, 230, 118, 0.48);
-  border-radius: 28px;
+  border-radius: 22px;
   background:
     linear-gradient(145deg, rgba(0, 230, 118, 0.5), rgba(125, 211, 252, 0.32)) border-box,
     rgba(17, 24, 34, 0.86);
@@ -225,7 +230,7 @@
   content: "";
   position: absolute;
   inset: 3px;
-  border-radius: 24px;
+  border-radius: 18px;
   pointer-events: none;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
@@ -234,7 +239,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 24px;
+  border-radius: 18px;
   object-fit: cover;
 }
 
@@ -255,7 +260,7 @@
 .profile-compact .profile-summary {
   margin: 6px 0 0;
   color: #aeb8c5;
-  font-size: 9.6px;
+  font-size: 12px;
   line-height: 1.55;
   text-align: left;
   text-indent: 0;
@@ -303,7 +308,6 @@
 
 .primary-nav {
   margin-top: 22px;
-  max-height: calc(100dvh - 405px);
   gap: 8px;
 }
 
@@ -332,7 +336,7 @@
 .primary-nav-title {
   min-width: 0;
   color: var(--text);
-  font-size: 12.6px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.01em;
@@ -345,7 +349,7 @@
   border-radius: 999px;
   color: var(--weak);
   background: rgba(125, 211, 252, 0.035);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -377,21 +381,6 @@
   .primary-sidebar {
     padding: 24px 12px;
   }
-
-  .profile-compact-avatar {
-    width: 86px;
-    height: 86px;
-    border-radius: 25px;
-  }
-
-  .profile-compact-avatar img,
-  .profile-compact-avatar::after {
-    border-radius: 21px;
-  }
-
-  .primary-nav {
-    max-height: calc(100dvh - 370px);
-  }
 }
 
 @media (max-width: 900px) {
@@ -422,6 +411,16 @@
   .secondary-nav-button {
     flex: 0 0 auto;
     min-width: 156px;
+    scroll-snap-align: start;
+  }
+
+  /* 分类卡片保持固定宽度横向滑动，避免被压成窄条后文章标题被截断。 */
+  .secondary-nav {
+    align-items: flex-start;
+  }
+
+  .secondary-nav-card {
+    flex: 0 0 min(78vw, 288px);
     scroll-snap-align: start;
   }
 
@@ -479,8 +478,8 @@
 
   .profile-compact .profile-summary {
     margin-top: 6px;
-    font-size: 8.8px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.45;
     text-align: left;
   }
 
@@ -541,7 +540,7 @@
   }
 
   .secondary-nav-count {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .section-title {
@@ -687,8 +686,9 @@
     max-height: none;
   }
 
+  /* min(…, 100%) 防止 901–1179px 下 211px 宽的侧栏里列最小宽度超出容器、文章按钮被右侧裁切。 */
   .secondary-article-list {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   }
 }
 
@@ -768,7 +768,8 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 8px 24px 0;
+  /* 左右留白 = (面板宽 − 46rem) / 2：正文列最宽约 46 个汉字并居中，滚动条仍贴面板右缘；窄屏下回落为 0 / 8px。 */
+  padding: 0 max(8px, calc((100% - 46rem) / 2)) 24px max(0px, calc((100% - 46rem) / 2));
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 230, 118, 0.36) rgba(255, 255, 255, 0.04);
 }
@@ -804,19 +805,39 @@
 
 @media (max-width: 980px) {
   .inline-article-reader {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
 
   .inline-section-nav {
     max-height: none;
     overflow: visible;
+    padding: 10px;
+  }
+
+  /* 章节目录收成横向滑动的一行标签，避免手机上 10 多个按钮竖排占满首屏。 */
+  .inline-section-nav-title {
+    display: none;
   }
 
   .inline-section-list {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    display: flex;
+    gap: 8px;
     max-height: none;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .inline-section-button {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 78vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    scroll-snap-align: start;
   }
 
   .inline-section-content {
@@ -843,6 +864,26 @@
   .primary-sidebar {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
+  }
+
+  /* 一级侧栏：个人信息保持原高，导航区占满剩余高度并自行滚动，不再依赖写死的 calc(100dvh - N) 高度。 */
+  .primary-sidebar-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .primary-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: start;
+    grid-auto-rows: max-content;
+  }
+
+  .sidebar-footer {
+    flex: 0 0 auto;
+    padding-top: 12px;
   }
 
   .secondary-sidebar {
@@ -891,6 +932,29 @@
 
   .home-content {
     margin-left: 20px;
+  }
+}
+
+/* 矮屏（笔记本 1366×768 等）：压缩一级侧栏的内边距和按钮高度，让 10 个一级入口尽量完整显示。 */
+@media (min-width: 901px) and (max-height: 820px) {
+  .primary-sidebar {
+    padding-top: 18px;
+    padding-bottom: 14px;
+  }
+
+  .profile-compact {
+    padding-bottom: 14px;
+  }
+
+  .primary-nav {
+    margin-top: 14px;
+    gap: 6px;
+  }
+
+  .primary-nav-button {
+    min-height: 40px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
 }
 
@@ -1035,5 +1099,48 @@
     padding-left: 0;
     padding-right: 0;
     column-gap: clamp(18px, 2.4vw, 32px);
+  }
+}
+
+/* 981–1179px：三栏导航已占去大半宽度，章节目录改为正文上方的横向标签行，把宽度还给正文。 */
+@media (min-width: 981px) and (max-width: 1179px) {
+  .inline-article-reader {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    row-gap: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .inline-section-nav {
+    height: auto;
+    max-height: none;
+    padding: 10px;
+    border-top-left-radius: 18px;
+    border-bottom-left-radius: 18px;
+  }
+
+  .inline-section-nav-title {
+    display: none;
+  }
+
+  .inline-section-list {
+    display: flex;
+    gap: 8px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .inline-section-button {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 60vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    scroll-snap-align: start;
   }
 }

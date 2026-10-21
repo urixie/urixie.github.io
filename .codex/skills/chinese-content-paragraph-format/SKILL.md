@@ -44,14 +44,14 @@ description: 中文内容段落排版规范。用于静态网页、技术文章�
 
 ```css
 text-indent: 2em;
-text-align: justify;
+text-align: left;
 overflow-wrap: break-word;
 ```
 
 其中：
 
 - `text-indent: 2em;` 表示首行缩进两个中文字符。
-- `text-align: justify;` 用于优化中文段落两端对齐效果。
+- `text-align: left;` 使用左对齐。中英文混排（如 `ARM`、`Cortex-M3`）时，`justify` 会把字距拉得忽大忽小，因此本站不使用两端对齐。
 - `overflow-wrap: break-word;` 用于避免长英文、路径、型号字符串撑破布局。
 
 ## 注意事项
