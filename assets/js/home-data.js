@@ -780,11 +780,12 @@
               ]
             },
             {
-              "title": "Windows 10 任务栏时钟显示秒：开启、验证与恢复",
-              "desc": "记录 Windows 10 22H2 通过 ShowSecondsInSystemClock 开启任务栏秒数的方法，说明当前用户、资源管理器刷新、验证与恢复步骤。",
+              "title": "Windows 10 / 11 任务栏时钟显示秒：开启、验证与恢复",
+              "desc": "结合 Windows 10 22H2 与 Windows 11 25H2 的实际配置记录，整理任务栏秒数开关、图形设置、远程会话刷新、验证与恢复方法。",
               "href": "articles/host-tools/debug-config/windows-taskbar-clock-seconds/windows-taskbar-clock-seconds.html",
               "tags": [
                 "Windows 10",
+                "Windows 11",
                 "PowerShell",
                 "任务栏",
                 "注册表"

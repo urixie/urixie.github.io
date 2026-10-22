@@ -6,17 +6,17 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>Windows 10 任务栏时钟显示秒：开启、验证与恢复 - XYJ</title>
-  <meta name="description" content="记录 Windows 10 22H2 通过 ShowSecondsInSystemClock 开启任务栏秒数的方法，说明当前用户、资源管理器刷新、验证与恢复步骤。">
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=83647b70abcd">
+  <title>Windows 10 / 11 任务栏时钟显示秒：开启、验证与恢复 - XYJ</title>
+  <meta name="description" content="结合 Windows 10 22H2 与 Windows 11 25H2 的实际配置记录，整理任务栏秒数开关、图形设置、远程会话刷新、验证与恢复方法。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=14084871040f">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=83647b70abcd">← 返回首页</a>
-          <a href="../../../../index.html?v=83647b70abcd#host-tools/debug-config">返回对应专题</a>
+          <a href="../../../../index.html?v=14084871040f">← 返回首页</a>
+          <a href="../../../../index.html?v=14084871040f#host-tools/debug-config">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -25,14 +25,14 @@
 
     <article class="article card">
       <div class="post-meta">上位机与工具 · 调试与配置工具 · 2026-10-22</div>
-      <h1>Windows 10 任务栏时钟显示秒：开启、验证与恢复</h1>
-      <p class="article-summary">记录 Windows 10 22H2 通过 ShowSecondsInSystemClock 开启任务栏秒数的方法，说明当前用户、资源管理器刷新、验证与恢复步骤。</p>
+      <h1>Windows 10 / 11 任务栏时钟显示秒：开启、验证与恢复</h1>
+      <p class="article-summary">结合 Windows 10 22H2 与 Windows 11 25H2 的实际配置记录，整理任务栏秒数开关、图形设置、远程会话刷新、验证与恢复方法。</p>
 
       <section>
         <h2 id="scope">1. 适用环境与修改原理</h2>
-        <p>Windows 10 的任务栏时钟通常只显示小时和分钟。如果希望直接看到秒数，可以修改当前用户的 Explorer 配置，再刷新任务栏。本文记录一次 Windows 10 Education 22H2（构建 19045.6456）上的实际操作，执行环境为 PowerShell 7.6.5，整理日期为 2026 年 10 月 22 日。</p>
+        <p>Windows 10 的任务栏时钟通常只显示小时和分钟。如果希望直接看到秒数，可以修改当前用户的 Explorer 配置，再刷新任务栏。本文记录 Windows 10 Education 22H2（构建 19045.6456，PowerShell 7.6.5）与 Windows 11 25H2（构建 26200.8037）的实际配置，更新日期为 2026 年 10 月 22 日。Windows 11 远程配置过程及用户界面确认见第 8 节。</p>
         <p>本次修改的位置是 <code>HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced</code>，值名称为 <code>ShowSecondsInSystemClock</code>，类型为 <code>REG_DWORD</code>。将它设为 <code>1</code> 表示开启秒数，设为 <code>0</code> 表示关闭。该设置作用于对应用户，并不是整台电脑所有账号的统一开关。</p>
-        <div class="article-note"><strong>版本范围：</strong>以下注册表步骤以本次 Windows 10 22H2 操作为依据。Windows 11 用户可先查看文末的系统设置入口，不应假定所有 Windows 版本都采用完全相同的操作路径。</div>
+        <div class="article-note"><strong>版本范围：</strong>Windows 10 22H2 与 Windows 11 25H2 均在本次操作中写入了同名开关。Windows 11 用户也可优先使用第 8 节的系统设置入口；其他版本的界面位置及行为应以实际系统为准。</div>
       </section>
 
       <section>
@@ -75,7 +75,7 @@ if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue |
           Where-Object SessionId -eq $desktopSession)) {
     Start-Process -FilePath "$env:WINDIR\explorer.exe" -WindowStyle Hidden
 }</code></pre>
-        <p>该脚本适用于在目标桌面会话中直接运行的情况，不要原样用于服务、计划任务或其他用户的会话。若任务栏未恢复，可在任务管理器中选择“文件 → 运行新任务”，输入 <code>explorer.exe</code>。</p>
+        <p>该脚本适用于在目标桌面会话中直接运行的情况，不要原样用于 SSH、服务、计划任务或其他用户的会话。尤其不能假定 SSH 的会话就是桌面会话；远程刷新时的实际处理见第 8 节。若任务栏未恢复，可在任务管理器中选择“文件 → 运行新任务”，输入 <code>explorer.exe</code>。</p>
       </section>
 
       <section>
@@ -93,9 +93,9 @@ $desktopSession = (Get-Process -Id $PID).SessionId
             Where-Object SessionId -eq $desktopSession
     )
 } | ConvertTo-Json -Compress</code></pre>
-        <p>本次操作读回的结果如下，说明秒数开关已保存，且当前会话的资源管理器已恢复运行：</p>
+        <p>此前 Windows 10 操作读回的结果如下，说明秒数开关已保存，且当前会话的资源管理器已恢复运行：</p>
         <pre><code>{"ShowSecondsInSystemClock":1,"ExplorerRunning":true}</code></pre>
-        <p>最后检查右下角是否出现类似 <code>14:35:08</code> 的时间，并观察末尾秒数是否持续变化。本次操作记录保留了上述程序读回结果，没有采集时钟界面截图；实际显示效果仍以电脑上的观察为准。</p>
+        <p>最后检查右下角是否出现类似 <code>14:35:08</code> 的时间，并观察末尾秒数是否持续变化。Windows 10 操作记录保留了上述程序读回结果，没有采集时钟界面截图；该次实际显示效果仍以电脑上的观察为准。第 8 节的 Windows 11 操作则另有用户对界面的确认。</p>
       </section>
 
       <section>
@@ -115,7 +115,7 @@ $desktopSession = (Get-Process -Id $PID).SessionId
         <h2 id="user-context">6. 常见问题：命令成功了，为什么自己的时钟没变？</h2>
         <h3 id="wrong-user">6.1 HKCU 跟随执行账号</h3>
         <p><code>HKCU</code> 是 <code>HKEY_CURRENT_USER</code> 的简称，指运行命令的用户，而不是天然指向屏幕前正在使用电脑的人。自动化工具、沙盒、服务或切换账号运行的终端可能使用不同身份。</p>
-        <p>本次初次检查就在自动化沙盒中遇到 <code>Advanced</code> 路径不存在；确认执行身份与桌面用户不同后，改为在实际登录用户上下文写入配置，随后成功读回 <code>1</code>。复用方法时，可以先执行以下只读命令，核对是否为预期的桌面账号：</p>
+        <p>此前 Windows 10 初次检查就在自动化沙盒中遇到 <code>Advanced</code> 路径不存在；确认执行身份与桌面用户不同后，改为在实际登录用户上下文写入配置，随后成功读回 <code>1</code>。复用方法时，可以先执行以下只读命令，核对是否为预期的桌面账号：</p>
         <pre><code>[System.Security.Principal.WindowsIdentity]::GetCurrent().Name</code></pre>
         <h3 id="still-hidden">6.2 数值正确，但任务栏仍未更新</h3>
         <ul>
@@ -140,18 +140,41 @@ Remove-ItemProperty -LiteralPath $clockPath -Name ShowSecondsInSystemClock `
       </section>
 
       <section>
-        <h2 id="windows11">8. Windows 11 用户优先查看系统设置</h2>
+        <h2 id="windows11">8. Windows 11 25H2：设置入口与远程实测</h2>
+        <h3 id="windows11-settings">8.1 在目标桌面使用系统设置</h3>
         <p>微软当前的 Windows 11 帮助文档提供了图形界面入口：打开“设置 → 时间和语言 → 日期和时间”，找到系统托盘中的时间和日期选项，并勾选“在系统托盘时钟中显示秒数（耗电更多）”。具体位置和中文名称可能随版本变化，可在设置中搜索“秒”。参见 <a href="https://support.microsoft.com/en-us/windows/experience/personalization/customize-the-taskbar-in-windows" target="_blank" rel="noopener noreferrer">Microsoft Support：自定义 Windows 任务栏</a>中的 Windows 11 说明。</p>
-        <p>这部分是官方文档提供的另一个版本入口，本次没有在 Windows 11 实机上验证。本文的实际配置及资源管理器读回记录来自前述 Windows 10 22H2 电脑。</p>
+        <p>本次 Windows 11 实测采用下述 SSH 与注册表方式，没有操作上述图形设置开关，因此两种操作路径的证据分开记录。</p>
+        <h3 id="windows11-remote">8.2 通过 SSH 核对版本与用户</h3>
+        <p>目标是 Windows 11 25H2，完整构建号为 <code>26200.8037</code>。已使用用户授权的 SSH 服务登录；SSH 执行身份与目标桌面的登录账号一致。为保护隐私，本文不公开实际连接地址、计算机名、账号、SID 或密码。</p>
+        <p>以下命令在目标主机的 <strong>cmd 命令环境</strong>中执行，用来核对系统版本、用户和桌面进程。SSH 客户端可以从本地 PowerShell 发起，但连接后的默认命令环境取决于目标主机配置。</p>
+        <pre><code>ver
+whoami
+query session
+tasklist /FI "IMAGENAME eq explorer.exe" /V /FO CSV
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v DisplayVersion
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v UBR</code></pre>
+        <p>现场输出表明：SSH 命令位于 <code>services / Session 0</code>，用户桌面位于 <code>Console / Session 1</code>。虽然账号相同，两者仍然是不同会话。刷新任务栏时必须针对实际桌面会话，不能把 SSH 中直接启动的新进程视为桌面任务栏已经恢复。</p>
+        <h3 id="windows11-registry">8.3 开启当前用户的秒数开关</h3>
+        <p>修改前，目标用户的 <code>ShowSecondsInSystemClock</code> 值不存在。确认执行账号正确后，使用 Windows 原生的 <code>reg.exe</code> 创建开关：</p>
+        <pre><code>reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowSecondsInSystemClock
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowSecondsInSystemClock /t REG_DWORD /d 1 /f
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowSecondsInSystemClock</code></pre>
+        <p>最后一次读取返回：</p>
+        <pre><code>ShowSecondsInSystemClock    REG_DWORD    0x1</code></pre>
+        <p>这条命令与前文 PowerShell 的注册表操作作用相同。本次远程操作使用原生命令完成，不依赖目标电脑安装 PowerShell 7。</p>
+        <h3 id="windows11-session">8.4 恢复桌面任务栏并确认秒数</h3>
+        <p>本次结束目标用户桌面会话中的资源管理器后，进程没有自动恢复。因此不能只执行结束进程命令就宣布完成，也不建议把远程强行结束 Explorer 作为普通用户的首选操作。有人可以操作目标桌面时，优先通过任务管理器的“重新启动”完成刷新。</p>
+        <p>现场通过一个临时的任务计划程序任务，使用目标用户已有的交互式登录令牌（<code>InteractiveToken</code>），在原来的 <code>Console / Session 1</code> 中重新启动 <code>explorer.exe</code>。没有为任务保存密码。随后重新查询，确认资源管理器属于同一桌面用户、位于原来的桌面会话，且秒数开关依然为 <code>1</code>。恢复用的临时任务和配置文件均已清理。</p>
+        <p><strong>最终界面确认：</strong>用户在目标 Windows 11 桌面检查后确认，右下角时钟已经可以显示秒数。本次 Windows 11 记录同时具备配置读回、桌面进程恢复与用户界面确认。</p>
+        <p>如需撤销本次 Windows 11 修改，可按第 7 节删除原先不存在的该值，再通过目标桌面刷新任务栏。只想关闭秒数时，也可将其设为 <code>0</code>；不要删除整个 <code>Advanced</code> 项。</p>
       </section>
 
-
       <div class="article-footer">
-        <a href="../../../../index.html?v=83647b70abcd#host-tools/debug-config">返回对应专题</a>
+        <a href="../../../../index.html?v=14084871040f#host-tools/debug-config">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=83647b70abcd"></script>
+  <script src="../../../../assets/js/main.js?v=14084871040f"></script>
 </body>
 </html>
