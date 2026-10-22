@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Windows 10 任务栏时钟显示秒：开启、验证与恢复 - XYJ</title>
+  <meta name="description" content="记录 Windows 10 22H2 通过 ShowSecondsInSystemClock 开启任务栏秒数的方法，说明当前用户、资源管理器刷新、验证与恢复步骤。">
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=8ffc5b51961c">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=8ffc5b51961c">← 返回首页</a>
+          <a href="../../../../index.html?v=8ffc5b51961c#host-tools/debug-config">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <div class="post-meta">上位机与工具 · 调试与配置工具 · 2026-10-22</div>
+      <h1>Windows 10 任务栏时钟显示秒：开启、验证与恢复</h1>
+      <p class="article-summary">记录 Windows 10 22H2 通过 ShowSecondsInSystemClock 开启任务栏秒数的方法，说明当前用户、资源管理器刷新、验证与恢复步骤。</p>
+
+      <section>
+        <h2 id="scope">1. 适用环境与修改原理</h2>
+        <p>Windows 10 的任务栏时钟通常只显示小时和分钟。如果希望直接看到秒数，可以修改当前用户的 Explorer 配置，再刷新任务栏。本文记录一次 Windows 10 Education 22H2（构建 19045.6456）上的实际操作，执行环境为 PowerShell 7.6.5，整理日期为 2026 年 10 月 22 日。</p>
+        <p>本次修改的位置是 <code>HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced</code>，值名称为 <code>ShowSecondsInSystemClock</code>，类型为 <code>REG_DWORD</code>。将它设为 <code>1</code> 表示开启秒数，设为 <code>0</code> 表示关闭。该设置作用于对应用户，并不是整台电脑所有账号的统一开关。</p>
+        <div class="article-note"><strong>版本范围：</strong>以下注册表步骤以本次 Windows 10 22H2 操作为依据。Windows 11 用户可先查看文末的系统设置入口，不应假定所有 Windows 版本都采用完全相同的操作路径。</div>
+      </section>
+
+      <section>
+        <h2 id="enable">2. 使用 PowerShell 开启秒数</h2>
+        <p>在需要显示秒数的那个 Windows 账号下打开 PowerShell。修改当前用户配置通常不需要管理员权限；不要为了执行命令切换到另一个管理员账号，否则修改的可能是另一个用户的配置。</p>
+        <h3 id="read-original">2.1 先查看并记录原值</h3>
+        <pre><code>$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$clockName = 'ShowSecondsInSystemClock'
+
+# 先确认 Explorer 配置项存在
+Test-Path -LiteralPath $clockPath
+
+# 记录原值；如果提示找不到该属性，记录为“原先不存在”
+Get-ItemPropertyValue -LiteralPath $clockPath -Name $clockName</code></pre>
+        <p>如果路径存在、但没有该属性，可以继续创建它。如果连整个 <code>Advanced</code> 路径都不存在，应先核对执行账号和运行环境，不要立即在陌生账号下新建整套 Explorer 配置。</p>
+        <h3 id="write-value">2.2 创建或覆盖秒数开关</h3>
+        <pre><code>$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$clockName = 'ShowSecondsInSystemClock'
+
+New-ItemProperty -LiteralPath $clockPath -Name $clockName `
+    -PropertyType DWord -Value 1 -Force -ErrorAction Stop | Out-Null
+
+Get-ItemPropertyValue -LiteralPath $clockPath -Name $clockName</code></pre>
+        <p>最后一行应输出 <code>1</code>。<code>New-ItemProperty</code> 可以创建注册表值，<code>-Force</code> 允许覆盖已有值；这避免了“该值尚不存在，直接修改失败”的情况。相关命令语义可参考 <a href="https://learn.microsoft.com/en-us/powershell/scripting/samples/working-with-registry-entries?view=powershell-7.6" target="_blank" rel="noopener noreferrer">Microsoft Learn：使用注册表项</a>。</p>
+      </section>
+
+      <section>
+        <h2 id="refresh">3. 刷新任务栏，让设置生效</h2>
+        <p>设置写入后，任务栏可能仍沿用原来的显示状态。本次通过重启当前登录会话中的 Windows 资源管理器应用配置，没有为此重启整台电脑。</p>
+        <p>手动操作更容易观察：按 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Esc</kbd> 打开任务管理器，在“进程”中找到“Windows 资源管理器”，选中后点击“重新启动”。桌面和任务栏会短暂消失后恢复。</p>
+        <div class="article-warning"><strong>刷新前：</strong>先等待资源管理器中的文件复制、移动等操作结束。重启资源管理器可能关闭文件夹窗口；它刷新的是桌面和任务栏的外壳进程。</div>
+        <p>需要用命令完成时，可在当前桌面会话的 PowerShell 中执行以下脚本。它只筛选与当前 PowerShell 相同会话的 <code>explorer.exe</code>，并在未自动恢复时启动资源管理器：</p>
+        <pre><code>$desktopSession = (Get-Process -Id $PID).SessionId
+Get-Process -Name explorer -ErrorAction SilentlyContinue |
+    Where-Object SessionId -eq $desktopSession |
+    Stop-Process -Force -ErrorAction Stop
+
+Start-Sleep -Seconds 2
+if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue |
+          Where-Object SessionId -eq $desktopSession)) {
+    Start-Process -FilePath "$env:WINDIR\explorer.exe" -WindowStyle Hidden
+}</code></pre>
+        <p>该脚本适用于在目标桌面会话中直接运行的情况，不要原样用于服务、计划任务或其他用户的会话。若任务栏未恢复，可在任务管理器中选择“文件 → 运行新任务”，输入 <code>explorer.exe</code>。</p>
+      </section>
+
+      <section>
+        <h2 id="verify">4. 分两步验证结果</h2>
+        <p>先验证配置是否保存，再观察右下角时钟。注册表值为 <code>1</code> 只说明配置写入完成，并不能代替界面验收。</p>
+        <pre><code>$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$desktopSession = (Get-Process -Id $PID).SessionId
+
+[pscustomobject]@{
+    ShowSecondsInSystemClock = (
+        Get-ItemPropertyValue -LiteralPath $clockPath -Name ShowSecondsInSystemClock
+    )
+    ExplorerRunning = [bool](
+        Get-Process -Name explorer -ErrorAction SilentlyContinue |
+            Where-Object SessionId -eq $desktopSession
+    )
+} | ConvertTo-Json -Compress</code></pre>
+        <p>本次操作读回的结果如下，说明秒数开关已保存，且当前会话的资源管理器已恢复运行：</p>
+        <pre><code>{"ShowSecondsInSystemClock":1,"ExplorerRunning":true}</code></pre>
+        <p>最后检查右下角是否出现类似 <code>14:35:08</code> 的时间，并观察末尾秒数是否持续变化。本次操作记录保留了上述程序读回结果，没有采集时钟界面截图；实际显示效果仍以电脑上的观察为准。</p>
+      </section>
+
+      <section>
+        <h2 id="manual">5. 不使用命令：通过注册表编辑器设置</h2>
+        <ol>
+          <li>在需要修改的用户桌面按 <kbd>Win</kbd> + <kbd>R</kbd>，输入 <code>regedit</code> 并打开注册表编辑器。</li>
+          <li>在地址栏输入下方路径，回车进入。</li>
+          <li>在右侧找到 <code>ShowSecondsInSystemClock</code>；不存在时，新建“DWORD（32 位）值”并使用该名称。即使系统是 64 位，这里的值类型仍选 DWORD（32 位）。</li>
+          <li>先记下原值，再把数值数据改为 <code>1</code>，点击确定。</li>
+          <li>按上一节方法重新启动 Windows 资源管理器，再观察任务栏时钟。</li>
+        </ol>
+        <pre><code>HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced</code></pre>
+        <p>这里操作的是与 PowerShell 方法相同的配置，无需将两种方法各执行一遍。如果通过输入另一个账号的凭据打开编辑器，也要核对其 <code>HKEY_CURRENT_USER</code> 是否仍对应目标用户。</p>
+      </section>
+
+      <section>
+        <h2 id="user-context">6. 常见问题：命令成功了，为什么自己的时钟没变？</h2>
+        <h3 id="wrong-user">6.1 HKCU 跟随执行账号</h3>
+        <p><code>HKCU</code> 是 <code>HKEY_CURRENT_USER</code> 的简称，指运行命令的用户，而不是天然指向屏幕前正在使用电脑的人。自动化工具、沙盒、服务或切换账号运行的终端可能使用不同身份。</p>
+        <p>本次初次检查就在自动化沙盒中遇到 <code>Advanced</code> 路径不存在；确认执行身份与桌面用户不同后，改为在实际登录用户上下文写入配置，随后成功读回 <code>1</code>。复用方法时，可以先执行以下只读命令，核对是否为预期的桌面账号：</p>
+        <pre><code>[System.Security.Principal.WindowsIdentity]::GetCurrent().Name</code></pre>
+        <h3 id="still-hidden">6.2 数值正确，但任务栏仍未更新</h3>
+        <ul>
+          <li>确认刷新的是目标桌面会话的资源管理器。</li>
+          <li>确认数值名称拼写正确、类型是 <code>REG_DWORD</code>、数值为 <code>1</code>。</li>
+          <li>如果安装了第三方任务栏或外壳工具，应检查该工具自己的时钟选项。</li>
+          <li>刷新后仍不生效时，保存工作后注销并重新登录，或重启电脑，再观察效果。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 id="restore">7. 关闭秒数，或恢复原来的配置</h2>
+        <p>如果只是想关闭秒数，将值设为 <code>0</code>，然后重新启动 Windows 资源管理器：</p>
+        <pre><code>$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+New-ItemProperty -LiteralPath $clockPath -Name ShowSecondsInSystemClock `
+    -PropertyType DWord -Value 0 -Force | Out-Null</code></pre>
+        <p>如果修改前该值不存在，希望恢复到“没有显式设置此项”的状态，可以删除这个值，再刷新资源管理器。只删除指定值，不删除整个 <code>Advanced</code> 项：</p>
+        <pre><code>$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+Remove-ItemProperty -LiteralPath $clockPath -Name ShowSecondsInSystemClock `
+    -ErrorAction Stop</code></pre>
+        <p>若修改前已经有值，应恢复为事先记录的原值。上述两种恢复方式按实际情况选择一种即可。</p>
+      </section>
+
+      <section>
+        <h2 id="windows11">8. Windows 11 用户优先查看系统设置</h2>
+        <p>微软当前的 Windows 11 帮助文档提供了图形界面入口：打开“设置 → 时间和语言 → 日期和时间”，找到系统托盘中的时间和日期选项，并勾选“在系统托盘时钟中显示秒数（耗电更多）”。具体位置和中文名称可能随版本变化，可在设置中搜索“秒”。参见 <a href="https://support.microsoft.com/en-us/windows/experience/personalization/customize-the-taskbar-in-windows" target="_blank" rel="noopener noreferrer">Microsoft Support：自定义 Windows 任务栏</a>中的 Windows 11 说明。</p>
+        <p>这部分是官方文档提供的另一个版本入口，本次没有在 Windows 11 实机上验证。本文的实际配置及资源管理器读回记录来自前述 Windows 10 22H2 电脑。</p>
+      </section>
+
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=8ffc5b51961c#host-tools/debug-config">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=8ffc5b51961c"></script>
+</body>
+</html>

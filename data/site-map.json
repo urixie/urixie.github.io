@@ -776,6 +776,17 @@
               "VS Code",
               "远程调试"
             ]
+          },
+          {
+            "navTitle": "Windows 10 任务栏时钟显示秒：开启、验证与恢复",
+            "navDesc": "记录 Windows 10 22H2 通过 ShowSecondsInSystemClock 开启任务栏秒数的方法，说明当前用户、资源管理器刷新、验证与恢复步骤。",
+            "href": "articles/host-tools/debug-config/windows-taskbar-clock-seconds/windows-taskbar-clock-seconds.html",
+            "tags": [
+              "Windows 10",
+              "PowerShell",
+              "任务栏",
+              "注册表"
+            ]
           }
         ]
       }
