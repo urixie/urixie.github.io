@@ -34,7 +34,7 @@
 <h2>1. 目标、适用范围与实验环境</h2>
 
 <p>本文整理一例 RK3568 嵌入式 Linux 设备的无线网络共享实践：<strong>同一物理无线设备同时作为 STA 接入现有 Wi‑Fi，又作为 AP 对外提供热点，并使用 IPv4 NAT 让下游设备上网</strong>。重点是无线并发能力、NetworkManager 共享模式、厂商内核 NAT 兼容、断线自恢复和远程配置回退。</p>
-<div class="article-note">公开版已将原始 SSID、热点密码、静态内网地址、设备 MAC/BSSID、SSH 指纹、主机名、连接 UUID、个人目录和执行日志中的终端身份全部移除。本文中的 Example 名称与 192.168.50.0/24 均为<strong>演示值</strong>，并非现场原始配置。</div>
+<div class="article-note">公开版已将原始 SSID、热点密码、静态内网地址、设备 MAC/BSSID、SSH 指纹、主机名、连接 UUID、个人目录和执行日志中的终端身份全部移除。本文中的 Example 名称与 192.168.77.0/24 均为<strong>演示值</strong>，并非现场原始配置。</div>
 <table><thead><tr><th>项目</th><th>记录</th></tr></thead><tbody>
 <tr><td>开发板</td><td>RK3568 ARM64 开发板</td></tr>
 <tr><td>操作系统</td><td>Ubuntu 22.04 LTS / Linux 5.10.160 厂商内核</td></tr>
@@ -56,12 +56,12 @@
   ▼
 RK3568 / 一张无线设备（phy0）
   ├─ wlan0     ：上游 STA（由现有连接分配地址）
-  ├─ wlan1     ：下游 AP（示例 192.168.50.1/24）
+  ├─ wlan1     ：下游 AP（示例 192.168.77.1/24）
   ├─ DHCP/DNS  ：NetworkManager 调用 dnsmasq
   └─ IPv4 NAT  ：iptables-legacy MASQUERADE
        │
        └── 热点 Example-Relay
-              └── 手机、电脑等客户端（192.168.50.0/24）</code></pre>
+              └── 手机、电脑等客户端（192.168.77.0/24）</code></pre>
 <p>上图中 <code>wlan1</code> 是占位接口名：实际 AP 接口也可能是 <code>wlx...</code> 等。必须通过 <code>iw dev</code> 查明，不应照搬名称。此方案属于<strong>三层路由/NAT 共享</strong>，不是 WDS、Mesh 或二层透明桥接；热点客户端与上游 LAN 位于不同网段，上游设备通常无法主动访问热点客户端。</p>
 <p>本次只验证 IPv4；下游 AP 未启用 IPv6 转发。无线芯片在单频段、单信道下同时承担收发工作，吞吐量会受到空口共享影响。</p>
 
@@ -120,7 +120,7 @@ UPLINK_IFACE=wlan0
 AP_IFACE=wlan1
 UPLINK_PROFILE=Example-Uplink
 AP_PROFILE=relay-ap
-AP_SUBNET=192.168.50.0/24</code></pre>
+AP_SUBNET=192.168.77.0/24</code></pre>
 <p>远程 SSH 改网络前，应优先准备串口或物理维护入口，备份 NetworkManager 配置，并以服务器本地 systemd 定时器安排一次性回退。下文的回退脚本只是<strong>参考骨架</strong>，应根据备份的原始参数补全，验证无误后再运行：</p>
 <pre><code>sudo install -d -m 700 /root/wifi-relay-backup
 sudo cp -a /etc/NetworkManager /root/wifi-relay-backup/NetworkManager
@@ -144,8 +144,9 @@ sudo nmcli con mod Example-Uplink \
   802-11-wireless.powersave 2
 sudo iw dev wlan0 set power_save off</code></pre>
 <p>现场为降低漫游与后台扫描引发的延迟，还将上游连接绑定到指定 BSSID，但该值与现场设备绑定且已脱敏。只有确认 AP 地址后，才按需设置：</p>
-<pre><code># 可选：用从本机 iw dev wlan0 link 获得的真实 BSSID 替换
-sudo nmcli con mod Example-Uplink 802-11-wireless.bssid '在本机读取的BSSID'
+<pre><code># 可选：本机查询当前关联 BSSID，核对后再绑定
+BSSID=$(iw dev wlan0 link | awk '/Connected to/ {print $3; exit}')
+[ -n "$BSSID" ] && sudo nmcli con mod Example-Uplink 802-11-wireless.bssid "$BSSID"
 # 更换路由器时可清除此绑定
 sudo nmcli con mod Example-Uplink 802-11-wireless.bssid ''</code></pre>
 <h3>6.2 创建 AP 连接</h3>
@@ -163,7 +164,7 @@ sudo nmcli con mod Example-Uplink 802-11-wireless.bssid ''</code></pre>
   802-11-wireless-security.pairwise ccmp \
   802-11-wireless-security.group ccmp \
   ipv4.method shared \
-  ipv4.addresses 192.168.50.1/24 \
+  ipv4.addresses 192.168.77.1/24 \
   ipv4.never-default yes \
   ipv6.method disabled \
   connection.autoconnect no
@@ -184,9 +185,9 @@ firewall-backend=none
 net.ipv4.ip_forward=1</code></pre>
 <pre><code>sudo sysctl -w net.ipv4.ip_forward=1
 sudo iptables-legacy -w 5 -t nat -C POSTROUTING \
-  -s 192.168.50.0/24 -o wlan0 -j MASQUERADE 2&gt;/dev/null || \
+  -s 192.168.77.0/24 -o wlan0 -j MASQUERADE 2&gt;/dev/null || \
 sudo iptables-legacy -w 5 -t nat -A POSTROUTING \
-  -s 192.168.50.0/24 -o wlan0 -j MASQUERADE</code></pre>
+  -s 192.168.77.0/24 -o wlan0 -j MASQUERADE</code></pre>
 <p>这条规则是幂等检查后写入，后续由守护服务反复确认。不要用 <code>iptables -t nat -S</code>（可能指向 nft 后端）替代 <code>iptables-legacy</code> 诊断现场 legacy NAT。</p>
 
 </section>
