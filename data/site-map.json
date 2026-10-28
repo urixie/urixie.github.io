@@ -601,6 +601,18 @@
               "SPI",
               "spidev"
             ]
+          },
+          {
+            "navTitle": "RK3568 · 单网卡 Wi-Fi STA + AP 中继与自动恢复",
+            "navDesc": "RTL8723DU / NetworkManager / IPv4 NAT / systemd / 断线恢复 / 远程回退 · 脱敏实战记录",
+            "href": "articles/soc-linux/rockchip/rk3568-wifi-sta-ap-relay/rk3568-wifi-sta-ap-relay.html",
+            "tags": [
+              "RK3568",
+              "Linux",
+              "Wi-Fi",
+              "NetworkManager",
+              "NAT"
+            ]
           }
         ]
       },
