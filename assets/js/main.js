@@ -27,6 +27,33 @@ function createIcon(name) {
   return svg;
 }
 
+/* 滚动相关的更新优先放在下一帧；后台标签页、隐藏 iframe 等不触发 requestAnimationFrame 的场景
+   由定时器兜底，保证目录高亮与章节路由不会停在旧状态。 */
+function createFrameScheduler(callback, fallbackMs = 120) {
+  let frame = 0;
+  let timer = 0;
+  const run = () => {
+    if (frame) window.cancelAnimationFrame(frame);
+    if (timer) window.clearTimeout(timer);
+    frame = 0;
+    timer = 0;
+    callback();
+  };
+  return {
+    schedule() {
+      if (frame || timer) return;
+      frame = window.requestAnimationFrame(run);
+      timer = window.setTimeout(run, fallbackMs);
+    },
+    cancel() {
+      if (frame) window.cancelAnimationFrame(frame);
+      if (timer) window.clearTimeout(timer);
+      frame = 0;
+      timer = 0;
+    }
+  };
+}
+
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 }
@@ -191,10 +218,8 @@ function scrollToHeading(heading) {
 function createScrollSpy(headings, options = {}) {
   const getOffset = options.offset || (() => 120);
   let current = -1;
-  let frame = 0;
 
   const update = () => {
-    frame = 0;
     if (!headings.length) return;
     const limit = getOffset();
     let index = 0;
@@ -213,9 +238,8 @@ function createScrollSpy(headings, options = {}) {
     }
   };
 
-  const schedule = () => {
-    if (!frame) frame = window.requestAnimationFrame(update);
-  };
+  const scheduler = createFrameScheduler(update);
+  const schedule = scheduler.schedule;
 
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', schedule);
@@ -229,7 +253,7 @@ function createScrollSpy(headings, options = {}) {
     destroy() {
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
-      if (frame) window.cancelAnimationFrame(frame);
+      scheduler.cancel();
     }
   };
 }
@@ -244,17 +268,13 @@ function initReadingProgress() {
     bar.setAttribute('aria-hidden', 'true');
     document.body.prepend(bar);
   }
-  let frame = 0;
   const update = () => {
-    frame = 0;
     const root = document.documentElement;
     const total = root.scrollHeight - window.innerHeight;
     const ratio = total > 0 ? Math.min(1, Math.max(0, window.scrollY / total)) : 0;
     bar.style.transform = `scaleX(${ratio})`;
   };
-  const schedule = () => {
-    if (!frame) frame = window.requestAnimationFrame(update);
-  };
+  const { schedule } = createFrameScheduler(update);
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', schedule);
   update();
