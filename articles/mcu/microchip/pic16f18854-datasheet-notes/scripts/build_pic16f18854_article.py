@@ -205,7 +205,6 @@ def build_article(body: str, navigation: str) -> str:
       </div>
     </aside>
     <article class=\"article card\">
-      <div class=\"post-meta\">PIC16F18854 · INTERRUPT · PPS · PWM · TIMER · CCP · CLC</div>
       <h1>PIC16F18854 单片机数据手册资料整理</h1>
       <p>本文依据资料原文整理 PIC16F18854 的中断、外设引脚选择、PWM、定时器、CCP 与可配置逻辑单元等关键模块，便于工程开发时快速查阅。</p>
 {body}
