@@ -88,6 +88,29 @@
         };
         const settle = () => sleep(350);
 
+        /* 侧栏只有目录树滚动：展开全部专题让目录溢出，滚动后头像、搜索与底部信息位置不变。 */
+        const checkSidebarScroll = async label => {
+          doc.querySelectorAll('.nav-topic:not(.is-expanded) .nav-topic-button[aria-controls]').forEach(button => button.click());
+          await settle();
+          const nav = element('#siteNav');
+          const before = { head: rect('.sidebar-head'), search: rect('.search-trigger'), footer: rect('.sidebar-footer') };
+          assert(style('.site-sidebar', 'overflowY') === 'hidden', `${label}: sidebar itself must not scroll, got ${style('.site-sidebar', 'overflowY')}`);
+          assert(style('#siteNav', 'overflowY') === 'auto', `${label}: navigation tree must own vertical scrolling`);
+          assert(nav.scrollHeight > nav.clientHeight + 50, `${label}: expanded navigation should overflow (${nav.scrollHeight}/${nav.clientHeight})`);
+          nav.scrollTop = 400;
+          await settle();
+          const after = { head: rect('.sidebar-head'), search: rect('.search-trigger'), footer: rect('.sidebar-footer') };
+          assert(nav.scrollTop > 0, `${label}: navigation tree did not scroll`);
+          assert(element('.site-sidebar').scrollTop === 0, `${label}: sidebar container must stay at scrollTop 0`);
+          ['head', 'search', 'footer'].forEach(key => {
+            assert(before[key] && after[key] && Math.abs(before[key].top - after[key].top) < 1,
+              `${label}: ${key} moved while scrolling the navigation tree (${before[key]?.top} -> ${after[key]?.top})`);
+          });
+          assert(after.footer && after.footer.bottom <= height + 1, `${label}: sidebar footer must stay inside the viewport, bottom=${after.footer?.bottom}`);
+          assert(after.search && after.search.top >= 0, `${label}: search button must stay visible, top=${after.search?.top}`);
+          nav.scrollTop = 0;
+        };
+
         const sidebar = rect('.site-sidebar');
         const content = rect('.home-content');
         const toc = rect('.toc-panel');
@@ -136,6 +159,7 @@
           element('.mobile-header [data-panel-toggle="nav"]').click();
           await settle();
           assert(doc.body.classList.contains('nav-open') && isShown('.site-sidebar'), 'menu button must open the navigation drawer');
+          await checkSidebarScroll('drawer');
           assert(isShown('.page-overlay'), 'drawer must show the overlay');
           assert(doc.documentElement.classList.contains('is-scroll-locked'), 'drawer must lock background scrolling');
           element('.page-overlay').click();
@@ -156,6 +180,7 @@
           assert(isShown('.site-sidebar') && sidebar && Math.abs(sidebar.width - 280) <= 2, `sidebar must be visible at 280px, got ${sidebar?.width}`);
           assert(style('.site-sidebar', 'position') === 'sticky', 'sidebar must be sticky');
           assert(content && sidebar && content.left >= sidebar.right - 1, 'content must follow the sidebar');
+          await checkSidebarScroll('sidebar');
         }
 
         if (!compact && !threeColumn) {

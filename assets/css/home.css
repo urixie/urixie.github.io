@@ -115,8 +115,7 @@
   border-right: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   transform: translateX(-105%);
   visibility: hidden;
   transition: transform 0.25s ease, visibility 0.25s;
@@ -129,6 +128,7 @@
 
 .sidebar-head {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
   padding: 2px 2px 14px 4px;
@@ -209,12 +209,28 @@
   font-size: 11px;
 }
 
+/* 侧栏整体不滚动：头像与搜索固定在顶部、邮箱与主题固定在底部，只有目录树在中间滚动。 */
 .site-nav {
   display: grid;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   align-content: start;
   gap: 2px;
-  margin-top: 14px;
+  min-height: 0;
+  margin: 14px -6px 0 0;
+  padding-right: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.site-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.site-nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--border-strong);
 }
 
 .nav-topic-button {
@@ -314,8 +330,9 @@
 
 .sidebar-footer {
   display: grid;
+  flex: 0 0 auto;
   gap: 2px;
-  margin-top: 16px;
+  margin-top: 12px;
   padding: 10px 4px 0;
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -741,6 +758,18 @@
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 12px;
+}
+
+/* 矮屏（如手机横屏）：收起次要信息，把高度留给目录区。 */
+@media (max-height: 520px) {
+  .profile-summary,
+  .profile-email {
+    display: none;
+  }
+
+  .sidebar-head {
+    padding-bottom: 8px;
+  }
 }
 
 @media (hover: none) {

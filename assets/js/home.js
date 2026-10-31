@@ -244,7 +244,7 @@ function syncSiteNav(options = {}) {
 }
 
 function revealInScrollParent(element) {
-  const container = element.closest('.site-sidebar');
+  const container = element.closest('.site-nav');
   if (!container || container.scrollHeight <= container.clientHeight) return;
   const elementTop = element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
   if (elementTop < container.scrollTop + 80 || elementTop > container.scrollTop + container.clientHeight - 80) {
