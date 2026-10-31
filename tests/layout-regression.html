@@ -176,6 +176,8 @@
 
           const target = headings[2];
           win.scrollTo(0, target.getBoundingClientRect().top + win.scrollY - 30);
+          // 虚拟时间下不渲染新帧，浏览器不会派发 scroll 事件；这里补发一次，等同于下一帧浏览器的行为。
+          win.dispatchEvent(new win.Event('scroll'));
           await settle();
           const active = element('#tocNav a.active');
           assert(active === tocLinks[2], `scroll spy must highlight the third heading, got ${active?.textContent}`);
