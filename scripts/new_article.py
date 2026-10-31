@@ -18,6 +18,7 @@ synchronizes cache-buster versions and validates the result.
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import html
 import json
 import os
@@ -156,6 +157,7 @@ def main() -> int:
             "navDesc": nav_desc,
             "href": href,
             "tags": tags,
+            "updated": date.today().isoformat(),
         }
 
         print(f"Article path : {href}")

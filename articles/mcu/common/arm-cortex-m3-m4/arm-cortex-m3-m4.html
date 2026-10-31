@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>ARM Cortex-M3 与 Cortex-M4 架构详解 - XYJ</title>
   <meta name="description" content="基于 ARMv7-M 架构参考手册，详细整理 Cortex-M3 和 Cortex-M4 的内核结构、寄存器模型、运行模式、存储映射、中断机制、FPU DSP 和调试组件。">
-  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
+  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-          <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+          <a href="../../../../index.html?v=c1df6198c223#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-      <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+      <a href="../../../../index.html?v=c1df6198c223#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -382,11 +382,11 @@
           Cortex-M4 的一个核心差异是增加了 DSP 指令扩展，这些指令主要用于加速信号处理算法（如滤波、FFT、音频处理）。DSP 扩展基于 SIMD（Single Instruction Multiple Data）思想，单条指令可以同时处理多个数据元素：
         </p>
         <ul>
-          <li><strong>乘法累加（MAC）指令</strong>：<code>SMLAD</code>.<code>SMLSD</code>.<code>SMMLA</code>.<code>SMMUL</code> 等。单条指令完成乘加或乘减操作，广泛用于滤波器（FIR、IIR）的系数计算。典型滤波公式 y[n] = Σ h[k] * x[n-k] 可以直接用 MAC 指令高效实现。</li>
-          <li><strong>SIMD（单指令多数据）指令</strong>：一次操作多个数据。例如 <code>PKHBT</code>.<code>PKHTB</code> 进行半字（16 位）打包/拆包，<code>SADD8</code>.<code>SADD16</code> 同时进行多组 8 位/16 位加法，<code>SSAX</code> 同时进行加法和减法（交叉相减）。</li>
+          <li><strong>乘法累加（MAC）指令</strong>：<code>SMLAD</code>、<code>SMLSD</code>、<code>SMMLA</code>、<code>SMMUL</code> 等。单条指令完成乘加或乘减操作，广泛用于滤波器（FIR、IIR）的系数计算。典型滤波公式 y[n] = Σ h[k] * x[n-k] 可以直接用 MAC 指令高效实现。</li>
+          <li><strong>SIMD（单指令多数据）指令</strong>：一次操作多个数据。例如 <code>PKHBT</code>、<code>PKHTB</code> 进行半字（16 位）打包/拆包，<code>SADD8</code>、<code>SADD16</code> 同时进行多组 8 位/16 位加法，<code>SSAX</code> 同时进行加法和减法（交叉相减）。</li>
           <li><strong>饱和运算指令</strong>：<code>SSAT</code>（有符号饱和）.<code>USAT</code>（无符号饱和）将结果饱和到指定位宽，防止溢出。在音频处理、自动增益控制等场景非常有用。</li>
-          <li><strong>位操作指令</strong>：<code>RBIT</code>（位反转）.<code>REV</code>.<code>REV16</code>.<code>CLZ</code>（前导零计数）等，用于位反转排序、字节序转换、快速对数计算。</li>
-          <li><strong>乘-累加-移位指令</strong>：<code>SMLAW</code>.<code>SMUWB</code> 等，用于在滤波器中实现分数增益。</li>
+          <li><strong>位操作指令</strong>：<code>RBIT</code>（位反转）.<code>REV</code>、<code>REV16</code>、<code>CLZ</code>（前导零计数）等，用于位反转排序、字节序转换、快速对数计算。</li>
+          <li><strong>乘-累加-移位指令</strong>：<code>SMLAW</code>、<code>SMUWB</code> 等，用于在滤波器中实现分数增益。</li>
         </ul>
         <p>
           以一个简单的有限冲击响应滤波器（FIR）为例，传统 C 代码计算一个输出样本需要 N 次乘法和 N-1 次加法循环。使用 M4 的 MAC 指令，每个样本只需要 N/4 条 SIMD MAC 指令（假设使用 32 位指令同时处理 2 个 16 位数据）。以 16 阶 FIR 滤波器为例，计算量减少约 4 倍。
@@ -536,10 +536,10 @@ SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk  // HCLK 时钟
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=c1df6198c223#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
+  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
 </body>
 </html>

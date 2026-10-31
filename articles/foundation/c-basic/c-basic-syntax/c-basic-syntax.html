@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言基础语法整理 - XYJ</title>
   <meta name="description" content="面向嵌入式工程实践整理 C 语言基础语法，包括变量、类型、运算符、流程控制、函数和源文件组织方式。">
-  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
+  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-          <a href="../../../../index.html?v=ee009e36b0e5#foundation/c-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+          <a href="../../../../index.html?v=c1df6198c223#foundation/c-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-      <a href="../../../../index.html?v=ee009e36b0e5#foundation/c-basic">返回 C语言专题</a>
+      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+      <a href="../../../../index.html?v=c1df6198c223#foundation/c-basic">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -57,7 +57,7 @@
       <section>
         <h2>2. 变量、常量与基本数据类型</h2>
         <p>
-          嵌入式项目中不建议长期依赖 <code>int</code>.<code>long</code> 这类宽度可能随平台变化的类型。对于协议、寄存器、Flash 存储和跨平台数据，优先使用 <code>stdint.h</code> 提供的定长类型。
+          嵌入式项目中不建议长期依赖 <code>int</code>、<code>long</code> 这类宽度可能随平台变化的类型。对于协议、寄存器、Flash 存储和跨平台数据，优先使用 <code>stdint.h</code> 提供的定长类型。
         </p>
         <pre><code class="language-c">#include &lt;stdint.h&gt;
 #include &lt;stdbool.h&gt;
@@ -106,7 +106,7 @@ reg = (reg &amp; ~REG_MODE_MASK) | (2U &lt;&lt; 4);</code></pre>
       <section>
         <h2>5. 流程控制的工程写法</h2>
         <p>
-          <code>if</code>.<code>switch</code>.<code>for</code>.<code>while</code> 都很基础，但在工程中应当保持入口条件明确、退出条件明确、错误路径明确。循环中如果等待硬件状态，必须考虑超时退出。
+          <code>if</code>、<code>switch</code>、<code>for</code>、<code>while</code> 都很基础，但在工程中应当保持入口条件明确、退出条件明确、错误路径明确。循环中如果等待硬件状态，必须考虑超时退出。
         </p>
         <pre><code class="language-c">uint32_t timeout = 100000U;
 while ((REG_STATUS &amp; BUSY_FLAG) != 0U) {
@@ -173,7 +173,7 @@ app_err_t app_adc_read(uint8_t channel, uint16_t *out_value);
           假设设备通过 UART 收到一帧 <code>AA 55 CMD LEN VALUE_L VALUE_H</code>：前两个字节是帧头，第三个字节是命令，第四个字节表示后续有效载荷长度，最后两个字节是小端格式的测量值。这个例子把定长类型、位移、条件判断、指针参数和错误码串在一起，正好对应真实驱动中的最小闭环。
         </p>
         <figure class="article-figure">
-          <img src="images/c-basic-flow.svg?v=ee009e36b0e5" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
+          <img src="images/c-basic-flow.svg?v=c1df6198c223" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
           <figcaption>图 1：基础语法最终要服务于一条可验证的数据处理链。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stddef.h&gt;
@@ -243,11 +243,11 @@ frame_status_t parse_sensor_frame(const uint8_t *buf,
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=ee009e36b0e5#foundation/c-basic">返回 C语言专题</a>
+        <a href="../../../../index.html?v=c1df6198c223#foundation/c-basic">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
+  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
 </body>
 </html>

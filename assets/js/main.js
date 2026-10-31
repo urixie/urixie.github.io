@@ -16,6 +16,18 @@ const ICONS = {
   chevron: 'M9 6l6 6-6 6'
 };
 
+/* 按需资源（代码高亮）与 main.js 同目录层级，沿用 main.js 的缓存版本参数。 */
+const HIGHLIGHT_SCRIPT = 'assets/js/highlight.min.js';
+const HIGHLIGHT_STYLE = 'assets/css/highlight.css';
+const SITE_ASSETS = (() => {
+  const src = document.currentScript?.src || '';
+  const marker = 'assets/js/main.js';
+  const index = src.indexOf(marker);
+  if (index < 0) return { base: '', query: '' };
+  const rest = src.slice(index + marker.length).split('#')[0];
+  return { base: src.slice(0, index), query: rest.startsWith('?') ? rest : '' };
+})();
+
 function createIcon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
@@ -175,7 +187,8 @@ function renderTocLinks(toc, headings, linkClass = 'article-nav-sub') {
   const links = headings.map(heading => {
     const link = document.createElement('a');
     link.href = `#${heading.id}`;
-    link.textContent = heading.textContent.trim();
+    link.textContent = heading.textContent.replace(/\s+/g, ' ').trim();
+    link.dataset.level = heading.tagName === 'H3' ? '3' : '2';
     if (heading.tagName === 'H3') link.classList.add(linkClass);
     toc.appendChild(link);
     return link;
@@ -192,12 +205,23 @@ function buildArticleToc(root = document) {
   return { toc, headings, links: renderTocLinks(toc, headings) };
 }
 
+function getTocGroupStart(links, index) {
+  let start = Math.max(0, index);
+  while (start > 0 && links[start]?.dataset.level === '3') start -= 1;
+  return start;
+}
+
+/* 高亮当前章节；三级标题只在所属二级章节处于当前位置时展开，长目录保持简洁。 */
 function setActiveTocLink(links, index) {
+  const activeGroup = getTocGroupStart(links, index);
   links.forEach((link, linkIndex) => {
     const active = linkIndex === index;
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
+    if (link.dataset.level === '3') {
+      link.classList.toggle('is-visible', index >= 0 && getTocGroupStart(links, linkIndex) === activeGroup);
+    }
   });
 
   const activeLink = links[index];
@@ -209,18 +233,123 @@ function setActiveTocLink(links, index) {
   }
 }
 
+/* ---------- 提示条与复制 ---------- */
+
+let toastTimer = 0;
+
+function showToast(message) {
+  let toast = document.querySelector('.site-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'site-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('is-visible');
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 1800);
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (fallbackError) {
+      copied = false;
+    }
+    area.remove();
+    return copied;
+  }
+}
+
+/* ---------- 文章信息行：阅读时长 · 章节数 · 更新日期 ---------- */
+
+/* 与 generate_home_data.py 相同的估算：中文约 350 字 / 分钟，英文约 200 词 / 分钟，代码按一半计。 */
+function estimateReadMinutes(article) {
+  const weigh = text => (text.match(/[\u4e00-\u9fff]/g) || []).length / 350 + (text.match(/[A-Za-z]+/g) || []).length / 200;
+  let code = '';
+  article.querySelectorAll('pre').forEach(pre => {
+    code += ` ${pre.textContent}`;
+  });
+  const total = weigh(article.textContent) - weigh(code) / 2;
+  return Math.max(1, Math.round(total));
+}
+
+function insertArticleMeta(article, info = {}) {
+  const title = article.querySelector('h1');
+  if (!title || article.querySelector('.article-meta')) return;
+  const parts = [
+    `约 ${info.minutes || estimateReadMinutes(article)} 分钟阅读`,
+    `${article.querySelectorAll('h2').length} 个章节`
+  ];
+  if (info.updated) parts.push(`更新于 ${info.updated}`);
+  const meta = document.createElement('p');
+  meta.className = 'article-meta';
+  meta.textContent = parts.join(' · ');
+  title.insertAdjacentElement('afterend', meta);
+}
+
+/* ---------- 章节标题：序号单独着色，悬停显示 # 复制本节链接 ---------- */
+
+const HEADING_NUMBER = /^(\s*)(\d+(?:\.\d+)*\.?)(?=\s)/;
+
+function enhanceHeadings(headings, options = {}) {
+  headings.forEach(heading => {
+    if (heading.dataset.enhanced) return;
+    heading.dataset.enhanced = 'true';
+
+    const first = heading.firstChild;
+    const match = first && first.nodeType === Node.TEXT_NODE ? first.nodeValue.match(HEADING_NUMBER) : null;
+    if (match) {
+      const number = document.createElement('span');
+      number.className = 'heading-num';
+      number.textContent = match[2];
+      first.nodeValue = first.nodeValue.slice(match[0].length);
+      heading.insertBefore(number, first);
+    }
+
+    const anchor = document.createElement('a');
+    anchor.className = 'heading-anchor';
+    anchor.href = options.linkFor ? options.linkFor(heading) : `#${heading.id}`;
+    anchor.setAttribute('aria-label', '复制本节链接');
+    anchor.addEventListener('click', async event => {
+      event.preventDefault();
+      const url = new URL(anchor.getAttribute('href'), window.location.href).href;
+      showToast((await copyText(url)) ? '已复制本节链接' : '复制失败，请手动复制地址栏');
+      options.onSelect?.(heading);
+    });
+    heading.appendChild(anchor);
+  });
+}
+
 function scrollToHeading(heading) {
   if (!heading) return;
   heading.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
 }
 
-/* 滚动高亮：取最后一个越过顶部阈值的标题作为当前章节；滚到底时高亮最后一节。 */
+/* 滚动高亮：取最后一个越过顶部阈值的标题作为当前章节；滚到底时高亮最后一节。
+   点击目录触发的平滑滚动期间调用 hold()，保持被点击的条目高亮，滚动停止后再恢复跟随。 */
 function createScrollSpy(headings, options = {}) {
   const getOffset = options.offset || (() => 120);
-  let current = -1;
+  let reported = -1;
+  let holdUntil = 0;
+  let holdLimit = 0;
+  let holdTimer = 0;
 
-  const update = () => {
-    if (!headings.length) return;
+  const measure = () => {
     const limit = getOffset();
     let index = 0;
     for (let i = 0; i < headings.length; i += 1) {
@@ -232,27 +361,58 @@ function createScrollSpy(headings, options = {}) {
     if (scrollable && window.innerHeight + window.scrollY >= root.scrollHeight - 2) {
       index = headings.length - 1;
     }
-    if (index !== current) {
-      current = index;
+    return index;
+  };
+
+  const update = () => {
+    if (!headings.length || performance.now() < holdUntil) return;
+    const index = measure();
+    if (index !== reported) {
+      reported = index;
       options.onChange?.(index, headings[index]);
     }
   };
 
-  const scheduler = createFrameScheduler(update);
-  const schedule = scheduler.schedule;
+  const releaseLater = delay => {
+    window.clearTimeout(holdTimer);
+    holdTimer = window.setTimeout(() => {
+      holdUntil = 0;
+      update();
+    }, delay);
+  };
 
-  window.addEventListener('scroll', schedule, { passive: true });
-  window.addEventListener('resize', schedule);
+  const scheduler = createFrameScheduler(update);
+  const onScroll = () => {
+    if (holdUntil) {
+      // 平滑滚动仍在进行：顺延保持时间（最长不超过 holdLimit）。
+      const now = performance.now();
+      holdUntil = Math.min(holdLimit, Math.max(holdUntil, now + 160));
+      releaseLater(Math.max(0, holdUntil - now) + 20);
+      return;
+    }
+    scheduler.schedule();
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', scheduler.schedule);
   update();
 
   return {
     get index() {
-      return current;
+      return reported;
     },
     refresh: update,
+    hold(index, duration = 500) {
+      const now = performance.now();
+      reported = index;
+      holdUntil = now + duration;
+      holdLimit = now + 2500;
+      releaseLater(duration + 20);
+    },
     destroy() {
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', scheduler.schedule);
+      window.clearTimeout(holdTimer);
       scheduler.cancel();
     }
   };
@@ -410,50 +570,157 @@ function scrollPageToTop() {
 
 /* ---------- 文章增强：代码复制、表格横向滚动、图片缩放 ---------- */
 
+const CODE_LANG_LABELS = {
+  c: 'C', cpp: 'C', h: 'C', bash: 'Bash', sh: 'Bash', shell: 'Bash', console: 'Bash',
+  verilog: 'Verilog', python: 'Python', makefile: 'Makefile', ini: 'INI', dts: 'DTS',
+  json: 'JSON', armasm: 'ASM', plaintext: '文本', text: '文本', txt: '文本'
+};
+const AUTO_HIGHLIGHT_LANGUAGES = ['c', 'bash', 'verilog', 'python', 'ini', 'dts', 'makefile', 'json'];
+const CODE_COLLAPSE_LINES = 40;
+let highlighterPromise = null;
+
+function getCodeLanguage(code) {
+  const match = (code.className || '').match(/(?:^|\s)language-([\w+-]+)/);
+  return match ? match[1].toLowerCase() : '';
+}
+
+function codeLanguageLabel(language) {
+  return CODE_LANG_LABELS[language] || (language ? language.toUpperCase() : '代码');
+}
+
+function loadHighlighter() {
+  if (window.hljs) return Promise.resolve(window.hljs);
+  if (highlighterPromise) return highlighterPromise;
+  highlighterPromise = new Promise((resolve, reject) => {
+    const style = document.createElement('link');
+    style.rel = 'stylesheet';
+    style.href = `${SITE_ASSETS.base}${HIGHLIGHT_STYLE}${SITE_ASSETS.query}`;
+    document.head.appendChild(style);
+    const script = document.createElement('script');
+    script.src = `${SITE_ASSETS.base}${HIGHLIGHT_SCRIPT}${SITE_ASSETS.query}`;
+    script.async = true;
+    script.onload = () => (window.hljs ? resolve(window.hljs) : reject(new Error('highlighter unavailable')));
+    script.onerror = () => reject(new Error('highlighter failed to load'));
+    document.head.appendChild(script);
+  }).catch(error => {
+    highlighterPromise = null;
+    throw error;
+  });
+  return highlighterPromise;
+}
+
+/* 已标注语言的代码直接高亮；未标注的在常用语言里自动识别，把握不大时保持纯文本。 */
+function highlightCodeBlocks(blocks) {
+  loadHighlighter().then(hljs => {
+    hljs.configure({ ignoreUnescapedHTML: true });
+    blocks.forEach(({ code, label }) => {
+      if (code.classList.contains('hljs')) return;
+      const language = getCodeLanguage(code);
+      if (language) {
+        if (hljs.getLanguage(language)) hljs.highlightElement(code);
+        return;
+      }
+      const text = code.textContent;
+      if (!text.trim() || text.length > 20000) return;
+      const result = hljs.highlightAuto(text, AUTO_HIGHLIGHT_LANGUAGES);
+      if (!result.language || result.relevance < 6) return;
+      code.innerHTML = result.value;
+      code.classList.add('hljs', `language-${result.language}`);
+      label.textContent = codeLanguageLabel(result.language);
+    });
+  }).catch(() => {
+    /* 高亮脚本加载失败时保留纯文本代码。 */
+  });
+}
+
 function initCopyButtons(root = document) {
-  const codeBlocks = root.querySelectorAll('pre');
-  codeBlocks.forEach((pre, index) => {
+  const blocks = [];
+  root.querySelectorAll('pre').forEach((pre, index) => {
     if (pre.parentElement?.classList.contains('code-block-wrap')) return;
+
+    let code = pre.querySelector('code');
+    if (!code) {
+      code = document.createElement('code');
+      while (pre.firstChild) code.appendChild(pre.firstChild);
+      pre.appendChild(code);
+    }
+    // 源码里 <code> 后的换行会渲染成首行空白，去掉首尾多余换行。
+    const firstText = code.firstChild;
+    if (firstText?.nodeType === Node.TEXT_NODE) firstText.nodeValue = firstText.nodeValue.replace(/^\r?\n/, '');
+    const lastText = code.lastChild;
+    if (lastText?.nodeType === Node.TEXT_NODE) lastText.nodeValue = lastText.nodeValue.replace(/\s+$/, '');
 
     const wrapper = document.createElement('div');
     wrapper.className = 'code-block-wrap';
     pre.parentNode.insertBefore(wrapper, pre);
-    wrapper.appendChild(pre);
+
+    const header = document.createElement('div');
+    header.className = 'code-block-header';
+    const label = document.createElement('span');
+    label.className = 'code-lang';
+    label.textContent = codeLanguageLabel(getCodeLanguage(code));
 
     const button = document.createElement('button');
     button.className = 'copy-code-button';
     button.type = 'button';
     button.textContent = '复制';
     button.setAttribute('aria-label', `复制第 ${index + 1} 段代码`);
-
     button.addEventListener('click', async () => {
-      const text = pre.textContent;
-      try {
-        await navigator.clipboard.writeText(text);
-        button.textContent = '已复制';
-        setTimeout(() => {
-          button.textContent = '复制';
-        }, 1500);
-      } catch (error) {
-        button.textContent = '复制失败';
-        setTimeout(() => {
-          button.textContent = '复制';
-        }, 1500);
-      }
+      button.textContent = (await copyText(code.textContent)) ? '已复制' : '复制失败';
+      window.setTimeout(() => {
+        button.textContent = '复制';
+      }, 1500);
     });
 
-    wrapper.appendChild(button);
+    header.append(label, button);
+    wrapper.append(header, pre);
+
+    const lineCount = code.textContent.replace(/\n$/, '').split('\n').length;
+    if (lineCount > CODE_COLLAPSE_LINES) {
+      wrapper.classList.add('is-collapsed');
+      const expand = document.createElement('button');
+      expand.type = 'button';
+      expand.className = 'code-expand-button';
+      expand.setAttribute('aria-expanded', 'false');
+      expand.textContent = `展开全部（${lineCount} 行）`;
+      expand.addEventListener('click', () => {
+        const collapsed = wrapper.classList.toggle('is-collapsed');
+        expand.setAttribute('aria-expanded', String(!collapsed));
+        expand.textContent = collapsed ? `展开全部（${lineCount} 行）` : '收起代码';
+        if (collapsed && wrapper.getBoundingClientRect().top < 0) wrapper.scrollIntoView({ block: 'start' });
+      });
+      wrapper.appendChild(expand);
+    }
+
+    blocks.push({ code, label });
   });
+  if (blocks.length) highlightCodeBlocks(blocks);
 }
 
+const NUMERIC_CELL = /^[-+±~≈]?\s*\d[\d.,]*\s*(%|[kKMG]?(B|Hz|bit|V|A|s)|m[AsV]|[uμn]s|字节|位)?$/;
+
+/* 表格：横向滚动容器 + 纯数字列右对齐（等宽数字）。 */
 function enhanceArticleTables(root = document) {
-  const tables = root.querySelectorAll('.article table');
-  tables.forEach(table => {
-    if (table.parentElement?.classList.contains('table-scroll')) return;
-    const wrapper = document.createElement('div');
-    wrapper.className = 'table-scroll';
-    table.parentNode.insertBefore(wrapper, table);
-    wrapper.appendChild(table);
+  root.querySelectorAll('.article table').forEach(table => {
+    if (!table.parentElement?.classList.contains('table-scroll')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-scroll';
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
+
+    const rows = Array.from(table.rows);
+    const bodyRows = rows.filter(row => Array.from(row.cells).every(cell => cell.tagName === 'TD'));
+    if (bodyRows.length < 2) return;
+    const headRow = rows.find(row => !bodyRows.includes(row));
+    const columnCount = Math.max(...bodyRows.map(row => row.cells.length));
+    for (let column = 0; column < columnCount; column += 1) {
+      const cells = bodyRows.map(row => row.cells[column]);
+      if (cells.some(cell => !cell || cell.colSpan > 1)) continue;
+      if (!cells.every(cell => NUMERIC_CELL.test(cell.textContent.trim()))) continue;
+      cells.forEach(cell => cell.classList.add('is-num'));
+      headRow?.cells[column]?.classList.add('is-num');
+    }
   });
 }
 
@@ -580,8 +847,108 @@ function enhanceArticleImageZoom(root = document) {
 
     image.addEventListener('pointerup', stopDragging);
     image.addEventListener('pointercancel', stopDragging);
+    image.addEventListener('click', () => {
+      if (window.matchMedia?.('(hover: none)').matches) openImageViewer(image);
+    });
     applyTransform();
   });
+}
+
+/* 触屏全屏看图：点击图片打开，双击放大 / 还原，可双指缩放，点空白或 × 关闭。 */
+function openImageViewer(image) {
+  let dialog = document.querySelector('.image-viewer');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.className = 'image-viewer';
+    dialog.setAttribute('aria-label', '查看图片');
+    const stage = document.createElement('div');
+    stage.className = 'image-viewer-stage';
+    const viewerImage = document.createElement('img');
+    viewerImage.alt = '';
+    stage.appendChild(viewerImage);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'image-viewer-close';
+    close.setAttribute('aria-label', '关闭图片');
+    close.textContent = '×';
+    const caption = document.createElement('p');
+    caption.className = 'image-viewer-caption';
+    dialog.append(stage, close, caption);
+    document.body.appendChild(dialog);
+
+    close.addEventListener('click', () => dialog.close());
+    stage.addEventListener('click', event => {
+      if (event.target === stage) dialog.close();
+    });
+    viewerImage.addEventListener('dblclick', event => {
+      event.preventDefault();
+      dialog.classList.toggle('is-enlarged');
+    });
+    dialog.addEventListener('close', () => {
+      dialog.classList.remove('is-enlarged');
+      document.documentElement.classList.remove('is-scroll-locked');
+    });
+  }
+  const viewerImage = dialog.querySelector('img');
+  viewerImage.src = image.currentSrc || image.src;
+  viewerImage.alt = image.alt || '';
+  dialog.querySelector('.image-viewer-caption').textContent =
+    image.closest('figure')?.querySelector('figcaption')?.textContent.trim() || image.alt || '';
+  document.documentElement.classList.add('is-scroll-locked');
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+}
+
+/* ---------- 滚动方向：向下阅读时收起顶栏与工具条，向上滚动时出现 ---------- */
+
+function initScrollDirection() {
+  if (document.body.dataset.scrollDirection) return;
+  document.body.dataset.scrollDirection = 'true';
+  let lastY = window.scrollY;
+  const update = () => {
+    const y = window.scrollY;
+    const delta = y - lastY;
+    if (Math.abs(delta) < 6) return;
+    const root = document.documentElement;
+    const atBottom = window.innerHeight + y >= root.scrollHeight - 24;
+    const down = delta > 0 && y > 120 && !atBottom && !root.classList.contains('is-scroll-locked');
+    document.body.classList.toggle('is-scrolling-down', down);
+    lastY = y;
+  };
+  const scheduler = createFrameScheduler(update);
+  window.addEventListener('scroll', scheduler.schedule, { passive: true });
+}
+
+/* ---------- 底部弹层：拖动顶部把手下滑关闭 ---------- */
+
+function enableSheetDrag(panel, handle) {
+  if (!panel || !handle || handle.dataset.dragBound) return;
+  handle.dataset.dragBound = 'true';
+  let startY = 0;
+  let offset = 0;
+  let dragging = false;
+
+  handle.addEventListener('pointerdown', event => {
+    dragging = true;
+    startY = event.clientY;
+    offset = 0;
+    panel.style.transition = 'none';
+    handle.setPointerCapture?.(event.pointerId);
+  });
+  handle.addEventListener('pointermove', event => {
+    if (!dragging) return;
+    offset = Math.max(0, event.clientY - startY);
+    panel.style.transform = `translateY(${offset}px)`;
+  });
+  const finish = () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transition = '';
+    panel.style.transform = '';
+    if (offset > 80) closePanels({ restoreFocus: false });
+  };
+  handle.addEventListener('pointerup', finish);
+  handle.addEventListener('pointercancel', finish);
 }
 
 /* ---------- 独立文章页：与首页共用目录、滚动高亮、进度条和工具条 ---------- */
@@ -610,11 +977,34 @@ function initStandaloneReader(tocResult) {
   registerPanel('toc', sidebar, { media: sheetMedia });
   initReadingProgress();
 
+  const card = sidebar.querySelector('.article-nav-card');
+  if (card && !card.querySelector('.sheet-handle')) {
+    const handle = document.createElement('div');
+    handle.className = 'sheet-handle';
+    handle.setAttribute('aria-hidden', 'true');
+    card.prepend(handle);
+    enableSheetDrag(sidebar, handle);
+  }
+  if (card && !card.querySelector('.toc-top-button')) {
+    const top = document.createElement('button');
+    top.type = 'button';
+    top.className = 'toc-top-button';
+    top.textContent = '↑ 回到顶部';
+    top.addEventListener('click', () => {
+      closePanels({ restoreFocus: false });
+      scrollPageToTop();
+    });
+    card.appendChild(top);
+  }
+
   if (tocResult && tocResult.headings.length) {
     const { headings, links, toc } = tocResult;
     const spy = createScrollSpy(headings, {
       offset: () => 96,
       onChange: index => setActiveTocLink(links, index)
+    });
+    enhanceHeadings(headings, {
+      onSelect: heading => window.history.replaceState(null, '', `#${heading.id}`)
     });
     toc.addEventListener('click', event => {
       const link = event.target.closest('a[href^="#"]');
@@ -623,10 +1013,10 @@ function initStandaloneReader(tocResult) {
       if (index < 0) return;
       event.preventDefault();
       closePanels({ restoreFocus: false });
+      spy.hold(index);
       scrollToHeading(headings[index]);
       window.history.replaceState(null, '', `#${headings[index].id}`);
       setActiveTocLink(links, index);
-      window.setTimeout(() => spy.refresh(), 400);
     });
   }
 
@@ -641,10 +1031,15 @@ function initStandaloneReader(tocResult) {
 function initArticlePage(root = document) {
   initThemeToggles(root);
   const tocResult = buildArticleToc(root);
+  const standaloneArticle = root === document ? document.querySelector('.article-page-shell > .article') : null;
+  if (standaloneArticle && tocResult?.headings.length) insertArticleMeta(standaloneArticle);
   initCopyButtons(root);
   enhanceArticleTables(root);
   enhanceArticleImageZoom(root);
-  if (root === document) initStandaloneReader(tocResult);
+  if (root === document) {
+    initStandaloneReader(tocResult);
+    initScrollDirection();
+  }
 }
 
 window.siteUi = {
@@ -653,6 +1048,12 @@ window.siteUi = {
   toggleTheme,
   headingSlug,
   getArticleHeadings,
+  enhanceHeadings,
+  insertArticleMeta,
+  showToast,
+  copyText,
+  enableSheetDrag,
+  initScrollDirection,
   renderTocLinks,
   setActiveTocLink,
   scrollToHeading,

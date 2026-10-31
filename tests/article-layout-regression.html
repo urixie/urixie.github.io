@@ -102,6 +102,9 @@
             && box.bottom > 0 && box.top < height && box.right > 0 && box.left < width;
         };
         const tocLinks = doc.querySelectorAll('#articleToc a');
+        assert(Boolean(element('.article .article-meta')), 'standalone article must show the meta row');
+        assert(Boolean(element('.code-block-header .code-lang')), 'standalone code blocks need a language header');
+        assert(Boolean(element('.article-sidebar .toc-top-button')), 'standalone TOC needs a back-to-top button');
         assert(tocLinks.length > 1, 'standalone article TOC must be generated');
         assert(Boolean(element('.reading-progress')), 'reading progress bar is missing');
         assert(Boolean(element('.article-nav-actions [data-theme-toggle]')), 'theme toggle must be added to the article navigation');
@@ -113,8 +116,8 @@
           assert(isShown('.article-sidebar'), 'desktop article TOC sidebar must be visible');
           assert(style('.article-sidebar', 'position') === 'sticky', 'desktop article TOC must be sticky');
           assert(sidebar && article && sidebar.right <= article.left - 24, 'desktop TOC must sit left of the article');
-          assert(article && article.width >= 760 && article.width <= 840,
-            `desktop article measure out of range: ${article?.width}`);
+          assert(article && article.width >= 660 && article.width <= 720,
+            `desktop article measure out of range (expected ~44rem): ${article?.width}`);
           // 以 clientWidth 计算右侧留白：CI 的 Chrome 有 15px 常规滚动条，iframe 宽度包含滚动条。
           const viewportWidth = doc.documentElement.clientWidth;
           assert(sidebar && article && Math.abs(sidebar.left - (viewportWidth - article.right)) <= 4,

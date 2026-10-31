@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux 基础命令与文件系统 - XYJ</title>
   <meta name="description" content="面向新手深入讲解 Linux 基础命令、目录结构、文件操作、权限、搜索、压缩传输、挂载./proc 与 /sys，并给出可跟做的实战示例。">
-  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
+  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-          <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/linux-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+          <a href="../../../../index.html?v=c1df6198c223#soc-linux/linux-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-      <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/linux-basic">返回 Linux专题</a>
+      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+      <a href="../../../../index.html?v=c1df6198c223#soc-linux/linux-basic">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -47,7 +47,7 @@
           命令行的基本形式可以理解为 <code>命令 [选项] [参数]</code>。命令决定“做什么”，选项决定“怎样做”，参数则是要处理的文件、目录或关键字。例如 <code>ls -lah /etc</code> 中，<code>ls</code> 是查看目录，<code>-lah</code> 是详细、包含隐藏文件、以易读单位显示，<code>/etc</code> 是目标目录。
         </p>
         <p>
-          教程里的 <code>$</code> 通常表示普通用户提示符，<code>#</code> 通常表示 root 提示符；它们不是命令内容。先在自己的家目录或 <code>/tmp</code> 做实验，不要一开始就在 <code>/</code>.<code>/etc</code> 或设备目录中尝试删除、移动、改权限等操作。
+          教程里的 <code>$</code> 通常表示普通用户提示符，<code>#</code> 通常表示 root 提示符；它们不是命令内容。先在自己的家目录或 <code>/tmp</code> 做实验，不要一开始就在 <code>/</code>、<code>/etc</code> 或设备目录中尝试删除、移动、改权限等操作。
         </p>
         <pre><code class="language-bash"># 先确认自己在哪个目录.以哪个用户身份工作
 pwd
@@ -61,7 +61,7 @@ command -v ls</code></pre>
           <code>pwd</code> 会打印当前工作目录；<code>whoami</code> 显示当前用户；<code>command -v ls</code> 用来确认实际执行的是哪个 <code>ls</code>。许多嵌入式设备的命令来自 BusyBox，可能没有 <code>man</code>，也不支持桌面发行版里的全部选项；这时先执行 <code>命令 --help</code>，不要凭记忆直接套用网络命令。
         </p>
         <div class="article-warning">
-          不理解命令含义时，不要为了“试一下”在命令前加 sudo，也不要复制带有通配符、重定向或递归删除的命令。尤其是 <code>rm -rf</code>.<code>chmod -R</code>.<code>chown -R</code>.<code>rsync --delete</code>，目标路径写错会造成大范围且难以恢复的损失。
+          不理解命令含义时，不要为了“试一下”在命令前加 sudo，也不要复制带有通配符、重定向或递归删除的命令。尤其是 <code>rm -rf</code>、<code>chmod -R</code>、<code>chown -R</code>、<code>rsync --delete</code>，目标路径写错会造成大范围且难以恢复的损失。
         </div>
       </section>
 
@@ -92,12 +92,12 @@ command -v ls</code></pre>
           <figcaption>图 1：Linux 常见目录结构，嵌入式调试经常关注 /dev./proc./sys./etc。</figcaption>
         </figure>
         <ul>
-          <li><code>/bin</code>.<code>/sbin</code>：基础命令。</li>
+          <li><code>/bin</code>、<code>/sbin</code>：基础命令。</li>
           <li><code>/etc</code>：配置文件。</li>
           <li><code>/dev</code>：设备节点，例如串口、磁盘、GPIO 相关设备。</li>
           <li><code>/proc</code>：进程和内核运行时信息。</li>
           <li><code>/sys</code>：设备模型、驱动、总线、类等信息。</li>
-          <li><code>/mnt</code>.<code>/media</code>：挂载外部存储或临时文件系统。</li>
+          <li><code>/mnt</code>、<code>/media</code>：挂载外部存储或临时文件系统。</li>
         </ul>
         <p>
           目录结构不是所有发行版都完全相同，例如现代发行版可能把 <code>/bin</code> 链接到 <code>/usr/bin</code>，嵌入式系统也可能没有 <code>/home</code>。因此排查时不要只靠“通常应该在这里”，而是先从根目录实际查看，再由服务配置、启动脚本或命令输出确认真实路径。
@@ -180,7 +180,7 @@ rm -i notes-renamed.txt           # -i 删除前询问，适合手工操作</cod
       <section>
         <h2>4. 搜索与过滤：从“找到文件”到“找到那一行”</h2>
         <p>
-          Linux 调试经常需要在大量日志和源码中查找关键字。常用组合是 <code>grep</code>.<code>find</code>.<code>xargs</code>。
+          Linux 调试经常需要在大量日志和源码中查找关键字。常用组合是 <code>grep</code>、<code>find</code>、<code>xargs</code>。
         </p>
         <h3>grep：在文本、日志和源码中找关键字</h3>
         <pre><code class="language-bash">grep -n "error" app.log
@@ -243,7 +243,7 @@ chmod 755 app          # 所有者 rwx；组 r-x；其他用户 r-x
 chmod 644 config.ini   # 所有者可读写；其他用户只读
 ls -l /dev/ttyS0       # 查看串口设备节点的属主.组和权限</code></pre>
         <p>
-          数字权限是 <code>r=4</code>.<code>w=2</code>.<code>x=1</code> 的相加：<code>7</code> 等于 <code>rwx</code>，<code>6</code> 等于 <code>rw-</code>，<code>5</code> 等于 <code>r-x</code>。但目录的 <code>x</code> 不是“执行目录”，而是允许进入和访问目录项；目录没有 <code>x</code> 时，即使能读到文件名，也可能无法打开其中的文件。
+          数字权限是 <code>r=4</code>、<code>w=2</code>、<code>x=1</code> 的相加：<code>7</code> 等于 <code>rwx</code>，<code>6</code> 等于 <code>rw-</code>，<code>5</code> 等于 <code>r-x</code>。但目录的 <code>x</code> 不是“执行目录”，而是允许进入和访问目录项；目录没有 <code>x</code> 时，即使能读到文件名，也可能无法打开其中的文件。
         </p>
         <p>
           <code>chown 用户:组 文件</code> 用于改变属主和所属组，通常需要管理员权限。例如部署程序时，应该按服务实际运行用户设置最小权限，而不是图省事使用 <code>chmod 777</code>。后者会让所有用户都可写，既不安全，也会掩盖真正的用户组配置问题。
@@ -402,8 +402,8 @@ ls /sys/bus/platform/devices</code></pre>
         <h2>11. 工程检查清单与练习顺序</h2>
         <ul>
           <li>开始命令前：确认当前用户、当前目录和目标路径；含空格的路径加引号。</li>
-          <li>看文件前：先判断它是普通文本、二进制、软链接还是设备节点，再选择 <code>cat</code>.<code>less</code>.<code>file</code> 或 <code>ls -l</code>。</li>
-          <li>修改前：用 <code>ls</code>.<code>printf</code> 或 <code>rsync -n</code> 预览通配符和同步结果；对配置先备份。</li>
+          <li>看文件前：先判断它是普通文本、二进制、软链接还是设备节点，再选择 <code>cat</code>、<code>less</code>、<code>file</code> 或 <code>ls -l</code>。</li>
+          <li>修改前：用 <code>ls</code>、<code>printf</code> 或 <code>rsync -n</code> 预览通配符和同步结果；对配置先备份。</li>
           <li>权限问题：同时核对文件权限、属主、所属组、运行用户和挂载选项，不要用 <code>777</code> 掩盖问题。</li>
           <li>设备问题：按“内核日志 → /sys → /dev → 权限 → 应用参数”顺序排查。</li>
           <li>空间问题：先 <code>df</code> 找分区，再 <code>du</code> 找目录，最后才决定如何清理。</li>
@@ -415,10 +415,10 @@ ls /sys/bus/platform/devices</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/linux-basic">返回 Linux专题</a>
+        <a href="../../../../index.html?v=c1df6198c223#soc-linux/linux-basic">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
+  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
 </body>
 </html>

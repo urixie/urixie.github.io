@@ -11,11 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 KIB = 1024
 FILE_BUDGETS = {
     "assets/js/home-data.js": 100 * KIB,
-    "assets/js/home.js": 40 * KIB,
-    "assets/js/main.js": 30 * KIB,
+    "assets/js/home.js": 48 * KIB,
+    "assets/js/main.js": 48 * KIB,
+    "assets/js/highlight.min.js": 56 * KIB,
     "assets/js/article-reader.js": 30 * KIB,
     "assets/css/style.css": 50 * KIB,
     "assets/css/home.css": 40 * KIB,
+    "assets/css/highlight.css": 8 * KIB,
 }
 TOTAL_BUDGETS = {
     "JavaScript": (ROOT / "assets" / "js", "*.js", 200 * KIB),

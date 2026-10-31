@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Landing regression harness</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #111; color: #eee; font-family: monospace; }
+    iframe { display: block; border: 0; background: #fff; }
+    #layout-result { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <iframe id="siteFrame" title="landing regression target"></iframe>
+  <pre id="layout-result" data-status="pending">pending</pre>
+  <script>
+    /* 首页（无路由）与导航整理回归：
+       - 无 hash 时显示首页：简介、最近更新（按 updated 倒序）、有文章的专题卡片，空专题列入“筹备中”；
+       - 侧栏只列出有文章的专题与分类；
+       - 点击专题卡片进入 #专题 概览页，点击头像区回到首页；
+       - 带三级标题的文章，目录只展开当前二级章节下的三级标题。 */
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const width = Number(params.get('width') || 1280);
+      const height = Number(params.get('height') || 800);
+      const mode = params.get('mode') || 'landing-desktop';
+      const frame = document.querySelector('#siteFrame');
+      const result = document.querySelector('#layout-result');
+      frame.style.width = `${width}px`;
+      frame.style.height = `${height}px`;
+      frame.src = '../index.html';
+
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+      async function waitFor(check, label, timeout = 8000) {
+        const deadline = Date.now() + timeout;
+        while (Date.now() < deadline) {
+          if (check()) return;
+          await sleep(80);
+        }
+        throw new Error(`timed out waiting for ${label}`);
+      }
+
+      /* CI 的虚拟时间下平滑滚动不会推进：关闭过渡并走“减少动态效果”分支（即时滚动）。 */
+      function disableMotion(doc) {
+        const win = doc.defaultView;
+        const style = doc.createElement('style');
+        style.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }';
+        doc.head.appendChild(style);
+        const nativeMatchMedia = win.matchMedia.bind(win);
+        win.matchMedia = query => (String(query).includes('prefers-reduced-motion')
+          ? { matches: true, media: query, addEventListener() {}, removeEventListener() {} }
+          : nativeMatchMedia(query));
+      }
+
+      async function run(doc) {
+        const win = doc.defaultView;
+        disableMotion(doc);
+        const failures = [];
+        const assert = (condition, message) => {
+          if (!condition) failures.push(message);
+        };
+        const topics = win.siteMap;
+        const articleCount = topic => (topic.children || []).reduce((sum, category) => sum + (category.articles || []).length, 0);
+
+        await waitFor(() => doc.querySelector('.landing-hero'), 'landing view');
+        assert(win.location.hash === '', `landing must not add a route, got ${win.location.hash}`);
+        assert(doc.title.startsWith('XYJ'), `landing title unexpected: ${doc.title}`);
+        const recent = Array.from(doc.querySelectorAll('.recent-list .recent-link'));
+        assert(recent.length === 6, `landing must list 6 recent articles, got ${recent.length}`);
+        const dates = recent.map(link => (link.querySelector('.recent-meta')?.textContent.match(/\d{4}-\d{2}-\d{2}/) || [''])[0]);
+        assert(dates.every(Boolean) && dates.every((date, index) => index === 0 || dates[index - 1] >= date), `recent list must be sorted by date desc: ${dates.join(', ')}`);
+        const withArticles = topics.filter(topic => (topic.children || []).length && articleCount(topic) > 0);
+        const empty = topics.filter(topic => (topic.children || []).length && articleCount(topic) === 0);
+        assert(doc.querySelectorAll('.topic-card').length === withArticles.length, 'one topic card per topic with articles');
+        if (empty.length) {
+          assert(empty.every(topic => doc.querySelector('.landing-upcoming')?.textContent.includes(topic.title)), 'empty topics must be listed as upcoming');
+        }
+        assert(doc.documentElement.scrollWidth <= doc.documentElement.clientWidth + 1, 'landing must not scroll horizontally');
+
+        const navTopics = Array.from(doc.querySelectorAll('.nav-topic')).map(node => node.dataset.topicId);
+        empty.forEach(topic => assert(!navTopics.includes(topic.id), `empty topic must be hidden from navigation: ${topic.id}`));
+        assert(!doc.querySelector('.nav-empty'), 'navigation must not show placeholder categories');
+        const navCategoryCount = doc.querySelectorAll('.nav-category').length;
+        const expectedCategories = topics.reduce((sum, topic) => sum + (topic.children || []).filter(category => (category.articles || []).length).length, 0);
+        assert(navCategoryCount === expectedCategories, `navigation categories ${navCategoryCount} != categories with articles ${expectedCategories}`);
+
+        const firstCard = doc.querySelector('.topic-card');
+        const firstTopic = withArticles[0];
+        firstCard.click();
+        await waitFor(() => doc.querySelector('.topic-overview h1'), 'topic overview');
+        assert(doc.querySelector('.topic-overview h1').textContent === firstTopic.title, 'topic card must open its overview');
+        assert(win.location.hash === `#${firstTopic.id}`, `overview route must be #topic, got ${win.location.hash}`);
+
+        doc.querySelector('[data-home-link]').click();
+        await waitFor(() => doc.querySelector('.landing-hero'), 'landing after home link');
+        assert(win.location.hash === '', 'home link must clear the route');
+
+        win.location.hash = '#foundation/embedded-c/c-embedded-c';
+        await waitFor(() => doc.querySelectorAll('#tocNav a').length > 0 && doc.querySelector('#tocNav a.active'), 'article with sub headings');
+        await sleep(200);
+        const links = Array.from(doc.querySelectorAll('#tocNav a'));
+        const subs = links.filter(link => link.dataset.level === '3');
+        const parentIndex = links.findIndex((link, index) => link.dataset.level === '2' && links[index + 1]?.dataset.level === '3');
+        assert(parentIndex >= 0, 'test article should have an h2 with h3 children');
+        links[parentIndex].click();
+        await sleep(600);
+        const visibleSubs = subs.filter(link => link.classList.contains('is-visible'));
+        const active = doc.querySelector('#tocNav a.active');
+        let groupEnd = parentIndex + 1;
+        while (links[groupEnd]?.dataset.level === '3') groupEnd += 1;
+        const expected = links.slice(parentIndex + 1, groupEnd);
+        assert(active === links[parentIndex], `clicked section must be active, got ${active?.textContent}`);
+        assert(subs.length > expected.length, `test article should have h3 entries in several sections (${subs.length})`);
+        assert(visibleSubs.length === expected.length && expected.every(link => visibleSubs.includes(link)),
+          `only the active section's h3 entries may be visible (${visibleSubs.length} visible, ${expected.length} expected, ${subs.length} total)`);
+        assert(win.getComputedStyle(subs.find(link => !expected.includes(link))).display === 'none', 'h3 entries of other sections must be hidden');
+
+        return { mode, width, height, failures, metrics: { recent: recent.length, dates, navTopics, navCategoryCount, subs: subs.length, visibleSubs: visibleSubs.length } };
+      }
+
+      frame.addEventListener('load', async () => {
+        try {
+          const report = await run(frame.contentDocument);
+          result.dataset.status = report.failures.length ? 'fail' : 'pass';
+          result.textContent = JSON.stringify(report, null, 2);
+        } catch (error) {
+          result.dataset.status = 'fail';
+          result.textContent = JSON.stringify({ mode, width, height, failures: [String(error)] }, null, 2);
+        }
+      }, { once: true });
+    })();
+  </script>
+</body>
+</html>

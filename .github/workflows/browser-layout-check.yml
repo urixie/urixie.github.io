@@ -12,6 +12,7 @@ on:
       - tests/article-loading-race.html
       - tests/route-compat-regression.html
       - tests/article-toc-regression.html
+      - tests/landing-regression.html
       - scripts/browser_layout_guard.py
       - .github/workflows/browser-layout-check.yml
   pull_request:
@@ -25,6 +26,7 @@ on:
       - tests/article-loading-race.html
       - tests/route-compat-regression.html
       - tests/article-toc-regression.html
+      - tests/landing-regression.html
       - scripts/browser_layout_guard.py
       - .github/workflows/browser-layout-check.yml
 

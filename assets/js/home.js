@@ -102,7 +102,7 @@ function safeDecode(value) {
 
 function parseHomeHash() {
   const rawHash = safeDecode(window.location.hash.replace(/^#/, '').trim());
-  if (!rawHash) return { topicId: 'foundation', categoryId: 'c-basic', articleSlug: '', sectionId: '' };
+  if (!rawHash) return { landing: true, topicId: '', categoryId: null, articleSlug: '', sectionId: '' };
 
   const canonicalHash = window.resolveLegacyHomeRoute?.(rawHash) || rawHash;
   const [topicId, categoryId, articleSlug, ...rest] = canonicalHash.split('/').filter(Boolean);
@@ -148,6 +148,8 @@ function buildSiteNav() {
 
   getHomeTopics().forEach(topic => {
     const hasChildren = Array.isArray(topic.children) && topic.children.length > 0;
+    // 导航只列出有文章的专题与分类；占位分类只在专题概览与首页里展示。
+    if (hasChildren && getTopicArticleCount(topic) === 0) return;
     const group = document.createElement('div');
     group.className = 'nav-topic';
     group.dataset.topicId = topic.id;
@@ -183,24 +185,14 @@ function buildSiteNav() {
       const body = document.createElement('div');
       body.className = 'nav-topic-body';
       body.id = `nav-topic-${topic.id}`;
-      topic.children.forEach(category => {
+      topic.children.filter(category => getArticleCount(category) > 0).forEach(category => {
         const section = document.createElement('div');
         section.className = 'nav-category';
         const heading = document.createElement('div');
         heading.className = 'nav-category-title';
         heading.textContent = category.title;
         section.appendChild(heading);
-        const articles = Array.isArray(category.articles) ? category.articles : [];
-        if (articles.length) {
-          articles.forEach(article => section.appendChild(createNavArticleLink(topic, category, article)));
-        } else {
-          const empty = document.createElement('p');
-          empty.className = 'nav-empty';
-          empty.textContent = Array.isArray(category.placeholders) && category.placeholders.length
-            ? `${category.placeholders.join('、')}，后续补充`
-            : '后续补充';
-          section.appendChild(empty);
-        }
+        category.articles.forEach(article => section.appendChild(createNavArticleLink(topic, category, article)));
         body.appendChild(section);
       });
       group.appendChild(body);
@@ -466,6 +458,7 @@ function goToSection(index, options = {}) {
   const heading = activeHeadings[index];
   if (!heading) return;
   ui().closePanels({ restoreFocus: false });
+  activeSpy?.hold(index, options.instant ? 120 : 500);
   if (options.instant) heading.scrollIntoView({ block: 'start' });
   else ui().scrollToHeading(heading);
   ui().setActiveTocLink(activeTocLinks, index);
@@ -473,7 +466,6 @@ function goToSection(index, options = {}) {
   const { topic, category, article } = currentSelection();
   updateHomeHash(topic, category, article, { replace: true, sectionId: heading.id });
   syncDock(index);
-  window.setTimeout(() => activeSpy?.refresh(), 450);
 }
 
 function setupReader(headings) {
@@ -532,6 +524,11 @@ async function renderInlineArticle(topic, category, article, options = {}) {
     const articleRoot = await window.articleReader.fetchInlineArticleRoot(article, { signal: controller.signal });
     if (controller.signal.aborted || renderVersion !== articleRenderVersion) return;
     const { element, headings } = window.articleReader.createInlineArticle(articleRoot);
+    ui().insertArticleMeta(element, { minutes: article.readMinutes, updated: article.updated });
+    ui().enhanceHeadings(headings, {
+      linkFor: heading => buildHomeHash(topic, category, article, heading.id),
+      onSelect: heading => goToSection(headings.indexOf(heading))
+    });
     view.replaceChildren(createBreadcrumb(topic, category), element, createArticleFooter(topic, category, article));
     loadedArticlePath = article.href;
     setupReader(headings);
@@ -575,6 +572,10 @@ function applySelection(topic, category, article, options = {}) {
 function switchTopic(topicId, options = {}) {
   const topic = findTopic(topicId) || findTopic('foundation') || getHomeTopics()[0];
   if (!topic) return;
+  if (options.overview) {
+    applySelection(topic, null, null, options);
+    return;
+  }
   const category = findCategory(topic, options.categoryId);
   const article = findArticle(category, options.articleSlug || '');
   applySelection(topic, category, article, options);
@@ -594,7 +595,12 @@ function selectArticle(topicId, categoryId, articleSlug, options = {}) {
 
 function restoreHomeFromHash(options = {}) {
   const parsed = parseHomeHash();
+  if (parsed.landing) {
+    showLanding();
+    return;
+  }
   switchTopic(parsed.topicId, {
+    overview: !parsed.categoryId,
     categoryId: parsed.categoryId,
     articleSlug: parsed.articleSlug,
     sectionId: parsed.sectionId,
@@ -639,26 +645,138 @@ function bindArticleAnchors() {
   });
 }
 
-/* ---------- 手机顶栏：下滑隐藏、上滑出现 ---------- */
+/* ---------- 首页：个人简介、最近更新、专题入口 ---------- */
 
-function initMobileHeader() {
-  const header = $('#mobileHeader');
-  if (!header) return;
-  let lastY = window.scrollY;
-  let frame = 0;
-  const update = () => {
-    frame = 0;
-    const y = window.scrollY;
-    const delta = y - lastY;
-    if (Math.abs(delta) < 6) return;
-    const hide = delta > 0 && y > 120 && !document.documentElement.classList.contains('is-scroll-locked');
-    header.classList.toggle('is-hidden', hide);
-    document.body.classList.toggle('header-hidden', hide);
-    lastY = y;
-  };
-  window.addEventListener('scroll', () => {
-    if (!frame) frame = window.requestAnimationFrame(update);
-  }, { passive: true });
+function goHome(event) {
+  event?.preventDefault();
+  ui()?.closePanels({ restoreFocus: false });
+  window.history.pushState(null, '', `${window.location.pathname}${window.location.search}`);
+  showLanding();
+}
+
+function createTopicCard(topic) {
+  const count = getTopicArticleCount(topic);
+  const card = document.createElement('a');
+  card.className = 'topic-card';
+  card.href = `#${topic.id}`;
+  const title = document.createElement('span');
+  title.className = 'topic-card-title';
+  title.textContent = topic.title;
+  const meta = document.createElement('span');
+  meta.className = 'topic-card-count';
+  meta.textContent = `${count} 篇`;
+  const desc = document.createElement('span');
+  desc.className = 'topic-card-desc';
+  desc.textContent = topic.desc || '';
+  card.append(title, meta, desc);
+  card.addEventListener('click', event => {
+    event.preventDefault();
+    switchTopic(topic.id, { overview: true });
+  });
+  return card;
+}
+
+function createLandingView() {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'landing';
+
+  const hero = document.createElement('section');
+  hero.className = 'landing-hero';
+  const avatar = document.createElement('img');
+  avatar.className = 'landing-avatar';
+  avatar.src = $('.profile-avatar')?.getAttribute('src') || 'assets/img/avatar-surf.jpg';
+  avatar.alt = 'XYJ 头像';
+  avatar.width = 72;
+  avatar.height = 72;
+  const intro = document.createElement('div');
+  const name = document.createElement('h1');
+  name.textContent = 'XYJ';
+  const role = document.createElement('p');
+  role.className = 'landing-role';
+  role.textContent = `嵌入式软件工程师 · ${typeof getWorkExperience === 'function' ? getWorkExperience(2022, 1) : ''}经验`;
+  const pitch = document.createElement('p');
+  pitch.className = 'landing-pitch';
+  pitch.textContent = '专注 MCU、SoC Linux、FPGA 与 RTOS 的嵌入式软件开发，记录从芯片手册、驱动调试到工程落地的一手笔记。';
+  const actions = document.createElement('div');
+  actions.className = 'landing-actions';
+  const search = document.createElement('button');
+  search.type = 'button';
+  search.className = 'landing-button is-primary';
+  search.textContent = '搜索文章';
+  search.addEventListener('click', openSearch);
+  const mail = document.createElement('a');
+  mail.className = 'landing-button';
+  mail.href = 'mailto:xyj.work@qq.com';
+  mail.textContent = '邮件联系';
+  actions.append(search, mail);
+  intro.append(name, role, pitch, actions);
+  hero.append(avatar, intro);
+
+  const recent = document.createElement('section');
+  recent.className = 'landing-section';
+  const recentTitle = document.createElement('h2');
+  recentTitle.textContent = '最近更新';
+  const list = document.createElement('ol');
+  list.className = 'recent-list';
+  getFlatArticles()
+    .map((entry, order) => ({ ...entry, order }))
+    .sort((a, b) => (b.article.updated || '').localeCompare(a.article.updated || '') || a.order - b.order)
+    .slice(0, 6)
+    .forEach(entry => {
+      const item = document.createElement('li');
+      const link = createNavArticleLink(entry.topic, entry.category, entry.article);
+      link.className = 'recent-link';
+      link.textContent = '';
+      const title = document.createElement('span');
+      title.className = 'recent-title';
+      title.textContent = entry.article.title;
+      const meta = document.createElement('span');
+      meta.className = 'recent-meta';
+      meta.textContent = [
+        `${entry.topic.title} / ${entry.category.title}`,
+        entry.article.updated,
+        entry.article.readMinutes ? `${entry.article.readMinutes} 分钟` : ''
+      ].filter(Boolean).join(' · ');
+      link.append(title, meta);
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+  recent.append(recentTitle, list);
+
+  const topics = document.createElement('section');
+  topics.className = 'landing-section';
+  const topicsTitle = document.createElement('h2');
+  topicsTitle.textContent = '专题';
+  const grid = document.createElement('div');
+  grid.className = 'topic-grid';
+  const upcoming = [];
+  getHomeTopics().forEach(topic => {
+    if (!Array.isArray(topic.children) || !topic.children.length) return;
+    if (getTopicArticleCount(topic) > 0) grid.appendChild(createTopicCard(topic));
+    else upcoming.push(topic.title);
+  });
+  topics.append(topicsTitle, grid);
+  if (upcoming.length) {
+    const note = document.createElement('p');
+    note.className = 'landing-upcoming';
+    note.textContent = `筹备中：${upcoming.join('、')}`;
+    topics.appendChild(note);
+  }
+
+  wrapper.append(hero, recent, topics);
+  return wrapper;
+}
+
+function showLanding() {
+  homeState.topicId = '';
+  homeState.categoryId = '';
+  homeState.articleSlug = '';
+  homeState.sectionId = '';
+  syncSiteNav();
+  setMobileTitle('XYJ');
+  showStaticView(createLandingView(), '');
+  document.title = 'XYJ · 嵌入式软件工程笔记';
+  window.scrollTo({ top: 0 });
 }
 
 /* ---------- 搜索 ---------- */
@@ -876,13 +994,23 @@ function initReaderChrome() {
   syncDock();
 }
 
+function siteUiReady() {
+  ui()?.initScrollDirection();
+  document.querySelectorAll('[data-home-link]').forEach(link => link.addEventListener('click', goHome));
+  document.querySelectorAll('[data-scroll-top]').forEach(button => button.addEventListener('click', () => {
+    ui()?.closePanels({ restoreFocus: false });
+    ui()?.scrollPageToTop();
+  }));
+  ui()?.enableSheetDrag($('#tocPanel'), $('#tocPanel .sheet-handle'));
+}
+
 function initHome() {
   const homeShell = document.querySelector('.home-shell');
   if (!homeShell || getHomeTopics().length === 0) return;
   buildSiteNav();
   initReaderChrome();
   bindArticleAnchors();
-  initMobileHeader();
+  siteUiReady();
   initSearch();
   document.querySelector('[data-skip-to-main]')?.addEventListener('click', () => $('#main')?.focus());
   restoreHomeFromHash({ replace: true, scroll: false });
@@ -891,6 +1019,7 @@ function initHome() {
 }
 
 window.homeNav = {
+  showLanding,
   buildSiteNav,
   syncSiteNav,
   switchTopic,

@@ -95,6 +95,12 @@ def validate_manifest(site_map: object) -> list[dict]:
                 ):
                     raise ValueError(f"{article_context}.tags must contain non-empty strings")
 
+                updated = article.get("updated")
+                if updated is not None and (
+                    not isinstance(updated, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated)
+                ):
+                    raise ValueError(f"{article_context}.updated must be a YYYY-MM-DD date string")
+
                 parsed = urlsplit(href)
                 if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment:
                     raise ValueError(f"{article_context}.href must be a pure local path: {href}")
@@ -149,6 +155,21 @@ def article_sections(href: str) -> list[str]:
     return parser.titles
 
 
+def article_read_minutes(href: str) -> int:
+    """Estimate reading time: ~350 CJK chars or ~200 Latin words per minute; code counts half."""
+    text = (ROOT / href).read_text(encoding="utf-8")
+    match = re.search(r"<article\b.*?</article>", text, re.S)
+    body = match.group(0) if match else text
+    code = " ".join(re.findall(r"<pre\b.*?</pre>", body, re.S))
+    prose = re.sub(r"<pre\b.*?</pre>", " ", body, flags=re.S)
+
+    def weight(chunk: str) -> float:
+        plain = re.sub(r"<[^>]+>", " ", chunk)
+        return len(re.findall(r"[\u4e00-\u9fff]", plain)) / 350 + len(re.findall(r"[A-Za-z]+", plain)) / 200
+
+    return max(1, round(weight(prose) + weight(code) / 2))
+
+
 def runtime_site_map(manifest: list[dict]) -> list[dict]:
     runtime = copy.deepcopy(manifest)
     for topic in runtime:
@@ -162,6 +183,8 @@ def runtime_site_map(manifest: list[dict]) -> list[dict]:
                         "href": article["href"],
                         "tags": article.get("tags", []),
                         "sections": article_sections(article["href"]),
+                        "updated": article.get("updated", ""),
+                        "readMinutes": article_read_minutes(article["href"]),
                     }
                 )
             category["articles"] = converted_articles

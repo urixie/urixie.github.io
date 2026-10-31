@@ -142,6 +142,22 @@
           assert(body.left >= (sidebar && !compact ? sidebar.right : 0) + 12, `article too close to the left edge: ${body.left}`);
         }
 
+        // 设计规范：信息行、无段首缩进、标题序号、代码块顶栏与语法高亮。
+        assert(Boolean(element('.inline-article-body .article-meta')), 'article meta row (reading time / sections / updated) is missing');
+        assert(/分钟阅读/.test(element('.article-meta')?.textContent || ''), 'article meta must show reading time');
+        const paragraph = element('.inline-article-body section p');
+        assert(paragraph && style(paragraph, 'textIndent') === '0px', `paragraphs must not be indented, got ${paragraph && style(paragraph, 'textIndent')}`);
+        assert(doc.querySelectorAll('.inline-article-body h2 .heading-num').length === doc.querySelectorAll('.inline-article-body h2').length,
+          'numbered h2 headings must render the number in .heading-num');
+        assert(doc.querySelectorAll('.inline-article-body .heading-anchor').length === headings.length, 'every heading needs a copy-link anchor');
+        const codeBlocks = Array.from(doc.querySelectorAll('.inline-article-body .code-block-wrap'));
+        assert(codeBlocks.length > 0 && codeBlocks.every(block => block.querySelector('.code-block-header .code-lang') && block.querySelector('.code-block-header .copy-code-button')),
+          'code blocks need a header with language label and copy button');
+        const highlightDeadline = Date.now() + 5000;
+        while (!element('.inline-article-body pre code.hljs') && Date.now() < highlightDeadline) await sleep(100);
+        assert(Boolean(element('.inline-article-body pre code.hljs span[class^="hljs-"]')), 'code blocks must be syntax highlighted');
+        assert(!/^\s*\n/.test(element('.inline-article-body pre code')?.textContent || ''), 'code must not start with a blank line');
+
         const copyButton = rect('.copy-code-button');
         if (copyButton) assert(copyButton.right <= width - 4 && copyButton.width >= 40, `copy button out of bounds: ${JSON.stringify(copyButton)}`);
 
@@ -177,7 +193,7 @@
         } else {
           assert(style('.home-shell', 'display') === 'grid', 'wide layout must use grid');
           assert(!isShown('.mobile-header'), 'wide layout must hide the mobile top bar');
-          assert(isShown('.site-sidebar') && sidebar && Math.abs(sidebar.width - 280) <= 2, `sidebar must be visible at 280px, got ${sidebar?.width}`);
+          assert(isShown('.site-sidebar') && sidebar && Math.abs(sidebar.width - 272) <= 2, `sidebar must be visible at 272px, got ${sidebar?.width}`);
           assert(style('.site-sidebar', 'position') === 'sticky', 'sidebar must be sticky');
           assert(content && sidebar && content.left >= sidebar.right - 1, 'content must follow the sidebar');
           await checkSidebarScroll('sidebar');

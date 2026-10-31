@@ -1,0 +1,110 @@
+/* 代码高亮配色（highlight.js 词法类名），深色 / 浅色各一套，跟随站点主题。
+   由 main.js 在页面存在代码块时与 highlight.min.js 一起按需加载。 */
+
+:root {
+  --hl-keyword: #ff7b72;
+  --hl-type: #ffa657;
+  --hl-title: #d2a8ff;
+  --hl-string: #a5d6ff;
+  --hl-number: #79c0ff;
+  --hl-comment: #8b949e;
+  --hl-meta: #7ee787;
+  --hl-attr: #79c0ff;
+  --hl-variable: #ffa657;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --hl-keyword: #cf222e;
+    --hl-type: #953800;
+    --hl-title: #8250df;
+    --hl-string: #0a3069;
+    --hl-number: #0550ae;
+    --hl-comment: #6e7781;
+    --hl-meta: #116329;
+    --hl-attr: #0550ae;
+    --hl-variable: #953800;
+  }
+}
+
+:root[data-theme="light"] {
+  --hl-keyword: #cf222e;
+  --hl-type: #953800;
+  --hl-title: #8250df;
+  --hl-string: #0a3069;
+  --hl-number: #0550ae;
+  --hl-comment: #6e7781;
+  --hl-meta: #116329;
+  --hl-attr: #0550ae;
+  --hl-variable: #953800;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-template-tag {
+  color: var(--hl-keyword);
+}
+
+.hljs-type,
+.hljs-built_in,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: var(--hl-type);
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: var(--hl-title);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-char.escape_,
+.hljs-symbol {
+  color: var(--hl-string);
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-bullet {
+  color: var(--hl-number);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+  color: var(--hl-meta);
+}
+
+.hljs-meta .hljs-string {
+  color: var(--hl-string);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-selector-attr {
+  color: var(--hl-attr);
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params,
+.hljs-subst {
+  color: var(--hl-variable);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}

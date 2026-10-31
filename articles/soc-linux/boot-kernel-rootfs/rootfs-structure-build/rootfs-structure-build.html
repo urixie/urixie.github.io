@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>根文件系统组成与构建流程 - XYJ</title>
   <meta name="description" content="整理嵌入式 Linux 根文件系统的目录结构、BusyBox、动态库、设备节点、init、挂载、Buildroot.Ubuntu Base、打包格式和常见启动问题。">
-  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
+  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-          <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+          <a href="../../../../index.html?v=c1df6198c223#soc-linux/boot-kernel-rootfs">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-      <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+      <a href="../../../../index.html?v=c1df6198c223#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -44,7 +44,7 @@
       <section>
         <h2>1. RootFS 在启动链路中的作用</h2>
         <p>
-          Kernel 根据启动参数中的 <code>root=</code> 找到根文件系统，挂载后执行第一个用户态程序，常见是 <code>/sbin/init</code>.<code>/init</code> 或 systemd。</p>
+          Kernel 根据启动参数中的 <code>root=</code> 找到根文件系统，挂载后执行第一个用户态程序，常见是 <code>/sbin/init</code>、<code>/init</code> 或 systemd。</p>
         <figure class="article-figure">
           <svg viewBox="0 0 780 260" role="img" aria-label="RootFS 启动链路示意图">
             <rect x="50" y="90" width="120" height="58" rx="12" fill="#e0f2fe" stroke="#0284c7"/><text x="110" y="125" text-anchor="middle" font-size="14">Kernel</text>
@@ -88,7 +88,7 @@
 make -j$(nproc)
 make CONFIG_PREFIX=$PWD/rootfs install</code></pre>
         <p>
-          安装后，BusyBox 会在 <code>bin</code>.<code>sbin</code> 等目录下创建大量指向 busybox 的软链接，例如 <code>ls</code>.<code>cat</code>.<code>sh</code>。</p>
+          安装后，BusyBox 会在 <code>bin</code>、<code>sbin</code> 等目录下创建大量指向 busybox 的软链接，例如 <code>ls</code>、<code>cat</code>、<code>sh</code>。</p>
       </section>
 
       <section>
@@ -110,7 +110,7 @@ readelf -d app | grep NEEDED</code></pre>
 ::respawn:-/bin/sh
 ::ctrlaltdel:/sbin/reboot</code></pre>
         <p>
-          最小系统中，<code>rcS</code> 通常负责挂载 <code>proc</code>.<code>sysfs</code>.<code>devtmpfs</code>，配置网络，启动应用。</p>
+          最小系统中，<code>rcS</code> 通常负责挂载 <code>proc</code>、<code>sysfs</code>、<code>devtmpfs</code>，配置网络，启动应用。</p>
       </section>
 
       <section>
@@ -175,7 +175,7 @@ chroot rootfs /bin/bash</code></pre>
           <li>rootfs 架构是否和 Kernel/应用一致。</li>
           <li>动态库和动态链接器是否完整。</li>
           <li><code>/sbin/init</code> 或 <code>/init</code> 是否存在且可执行。</li>
-          <li><code>/proc</code>.<code>/sys</code>.<code>/dev</code> 挂载点是否存在。</li>
+          <li><code>/proc</code>、<code>/sys</code>、<code>/dev</code> 挂载点是否存在。</li>
           <li>U-Boot 的 <code>bootargs</code> 中 <code>root=</code> 是否匹配实际分区。</li>
           <li>rootfs 打包格式是否符合启动介质和内核配置。</li>
           <li>日志目录是否可写，是否会写满 Flash。</li>
@@ -183,10 +183,10 @@ chroot rootfs /bin/bash</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+        <a href="../../../../index.html?v=c1df6198c223#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
+  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
 </body>
 </html>

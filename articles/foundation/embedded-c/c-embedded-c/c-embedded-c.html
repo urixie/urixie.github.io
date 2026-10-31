@@ -8,16 +8,16 @@
   <meta name='bingbot' content='noindex, nofollow, noarchive, nosnippet, noimageindex'>
   <title>嵌入式 C 关键语法与 GNU C 扩展实践 - XYJ</title>
   <meta name='description' content='整理嵌入式 C 与 GNU C 扩展语法，包括指定初始化.语句表达式.typeof.container_of.零长度数组.section.aligned.packed.format.weak.alias.inline.内建函数和可变参数宏。'>
-  <script src='../../../../assets/js/theme-init.js?v=ee009e36b0e5'></script>
-  <link rel='stylesheet' href='../../../../assets/css/style.css?v=ee009e36b0e5'>
+  <script src='../../../../assets/js/theme-init.js?v=c1df6198c223'></script>
+  <link rel='stylesheet' href='../../../../assets/css/style.css?v=c1df6198c223'>
 </head>
 <body>
   <main class='article-page-shell'>
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
-          <a href="../../../../index.html?v=ee009e36b0e5#foundation/embedded-c">返回对应专题</a>
+          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
+          <a href="../../../../index.html?v=c1df6198c223#foundation/embedded-c">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,15 +26,15 @@
 
 
     <div class='article-topbar'>
-      <a href='../../../../index.html?v=ee009e36b0e5'>← 返回首页</a>
-      <a href='../../../../index.html?v=ee009e36b0e5#foundation/embedded-c'>返回 C语言专题</a>
+      <a href='../../../../index.html?v=c1df6198c223'>← 返回首页</a>
+      <a href='../../../../index.html?v=c1df6198c223#foundation/embedded-c'>返回 C语言专题</a>
     </div>
 
     <article class='article card'>
       <h1>嵌入式 C 关键语法与 GNU C 扩展实践</h1>
 
       <p>
-        本文面向嵌入式工程实践整理 C 语言关键语法和 GNU C 扩展语法。前半部分关注 <code>volatile</code>.<code>static</code>.<code>const</code>.宏定义、中断共享变量、寄存器位操作和函数指针；后半部分按照 GNU C 扩展常见知识点，系统补充指定初始化、语句表达式.<code>typeof</code>.<code>container_of</code>.零长度数组.<code>section</code>.<code>aligned</code>.<code>packed</code>.<code>format</code>.<code>weak</code>.<code>alias</code>.<code>inline</code>.内建函数和可变参数宏。
+        本文面向嵌入式工程实践整理 C 语言关键语法和 GNU C 扩展语法。前半部分关注 <code>volatile</code>、<code>static</code>、<code>const</code>.宏定义、中断共享变量、寄存器位操作和函数指针；后半部分按照 GNU C 扩展常见知识点，系统补充指定初始化、语句表达式.<code>typeof</code>、<code>container_of</code>.零长度数组.<code>section</code>、<code>aligned</code>、<code>packed</code>、<code>format</code>、<code>weak</code>、<code>alias</code>、<code>inline</code>.内建函数和可变参数宏。
       </p>
 
       <div class='article-note'>
@@ -132,7 +132,7 @@ static event_cb_t s_event_cb;</code></pre>
       <section>
         <h2>6. C 语言标准与编译器扩展</h2>
         <p>
-          C 语言标准定义了语法、类型、表达式、预处理、库函数、翻译阶段等基础规则。常见标准包括 C89/C90、C99、C11、C17/C18 和 C23。不同编译器对不同标准的支持程度并不完全相同，工程中通常通过编译选项指定标准，例如 <code>-std=c99</code>.<code>-std=gnu11</code>。
+          C 语言标准定义了语法、类型、表达式、预处理、库函数、翻译阶段等基础规则。常见标准包括 C89/C90、C99、C11、C17/C18 和 C23。不同编译器对不同标准的支持程度并不完全相同，工程中通常通过编译选项指定标准，例如 <code>-std=c99</code>、<code>-std=gnu11</code>。
         </p>
         <ul>
           <li><code>-std=c11</code>：尽量按照 ISO C11 标准检查。</li>
@@ -374,7 +374,7 @@ void app_log(const char *fmt, ...)
     va_end(args);
 }</code></pre>
         <p>
-          上面 <code>format(printf, 1, 2)</code> 表示第 1 个参数是格式字符串，第 2 个参数开始是可变参数。这样如果写错 <code>%d</code>.<code>%s</code>.<code>%p</code> 等格式，编译器能提前告警。
+          上面 <code>format(printf, 1, 2)</code> 表示第 1 个参数是格式字符串，第 2 个参数开始是可变参数。这样如果写错 <code>%d</code>、<code>%s</code>、<code>%p</code> 等格式，编译器能提前告警。
         </p>
       </section>
 
@@ -437,7 +437,7 @@ if (__builtin_expect(error_code != 0, 0)) {
     // 低概率错误路径
 }</code></pre>
         <p>
-          常见内建函数包括 <code>__builtin_popcount</code>.<code>__builtin_clz</code>.<code>__builtin_ctz</code>.<code>__builtin_expect</code>.<code>__builtin_constant_p</code> 等。使用时要确认目标编译器是否支持，并注意不同位宽对应的函数变体。
+          常见内建函数包括 <code>__builtin_popcount</code>、<code>__builtin_clz</code>、<code>__builtin_ctz</code>、<code>__builtin_expect</code>、<code>__builtin_constant_p</code> 等。使用时要确认目标编译器是否支持，并注意不同位宽对应的函数变体。
         </p>
       </section>
 
@@ -466,7 +466,7 @@ if (__builtin_expect(error_code != 0, 0)) {
           在传感器或 UART 场景中，中断服务程序只适合快速确认硬件事件、保存少量数据并通知任务；协议解析、日志输出和复杂计算应放到主循环或 RTOS 任务中。<code>volatile</code> 只能保证编译器每次重新读取变量，不能自动提供多字节原子性和线程安全。
         </p>
         <figure class="article-figure">
-          <img src="images/c-embedded-concurrency.svg?v=ee009e36b0e5" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图" loading="lazy" decoding="async">
+          <img src="images/c-embedded-concurrency.svg?v=c1df6198c223" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：中断与业务任务之间要有清楚的数据交接边界。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stdbool.h&gt;
@@ -520,7 +520,7 @@ void app_poll(void)
           <li>是否明确知道当前项目使用的是 <code>-std=c*</code> 还是 <code>-std=gnu*</code>。</li>
           <li>指定初始化是否能替代容易错位的顺序初始化。</li>
           <li>语句表达式宏是否避免了参数重复求值。</li>
-          <li><code>typeof</code>.<code>container_of</code> 是否只用于合适的底层框架代码。</li>
+          <li><code>typeof</code>、<code>container_of</code> 是否只用于合适的底层框架代码。</li>
           <li>柔性数组是否放在结构体最后，并按 <code>sizeof(struct) + payload_len</code> 分配。</li>
           <li>使用 <code>section</code> 后是否检查链接脚本和 map 文件。</li>
           <li>使用 <code>aligned</code> 后是否确认 DMA、Cache、Flash 等硬件要求。</li>
@@ -533,11 +533,11 @@ void app_poll(void)
       </section>
 
       <div class='article-footer'>
-        <a href='../../../../index.html?v=ee009e36b0e5#foundation/embedded-c'>返回 C语言专题</a>
+        <a href='../../../../index.html?v=c1df6198c223#foundation/embedded-c'>返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src='../../../../assets/js/main.js?v=ee009e36b0e5'></script>
+  <script src='../../../../assets/js/main.js?v=c1df6198c223'></script>
 </body>
 </html>
