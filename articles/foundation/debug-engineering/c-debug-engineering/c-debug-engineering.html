@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言调试与工程排错整理 - XYJ</title>
   <meta name="description" content="整理 C 语言和嵌入式项目中的编译告警、日志、断点、HardFault、map 文件、数组越界、栈溢出和错误码设计。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#foundation/debug-engineering">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#foundation/debug-engineering">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-      <a href="../../../../index.html?v=4c01baacdfc9#foundation/debug-engineering">返回 C语言专题</a>
+      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+      <a href="../../../../index.html?v=176874b30373#foundation/debug-engineering">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -187,7 +187,7 @@ frame_t frame = {0};</code></pre>
           假设设备偶尔把一帧 32 字节数据报告为“长度错误”。直接在报错行加一个断点，往往会改变时序，使问题消失。更稳妥的做法是记录输入摘要、当前状态、缓冲区容量和返回码，再用固定输入离线重放解析函数。
         </p>
         <figure class="article-figure">
-          <img src="images/c-debug-evidence.svg?v=4c01baacdfc9" alt="C 语言故障从现象到复现、取证、定位、修复和回归的证据链流程图" loading="lazy" decoding="async">
+          <img src="images/c-debug-evidence.svg?v=176874b30373" alt="C 语言故障从现象到复现、取证、定位、修复和回归的证据链流程图" loading="lazy" decoding="async">
           <figcaption>图 1：调试的目标是建立证据链，而不是猜测某一行代码。</figcaption>
         </figure>
         <pre><code class="language-c">typedef struct {
@@ -329,7 +329,7 @@ __attribute__((naked)) void HardFault_Handler(void)
         <p>现场设备出问题时通常没有调试器，能依靠的只有设备自己留下的证据。三件事建议每个项目都做：</p>
         <ul>
           <li><strong>记录复位原因</strong>：上电后读取芯片的复位标志寄存器（如 STM32 的 <code>RCC-&gt;CSR</code>），区分上电复位、外部引脚复位、看门狗复位、软件复位、低电压复位，读取后清除标志，并写入日志或上报。“设备偶尔重启”时，这是第一条线索。</li>
-          <li><strong>崩溃信息跨复位保存</strong>：HardFault、断言失败时，把 PC、LR、故障寄存器、任务名写入启动代码不会清零的 RAM 区域（<code>.noinit</code> 段），然后复位；重启后检查并上报。实现方式见 <a href="../c-build-link-startup/c-build-link-startup.html?v=4c01baacdfc9">编译、链接与启动流程</a>。</li>
+          <li><strong>崩溃信息跨复位保存</strong>：HardFault、断言失败时，把 PC、LR、故障寄存器、任务名写入启动代码不会清零的 RAM 区域（<code>.noinit</code> 段），然后复位；重启后检查并上报。实现方式见 <a href="../c-build-link-startup/c-build-link-startup.html?v=176874b30373">编译、链接与启动流程</a>。</li>
           <li><strong>看门狗要喂得“有意义”</strong>：不要在定时器中断里无条件喂狗，那样主循环卡死了看门狗也不会复位。推荐每个关键任务定期报告“我还活着”，由一个监控任务确认所有任务都按时报告后才喂狗。</li>
         </ul>
         <pre><code class="language-c">#define TASK_BIT_COMM    (1U &lt;&lt; 0)
@@ -427,11 +427,11 @@ const char fw_build_info[] = "fw 1.4.2 (" GIT_HASH ") " __DATE__ " " __TIME__;</
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#foundation/debug-engineering">返回 C语言专题</a>
+        <a href="../../../../index.html?v=176874b30373#foundation/debug-engineering">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS 队列、信号量与互斥锁 - XYJ</title>
   <meta name="description" content="整理 FreeRTOS 队列、二值信号量、计数信号量、互斥锁、优先级继承、任务通知和中断到任务的数据同步方式。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#realtime/ipc-sync">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#realtime/ipc-sync">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-      <a href="../../../../index.html?v=4c01baacdfc9#realtime/ipc-sync">返回 FreeRTOS专题</a>
+      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+      <a href="../../../../index.html?v=176874b30373#realtime/ipc-sync">返回 FreeRTOS专题</a>
     </div>
 
     <article class="article card">
@@ -186,7 +186,166 @@ vTaskNotifyGiveFromISR(s_task_handle, &amp;high_task_woken);</code></pre>
       </section>
 
       <section>
-        <h2>9. 选择建议</h2>
+        <h2>9. 事件组：等待多个条件</h2>
+        <p>事件组（Event Group）用一组位表示多个事件，任务可以等待“任意一个”或“全部”事件发生，适合系统初始化同步和多条件等待：</p>
+        <pre><code class="language-c">#define EV_WIFI_UP    (1u &lt;&lt; 0)
+#define EV_TIME_SYNC  (1u &lt;&lt; 1)
+#define EV_CFG_LOADED (1u &lt;&lt; 2)
+
+static EventGroupHandle_t sys_events;
+
+void app_init(void) { sys_events = xEventGroupCreate(); }
+
+/* 各模块完成后设置自己的位 */
+void wifi_on_connected(void) { xEventGroupSetBits(sys_events, EV_WIFI_UP); }
+
+/* 上报任务：等待网络、时间和配置全部就绪 */
+static void report_task(void *arg)
+{
+    EventBits_t bits = xEventGroupWaitBits(sys_events,
+                                           EV_WIFI_UP | EV_TIME_SYNC | EV_CFG_LOADED,
+                                           pdFALSE,          /* 退出时不清除这些位 */
+                                           pdTRUE,           /* 等待全部位 */
+                                           pdMS_TO_TICKS(30000));
+    if ((bits &amp; (EV_WIFI_UP | EV_TIME_SYNC | EV_CFG_LOADED)) != (EV_WIFI_UP | EV_TIME_SYNC | EV_CFG_LOADED)) {
+        log_warn("init timeout, bits=0x%lx", (unsigned long)bits);
+    }
+    /* ... */
+}</code></pre>
+        <p>注意：</p>
+        <ul>
+          <li>事件组的位<strong>不计数</strong>，同一事件发生多次只记录一次，不适合传递“发生了几次”。</li>
+          <li><code>xEventGroupSetBitsFromISR()</code> 实际上把置位操作交给定时器服务任务执行，需要启用软件定时器，并且置位会有一定延迟。</li>
+          <li>可用的位数取决于 <code>TickType_t</code> 宽度，<code>TickType_t</code> 为 32 位时可用 24 位，为 64 位时可用 56 位。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>10. 流缓冲区与消息缓冲区</h2>
+        <p>队列按“项”拷贝数据，对于串口接收这种不定长字节流，逐字节入队效率很低。FreeRTOS 10.0 起提供：</p>
+        <table>
+          <thead><tr><th>对象</th><th>数据形式</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>流缓冲区（Stream Buffer）</td><td>连续字节流，没有边界</td><td>串口、USB CDC 的原始数据</td></tr>
+            <tr><td>消息缓冲区（Message Buffer）</td><td>带长度的不定长消息，按条读取</td><td>一帧一帧的协议报文</td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-c">static StreamBufferHandle_t uart_rx_sb;
+
+void uart_init_rtos(void)
+{
+    uart_rx_sb = xStreamBufferCreate(512, 1);       /* 容量 512 字节，有 1 字节就唤醒读取者 */
+}
+
+/* 串口 DMA 半满 / 全满 / 空闲中断中：把新收到的数据写入流缓冲区 */
+void uart_rx_isr_chunk(const uint8_t *data, size_t len)
+{
+    BaseType_t woken = pdFALSE;
+    size_t n = xStreamBufferSendFromISR(uart_rx_sb, data, len, &amp;woken);
+    if (n &lt; len) g_uart_overflow++;                 /* 缓冲区满，记录溢出 */
+    portYIELD_FROM_ISR(woken);
+}
+
+static void protocol_task(void *arg)
+{
+    uint8_t buf[64];
+    for (;;) {
+        size_t n = xStreamBufferReceive(uart_rx_sb, buf, sizeof(buf), pdMS_TO_TICKS(100));
+        if (n &gt; 0) parser_feed(buf, n);
+        else       parser_timeout();                /* 100ms 没有数据：帧间超时 */
+    }
+}</code></pre>
+        <div class="article-warning">流缓冲区和消息缓冲区假定<strong>只有一个写入者和一个读取者</strong>。多个任务或中断同时写入时，必须在外部加保护（例如写入放在临界区内），否则数据会交错损坏。</div>
+        <p>流缓冲区本质上是内核提供的环形缓冲区，自己实现无锁环形缓冲的方法见 <a href="../../../foundation/data-structure/ring-buffer/ring-buffer.html?v=176874b30373">环形缓冲区</a>。</p>
+      </section>
+
+      <section>
+        <h2>11. 队列集：同时等待多个队列</h2>
+        <p>一个任务需要同时等待多个队列或信号量时，可以使用队列集（需 <code>configUSE_QUEUE_SETS 1</code>）：</p>
+        <pre><code class="language-c">QueueSetHandle_t set = xQueueCreateSet(CMD_Q_LEN + 1);
+xQueueAddToSet(cmd_queue, set);
+xQueueAddToSet(data_ready_sem, set);
+
+for (;;) {
+    QueueSetMemberHandle_t who = xQueueSelectFromSet(set, portMAX_DELAY);
+    if (who == cmd_queue) {
+        xQueueReceive(cmd_queue, &amp;cmd, 0);          /* 已确认有数据，超时用 0 */
+        handle_cmd(&amp;cmd);
+    } else if (who == data_ready_sem) {
+        xSemaphoreTake(data_ready_sem, 0);
+        handle_data();
+    }
+}</code></pre>
+        <p>队列集的容量必须等于所有成员容量之和。很多情况下更简单的做法是<strong>合并成一个队列</strong>，在消息里用类型字段区分来源；只有在无法修改消息源（例如来自第三方库的信号量）时才需要队列集。</p>
+      </section>
+
+      <section>
+        <h2>12. 递归互斥锁与死锁</h2>
+        <p>普通互斥锁被同一个任务重复获取会造成自己等待自己（死锁）。如果一个加锁的函数会调用另一个也加同一把锁的函数，可以使用递归互斥锁：</p>
+        <pre><code class="language-c">SemaphoreHandle_t lock = xSemaphoreCreateRecursiveMutex();
+
+void flash_write_page(...)
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    /* ... */
+    xSemaphoreGiveRecursive(lock);
+}
+
+void flash_write_file(...)
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    flash_write_page(...);                           /* 嵌套获取同一把锁 */
+    xSemaphoreGiveRecursive(lock);                   /* 获取几次就要释放几次 */
+}</code></pre>
+        <p>递归锁能解决嵌套调用问题，但也容易掩盖设计上的混乱。更常见的死锁来源是<strong>两个任务以相反顺序获取两把锁</strong>。预防方法：</p>
+        <ul>
+          <li>所有任务按固定顺序获取多把锁。</li>
+          <li>获取锁时使用有限超时，超时后记录并释放已持有的锁。</li>
+          <li>尽量让一个资源只由一个任务访问（资源所有者任务），其他任务通过消息请求服务，从根本上消除锁。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>13. 中断延迟处理的标准写法</h2>
+        <p>中断中只做最少的工作，处理交给任务，是 RTOS 系统的基本模式。任务通知是最轻量的实现：</p>
+        <pre><code class="language-c">static TaskHandle_t adc_task_handle;
+
+void DMA1_Channel1_IRQHandler(void)
+{
+    BaseType_t woken = pdFALSE;
+    if (dma_transfer_complete()) {
+        dma_clear_flag();
+        vTaskNotifyGiveFromISR(adc_task_handle, &amp;woken);   /* 通知计数加 1 */
+    }
+    portYIELD_FROM_ISR(woken);                             /* 必要时中断返回后立即切换 */
+}
+
+static void adc_task(void *arg)
+{
+    for (;;) {
+        uint32_t n = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50));  /* 取走全部计数 */
+        if (n == 0) { log_warn("adc timeout"); continue; }
+        if (n &gt; 1)  g_adc_overrun += n - 1;                       /* 处理不及时，丢了数据块 */
+        process_adc_block();
+    }
+}</code></pre>
+        <p><code>n &gt; 1</code> 说明任务处理速度跟不上中断，这是很有价值的诊断信息。中断与共享数据的并发问题见 <a href="../../../foundation/embedded-c/c-interrupt-concurrency/c-interrupt-concurrency.html?v=176874b30373">中断与并发</a>。</p>
+      </section>
+
+      <section>
+        <h2>14. 工作场景：串口协议接收重构</h2>
+        <p>原实现：串口每收到一个字节触发中断，用 <code>xQueueSendFromISR</code> 逐字节入队，协议任务逐字节出队解析。115200 波特率下 CPU 占用明显，高负载时出现丢字节。</p>
+        <ol>
+          <li><strong>DMA + 空闲中断</strong>：串口改用 DMA 循环接收，在 DMA 半满、全满和串口空闲中断中把新数据块写入流缓冲区，中断次数从每字节一次降为每帧一到两次。</li>
+          <li><strong>流缓冲区</strong>：协议任务从流缓冲区批量读取，送入解析器；读超时作为帧间隔判断。</li>
+          <li><strong>溢出可见</strong>：流缓冲区写入不完整时累计溢出计数，通过调试命令查看。</li>
+          <li><strong>发送路径</strong>：多个任务都需要发送数据时，不直接调用串口发送，而是把报文放入发送队列，由协议任务统一发送，串口外设只有一个所有者。</li>
+          <li><strong>结果</strong>：CPU 占用显著下降，长时间压力测试无丢帧。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>15. 选择建议</h2>
         <ul>
           <li>传递数据：队列。</li>
           <li>中断唤醒任务：任务通知或二值信号量。</li>
@@ -197,10 +356,10 @@ vTaskNotifyGiveFromISR(s_task_handle, &amp;high_task_woken);</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#realtime/ipc-sync">返回 FreeRTOS专题</a>
+        <a href="../../../../index.html?v=176874b30373#realtime/ipc-sync">返回 FreeRTOS专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

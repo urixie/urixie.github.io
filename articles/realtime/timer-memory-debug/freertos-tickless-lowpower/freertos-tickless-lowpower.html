@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FreeRTOS Tickless 与低功耗 - XYJ</title>
+  <meta name="description" content="说明 Tickless Idle 的原理，内置 SysTick 实现的限制，以及用 LPTIM 自定义实现进入 Stop 模式的方法和常见功耗问题。">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>FreeRTOS Tickless 与低功耗</h1>
+      <p class="article-summary">说明 Tickless Idle 的原理，内置 SysTick 实现的限制，以及用 LPTIM 自定义实现进入 Stop 模式的方法和常见功耗问题。</p>
+
+      <section>
+        <h2>1. 为什么需要 Tickless</h2>
+        <p>FreeRTOS 依靠周期性的 Tick 中断（通常 1ms）推进时间。即使所有任务都在阻塞等待，CPU 也会每毫秒被唤醒一次处理 Tick，这对电池供电设备是很大的浪费：</p>
+        <pre><code class="language-text">普通模式：  |T|T|T|T|T|T|T|T|T|T|   每 1ms 唤醒一次，CPU 无法长时间休眠
+Tickless：  |T|.......休眠.......|T|  预计空闲 N 个 Tick，就停掉 Tick 休眠 N 个 Tick</code></pre>
+        <p>Tickless Idle 的思路是：当调度器发现<strong>下一个任务要在 N 个 Tick 之后才就绪</strong>时，停止周期 Tick，设置一个定时器在 N 个 Tick 后唤醒，进入低功耗模式；醒来后把错过的 Tick 数补回内核时间。MCU 本身的低功耗模式与时钟配置见 <a href="../../../mcu/peripheral/mcu-clock-reset-lowpower/mcu-clock-reset-lowpower.html?v=176874b30373">时钟、复位与低功耗</a>。</p>
+      </section>
+
+      <section>
+        <h2>2. 最简单的开始：空闲钩子中执行 WFI</h2>
+        <p>不启用 Tickless 时，也可以在空闲任务钩子中让 CPU 进入 Sleep 模式，下一次中断（包括 Tick）到来时自动唤醒：</p>
+        <pre><code class="language-c">/* FreeRTOSConfig.h: #define configUSE_IDLE_HOOK 1 */
+void vApplicationIdleHook(void)
+{
+    __DSB();
+    __WFI();        /* Sleep 模式：内核时钟停止，外设和 SysTick 继续运行 */
+}</code></pre>
+        <p>这种方式简单安全，但每个 Tick 都会唤醒，节能效果有限。空闲钩子中不能调用任何可能阻塞的 API。</p>
+      </section>
+
+      <section>
+        <h2>3. 使用内置 Tickless 实现</h2>
+        <p>Cortex-M 等常见移植已经提供了基于 SysTick 的默认 Tickless 实现，只需配置：</p>
+        <pre><code class="language-c">/* FreeRTOSConfig.h */
+#define configUSE_TICKLESS_IDLE                 1   /* 1：使用移植层默认实现；2：自己实现 */
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP   2   /* 预计空闲至少 2 个 Tick 才休眠 */
+
+/* 进入休眠前后的钩子，可用于关闭 / 恢复外设时钟 */
+#define configPRE_SLEEP_PROCESSING(x)   app_pre_sleep(&amp;(x))
+#define configPOST_SLEEP_PROCESSING(x)  app_post_sleep(&amp;(x))</code></pre>
+        <pre><code class="language-c">void app_pre_sleep(TickType_t *expected_ticks)
+{
+    led_off();
+    /* 如果有不能被打断的传输正在进行，可以把 *expected_ticks 置 0，
+       移植层将跳过本次 WFI */
+}
+
+void app_post_sleep(TickType_t *expected_ticks)
+{
+    (void)expected_ticks;
+}</code></pre>
+        <p>默认实现的限制：它使用 SysTick 定时唤醒，而 SysTick 是 24 位计数器、以内核时钟计数。内核时钟 80MHz 时，最长一次休眠约 2^24 / 80MHz ≈ 0.21s，超过后会提前醒来再次休眠。更关键的是，<strong>SysTick 在 Stop 等深度低功耗模式下停止工作</strong>，所以默认实现只能配合 Sleep 模式使用。</p>
+      </section>
+
+      <section>
+        <h2>4. 自定义实现：用低功耗定时器进入 Stop 模式</h2>
+        <p>要进入 Stop 模式（电流从毫安级降到微安级），需要用在 Stop 模式下仍能运行的定时器（如 STM32 的 LPTIM 或 RTC 唤醒定时器）替代 SysTick，并设置 <code>configUSE_TICKLESS_IDLE 2</code>，自己实现 <code>portSUPPRESS_TICKS_AND_SLEEP()</code>：</p>
+        <pre><code class="language-c">/* FreeRTOSConfig.h */
+#define configUSE_TICKLESS_IDLE   2
+extern void app_suppress_ticks_and_sleep(TickType_t expected_idle);
+#define portSUPPRESS_TICKS_AND_SLEEP(x)  app_suppress_ticks_and_sleep(x)</code></pre>
+        <pre><code class="language-c">/* 示意：LPTIM 以 LSE 32.768kHz 计数，用于计算休眠时长 */
+void app_suppress_ticks_and_sleep(TickType_t expected_idle)
+{
+    if (expected_idle &gt; MAX_LPTIM_TICKS) expected_idle = MAX_LPTIM_TICKS;
+
+    __disable_irq();                                     /* 屏蔽中断，但 WFI 仍可被挂起的中断唤醒 */
+    if (eTaskConfirmSleepModeStatus() == eAbortSleep) {  /* 关中断前有任务变为就绪 */
+        __enable_irq();
+        return;
+    }
+
+    SysTick-&gt;CTRL &amp;= ~SysTick_CTRL_ENABLE_Msk;           /* 停止 SysTick */
+    lptim_start_oneshot(ticks_to_lptim(expected_idle));  /* 设置唤醒时间 */
+
+    enter_stop_mode();                                   /* WFI，进入 Stop */
+    /* --- 被 LPTIM 或其他中断唤醒 --- */
+    restore_system_clock();                              /* Stop 唤醒后时钟回到 HSI/MSI，需要重新配置 PLL */
+
+    uint32_t slept = lptim_to_ticks(lptim_elapsed());    /* 实际休眠了多少个 Tick */
+    lptim_stop();
+    vTaskStepTick(slept);                                /* 补回内核时间（不能超过 expected_idle） */
+
+    SysTick-&gt;VAL = 0;
+    SysTick-&gt;CTRL |= SysTick_CTRL_ENABLE_Msk;            /* 恢复 SysTick */
+    __enable_irq();                                      /* 唤醒中断在此之后得到处理 */
+}</code></pre>
+        <p>实现中要特别注意：</p>
+        <ul>
+          <li><strong>提前唤醒</strong>：可能被按键、串口等其他中断提前唤醒，必须用实际经过的时间而不是预计时间来补偿 Tick。</li>
+          <li><strong>时钟恢复</strong>：多数 MCU 从 Stop 模式唤醒后使用内部 RC 振荡器，需要重新开启 PLL 并切换系统时钟，外设波特率等才正确。</li>
+          <li><strong>时间精度</strong>：LPTIM 计数与 Tick 之间的换算会产生舍入误差，长时间运行后系统时间会漂移；需要精确时间时以 RTC 为准。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. 哪些东西会阻止休眠</h2>
+        <p>启用 Tickless 后功耗仍然下不去，常见原因：</p>
+        <table>
+          <thead><tr><th>原因</th><th>现象</th><th>处理</th></tr></thead>
+          <tbody>
+            <tr><td>有任务周期性短延时（如 <code>vTaskDelay(1)</code> 轮询）</td><td>预计空闲时间始终小于阈值</td><td>改为事件驱动阻塞等待</td></tr>
+            <tr><td>软件定时器周期很短</td><td>定时器任务频繁就绪</td><td>合并定时器、加大周期</td></tr>
+            <tr><td>外设时钟没有关闭</td><td>Stop 模式电流偏大</td><td>在休眠前关闭不用的外设时钟</td></tr>
+            <tr><td>GPIO 浮空</td><td>电流偏大且不稳定</td><td>未使用引脚配置为模拟输入</td></tr>
+            <tr><td>调试器连接</td><td>低功耗模式下调试器保持时钟</td><td>断开调试器测量，或关闭 DBGMCU 低功耗调试位</td></tr>
+            <tr><td>正在进行的 DMA / 通信</td><td>进入 Stop 后传输中断</td><td>在 pre-sleep 中检查并跳过休眠</td></tr>
+          </tbody>
+        </table>
+        <p>可以在休眠入口和唤醒处翻转 GPIO，用示波器或功耗分析仪观察实际休眠时长和唤醒频率。</p>
+      </section>
+
+      <section>
+        <h2>6. 工作场景：电池供电传感器节点</h2>
+        <p>需求：STM32L4 + LoRa 模块，每 5 分钟采集一次温湿度并上报，按键可随时唤醒，目标平均电流低于 20uA。</p>
+        <ol>
+          <li><strong>任务结构</strong>：采集任务 <code>vTaskDelayUntil</code> 5 分钟；通信任务等待消息；按键通过 EXTI 中断通知业务任务。除此之外没有周期性任务。</li>
+          <li><strong>Tickless</strong>：<code>configUSE_TICKLESS_IDLE 2</code>，LPTIM1 使用 LSE 计数，空闲时进入 Stop 2 模式。</li>
+          <li><strong>外设管理</strong>：采集前打开传感器电源和 I2C 时钟，采集完成立即关闭；LoRa 模块发送完成后进入睡眠。</li>
+          <li><strong>唤醒处理</strong>：唤醒后恢复 PLL；串口只在需要时启用。</li>
+          <li><strong>测量</strong>：用功耗分析仪记录一个完整周期的电流曲线，分别统计休眠电流、采集峰值和发送峰值，计算平均电流并估算电池寿命。</li>
+          <li><strong>验证</strong>：长时间运行检查系统时间漂移、按键唤醒响应和看门狗（IWDG 在 Stop 模式下仍运行，需要定时唤醒喂狗或配置合适的超时）。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>7. 低功耗检查清单</h2>
+        <ul>
+          <li>是否启用了合适的休眠方式：空闲钩子 WFI、内置 Tickless（Sleep），或自定义 Tickless（Stop）。</li>
+          <li>自定义实现是否使用在低功耗模式下仍运行的定时器，是否按实际休眠时间补偿 Tick。</li>
+          <li>唤醒后是否正确恢复系统时钟和外设配置。</li>
+          <li>任务和软件定时器是否消除了不必要的短周期唤醒。</li>
+          <li>休眠前是否关闭了不用的外设时钟，未使用引脚是否配置为模拟输入。</li>
+          <li>是否在断开调试器的情况下实测过休眠电流和平均电流。</li>
+          <li>独立看门狗在低功耗模式下的行为是否考虑过。</li>
+          <li>长时间运行后系统时间漂移是否在可接受范围内。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+</body>
+</html>

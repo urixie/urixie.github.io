@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS 任务管理与栈空间 - XYJ</title>
   <meta name="description" content="整理 FreeRTOS 任务创建、任务删除、任务延时、任务优先级、任务句柄、任务栈、栈水位检测和任务设计方法。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#realtime/task-management">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#realtime/task-management">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-      <a href="../../../../index.html?v=4c01baacdfc9#realtime/task-management">返回 FreeRTOS专题</a>
+      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+      <a href="../../../../index.html?v=176874b30373#realtime/task-management">返回 FreeRTOS专题</a>
     </div>
 
     <article class="article card">
@@ -154,7 +154,92 @@ printf("stack watermark = %u\n", (unsigned)watermark);</code></pre>
       </section>
 
       <section>
-        <h2>7. 任务设计检查清单</h2>
+        <h2>7. 任务的删除与生命周期</h2>
+        <p>嵌入式系统中大多数任务创建后永远不退出。确实需要结束任务时，注意：</p>
+        <pre><code class="language-c">static void ota_task(void *arg)
+{
+    do_ota_download();
+    /* 任务函数不能直接 return，必须删除自己 */
+    vTaskDelete(NULL);
+}</code></pre>
+        <ul>
+          <li>任务函数<strong>不能直接返回</strong>，否则会进入移植层的错误处理（<code>prvTaskExitError</code>），结束时必须调用 <code>vTaskDelete(NULL)</code>。</li>
+          <li>动态创建的任务删除自己时，其 TCB 和栈由<strong>空闲任务</strong>负责释放。如果空闲任务长期得不到 CPU（高优先级任务一直忙），内存不会被回收。</li>
+          <li>删除任务不会自动释放它申请的其他资源：持有的互斥锁、动态分配的缓冲区、打开的外设都需要在删除前自行清理。</li>
+          <li>频繁创建 / 删除任务会造成堆碎片，更推荐让任务常驻，在没有工作时阻塞等待。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. 挂起与恢复的陷阱</h2>
+        <p><code>vTaskSuspend()</code> / <code>vTaskResume()</code> 看起来方便，但容易引入问题：</p>
+        <ul>
+          <li><strong>挂起持有资源的任务</strong>：被挂起的任务如果正持有互斥锁，等待该锁的任务会永久阻塞。</li>
+          <li><strong>不能用于同步</strong>：<code>xTaskResumeFromISR()</code> 如果在任务调用 <code>vTaskSuspend(NULL)</code> 之前执行，这次恢复就丢失了，任务会一直挂起。中断唤醒任务应该使用任务通知或信号量，它们会“记住”事件。</li>
+          <li>挂起不计数，多次挂起只需一次恢复。</li>
+        </ul>
+        <p>适合使用挂起的场景很少，例如调试时临时停止某个任务，或在进入低功耗前暂停非关键任务。</p>
+      </section>
+
+      <section>
+        <h2>9. 栈大小如何估算</h2>
+        <p>栈太小会溢出导致随机崩溃，太大浪费 RAM。推荐“估算 → 实测 → 留余量”的方法：</p>
+        <ol>
+          <li><strong>初始估算</strong>：函数调用深度 × 每层局部变量 + 中断嵌套不使用任务栈（Cortex-M 中断使用 MSP）+ 上下文保存约 16~32 个字（使用 FPU 时更多）。</li>
+          <li><strong>注意大户</strong>：<code>printf</code> / <code>snprintf</code> 一类格式化函数可能使用数百字节栈；局部大数组（如 <code>char buf[512]</code>）直接占用栈；递归调用要避免。</li>
+          <li><strong>实测水位</strong>：在所有功能（包括异常路径、最长的协议帧、错误处理）都运行过之后，读取 <code>uxTaskGetStackHighWaterMark()</code>。</li>
+          <li><strong>留余量</strong>：最终大小 = 实测最大使用量 × 1.2 ~ 1.5。</li>
+        </ol>
+        <pre><code class="language-c">/* 调试命令：打印所有任务的状态与栈水位（需 configUSE_TRACE_FACILITY 与 configUSE_STATS_FORMATTING_FUNCTIONS） */
+static char buf[512];
+vTaskList(buf);
+printf("Name          State  Prio  Stack  Num\r\n%s", buf);</code></pre>
+        <p><code>vTaskList</code> 输出的 Stack 列就是剩余栈的最小值（单位为字）。它会短时间挂起调度器，只在调试时使用。</p>
+      </section>
+
+      <section>
+        <h2>10. 多任务健康监控</h2>
+        <p>单纯在某个任务中喂硬件看门狗，只能发现“这个任务卡死”，其他任务卡死时看门狗仍然被正常喂。更可靠的做法是让监控任务汇总所有任务的心跳：</p>
+        <pre><code class="language-c">#define TASK_COUNT 4
+static volatile uint32_t g_heartbeat[TASK_COUNT];
+
+void task_heartbeat(int id) { g_heartbeat[id]++; }   /* 各任务在主循环中调用 */
+
+static void monitor_task(void *arg)
+{
+    uint32_t last[TASK_COUNT] = {0};
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        bool all_alive = true;
+        for (int i = 0; i &lt; TASK_COUNT; i++) {
+            if (g_heartbeat[i] == last[i]) {
+                all_alive = false;
+                log_error("task %d stalled", i);
+            }
+            last[i] = g_heartbeat[i];
+        }
+        if (all_alive) {
+            iwdg_refresh();              /* 只有全部任务都活着才喂狗 */
+        }
+    }
+}</code></pre>
+        <p>对于长时间阻塞等待事件的任务（如等待外部命令），在阻塞等待上设置超时（例如 500ms），超时也更新心跳，避免被误判为卡死。</p>
+      </section>
+
+      <section>
+        <h2>11. 工作场景：一个任务偶尔卡死</h2>
+        <p>现象：设备运行数天后偶发看门狗复位，复位前日志显示通信任务不再更新心跳。</p>
+        <ol>
+          <li><strong>保留现场</strong>：在看门狗复位前（或使用窗口看门狗的早期唤醒中断）记录各任务状态、当前任务名和栈水位到保留 RAM，复位后读出。</li>
+          <li><strong>分析状态</strong>：记录显示通信任务处于 Blocked 状态，正在等待一个互斥锁。</li>
+          <li><strong>查找持锁者</strong>：通过 <code>xSemaphoreGetMutexHolder()</code> 得知持有者是存储任务，而存储任务卡在等待 Flash 操作完成的循环中（Flash 异常时没有超时）。</li>
+          <li><strong>修复</strong>：Flash 等待循环加入超时与错误处理；互斥锁获取使用有限超时，超时后记录错误；缩小锁的保护范围，不在持锁期间执行耗时的 Flash 操作。</li>
+          <li><strong>预防</strong>：所有阻塞等待都设置合理超时，不在业务代码中使用 <code>portMAX_DELAY</code> 等待可能永远不会到来的资源。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>12. 任务设计检查清单</h2>
         <ul>
           <li>任务职责是否单一。</li>
           <li>任务是否有明确阻塞点。</li>
@@ -163,14 +248,19 @@ printf("stack watermark = %u\n", (unsigned)watermark);</code></pre>
           <li>是否避免局部大数组。</li>
           <li>任务删除前是否释放相关资源。</li>
           <li>周期任务是否使用 <code>vTaskDelayUntil()</code>。</li>
+          <li>需要结束的任务是否调用 <code>vTaskDelete(NULL)</code>，删除前是否释放了它持有的资源。</li>
+          <li>是否避免用 <code>vTaskSuspend</code> / <code>vTaskResume</code> 做任务同步。</li>
+          <li>栈大小是否经过估算、全功能运行后实测水位，并保留 20%~50% 余量。</li>
+          <li>是否有汇总所有任务心跳的监控机制，只有全部任务正常才喂看门狗。</li>
+          <li>等待资源时是否设置了超时，而不是无限等待。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#realtime/task-management">返回 FreeRTOS专题</a>
+        <a href="../../../../index.html?v=176874b30373#realtime/task-management">返回 FreeRTOS专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

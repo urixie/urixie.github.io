@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux 用户态访问外设：GPIO、I2C、SPI 与串口 - XYJ</title>
   <meta name="description" content="整理 libgpiod、i2c-dev、spidev 与 termios 的用法和坑点，以及用 poll/epoll 组织多外设应用程序的方法。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/driver-debug">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -41,7 +41,7 @@
             <tr><td>PWM</td><td><code>/sys/class/pwm/</code></td><td>PWM 控制器驱动 + 设备树启用</td></tr>
           </tbody>
         </table>
-        <p>需要毫秒以下的严格实时响应、需要 DMA 或高频中断时，用户态方案会力不从心，这时应考虑内核驱动，见 <a href="../linux-char-driver/linux-char-driver.html?v=4c01baacdfc9">Linux 字符设备驱动开发</a>。</p>
+        <p>需要毫秒以下的严格实时响应、需要 DMA 或高频中断时，用户态方案会力不从心，这时应考虑内核驱动，见 <a href="../linux-char-driver/linux-char-driver.html?v=176874b30373">Linux 字符设备驱动开发</a>。</p>
       </section>
 
       <section>
@@ -82,7 +82,7 @@ int i2c_read_reg(const char *bus, uint8_t addr, uint8_t reg, uint8_t *buf, size_
 
       <section>
         <h2>4. SPI：spidev</h2>
-        <p>spidev 需要在设备树中把 SPI 从设备声明为 spidev（各平台兼容字符串略有不同），之后出现 <code>/dev/spidev0.0</code> 这样的节点。完整的 RK3568 实例见 <a href="../../rockchip/rk3568-spi-spidev/rk3568-spi-spidev.html?v=4c01baacdfc9">RK3568 SPI / spidev 调试</a>。</p>
+        <p>spidev 需要在设备树中把 SPI 从设备声明为 spidev（各平台兼容字符串略有不同），之后出现 <code>/dev/spidev0.0</code> 这样的节点。完整的 RK3568 实例见 <a href="../../rockchip/rk3568-spi-spidev/rk3568-spi-spidev.html?v=176874b30373">RK3568 SPI / spidev 调试</a>。</p>
         <pre><code class="language-c">#include &lt;linux/spi/spidev.h&gt;
 
 int spi_transfer(int fd, const uint8_t *tx, uint8_t *rx, size_t len)
@@ -127,7 +127,7 @@ int serial_open(const char *dev, speed_t baud)
     return fd;
 }</code></pre>
         <ul>
-          <li><strong>一次 read 不等于一帧</strong>：串口数据可能被拆成多次 read 返回，也可能一次 read 读到多帧。应用层必须自己组帧（帧头、长度、校验），思路与 MCU 上的 <a href="../../../foundation/data-structure/ring-buffer/ring-buffer.html?v=4c01baacdfc9">环形缓冲区按帧提取</a> 相同。</li>
+          <li><strong>一次 read 不等于一帧</strong>：串口数据可能被拆成多次 read 返回，也可能一次 read 读到多帧。应用层必须自己组帧（帧头、长度、校验），思路与 MCU 上的 <a href="../../../foundation/data-structure/ring-buffer/ring-buffer.html?v=176874b30373">环形缓冲区按帧提取</a> 相同。</li>
           <li><strong>USB 转串口的设备名会变</strong>：<code>/dev/ttyUSB0</code> 和 <code>ttyUSB1</code> 的顺序取决于枚举顺序，产品中应使用 udev 规则或 <code>/dev/serial/by-id/</code> 下的固定名称。</li>
           <li><strong>权限</strong>：普通用户访问串口需要加入 <code>dialout</code> 组。</li>
         </ul>
@@ -153,10 +153,10 @@ for (;;) {
         <p>常见架构：Linux SoC 负责网络、界面、存储，MCU 负责实时控制和采集，两者通过 UART（或 SPI）通信。</p>
         <ol>
           <li><strong>硬件</strong>：确认电平匹配（1.8V / 3.3V），保留一根 GPIO 让 Linux 能复位 MCU，另一根作为 MCU 的“数据就绪”中断。</li>
-          <li><strong>协议</strong>：帧头 + 长度 + 命令 + 数据 + CRC，带序号和应答，见 <a href="../../../foundation/data-structure/c-struct-data-layout/c-struct-data-layout.html?v=4c01baacdfc9">结构体与数据组织</a>。</li>
+          <li><strong>协议</strong>：帧头 + 长度 + 命令 + 数据 + CRC，带序号和应答，见 <a href="../../../foundation/data-structure/c-struct-data-layout/c-struct-data-layout.html?v=176874b30373">结构体与数据组织</a>。</li>
           <li><strong>Linux 侧程序</strong>：原始模式打开串口，epoll 同时等待串口数据和 GPIO 事件，收到数据后组帧、校验、分发。</li>
-          <li><strong>服务化</strong>：以 systemd 服务运行，异常退出自动重启，日志进入 journald，见 <a href="../../linux-basic/linux-shell-systemd/linux-shell-systemd.html?v=4c01baacdfc9">Shell 脚本与 systemd 服务</a>。</li>
-          <li><strong>MCU 升级</strong>：Linux 通过同一串口给 MCU 下发固件，MCU 侧 Bootloader 负责接收，见 <a href="../../../mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=4c01baacdfc9">MCU Bootloader 与固件升级</a>。</li>
+          <li><strong>服务化</strong>：以 systemd 服务运行，异常退出自动重启，日志进入 journald，见 <a href="../../linux-basic/linux-shell-systemd/linux-shell-systemd.html?v=176874b30373">Shell 脚本与 systemd 服务</a>。</li>
+          <li><strong>MCU 升级</strong>：Linux 通过同一串口给 MCU 下发固件，MCU 侧 Bootloader 负责接收，见 <a href="../../../mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=176874b30373">MCU Bootloader 与固件升级</a>。</li>
         </ol>
       </section>
 
@@ -174,11 +174,11 @@ for (;;) {
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/driver-debug">返回对应专题</a>
+        <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

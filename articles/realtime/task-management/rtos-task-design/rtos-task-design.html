@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>RTOS 任务设计方法 - XYJ</title>
+  <meta name="description" content="从时间特性出发划分任务、分配优先级，用事件驱动和活动对象模式组织任务，并通过 CPU 利用率与响应时间分析验证设计。">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#realtime/task-management">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>RTOS 任务设计方法</h1>
+      <p class="article-summary">从时间特性出发划分任务、分配优先级，用事件驱动和活动对象模式组织任务，并通过 CPU 利用率与响应时间分析验证设计。</p>
+
+      <section>
+        <h2>1. 从需求到任务划分</h2>
+        <p>刚开始用 RTOS 时最常见的问题是“任务拆得太多”或“一个任务做所有事”。任务划分的依据不是功能模块，而是<strong>时间特性</strong>：</p>
+        <table>
+          <thead><tr><th>划分依据</th><th>说明</th><th>例子</th></tr></thead>
+          <tbody>
+            <tr><td>时延要求不同</td><td>响应时间要求差别大的工作放在不同任务</td><td>电机控制（1ms）与界面刷新（50ms）</td></tr>
+            <tr><td>会阻塞等待</td><td>需要等待外部事件的工作单独成任务</td><td>等待网络数据、等待串口帧</td></tr>
+            <tr><td>周期不同</td><td>周期差别大的工作分开</td><td>10ms 采样与 1s 上报</td></tr>
+            <tr><td>执行时间长</td><td>长时间计算不能阻塞短时延工作</td><td>文件系统写入、加密、压缩</td></tr>
+            <tr><td>独占资源</td><td>一个外设由一个任务独占访问</td><td>只有“通信任务”操作 4G 模块</td></tr>
+          </tbody>
+        </table>
+        <p>几条经验：</p>
+        <ul>
+          <li><strong>任务数量控制在必要范围</strong>：小型 MCU 项目通常 4~10 个任务足够。每个任务都有栈开销和上下文切换开销，也增加了同步的复杂度。</li>
+          <li><strong>同一时间特性的工作合并</strong>：多个 100ms 周期的轻量工作可以放在同一个任务里顺序执行。</li>
+          <li><strong>中断只做最少的事</strong>：读取数据、清除标志、通知任务，处理放在任务中（延迟处理）。中断与任务之间的协作方式见 <a href="../../ipc-sync/freertos-ipc-sync/freertos-ipc-sync.html?v=176874b30373">队列与同步</a>。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. 优先级怎么分配</h2>
+        <p>FreeRTOS 是基于优先级的抢占式调度，优先级分配直接决定系统能否按时响应。常用原则：</p>
+        <ol>
+          <li><strong>时延要求越严格，优先级越高</strong>：周期越短的任务优先级越高（单调速率调度，Rate Monotonic 的思路）。</li>
+          <li><strong>按时延而不是“重要性”分配</strong>：日志任务不重要但可以等，故障保护任务时延要求最高；“重要”不等于“优先级高”。</li>
+          <li><strong>执行时间长的任务放低优先级</strong>：例如文件写入、OTA 下载、界面渲染。</li>
+          <li><strong>高优先级任务必须会阻塞</strong>：如果高优先级任务一直不阻塞（轮询），低优先级任务永远得不到执行。</li>
+        </ol>
+        <p>一个典型的优先级表：</p>
+        <table>
+          <thead><tr><th>任务</th><th>周期 / 触发</th><th>最坏执行时间</th><th>优先级</th></tr></thead>
+          <tbody>
+            <tr><td>保护任务</td><td>故障中断通知</td><td>50us</td><td>6（最高）</td></tr>
+            <tr><td>控制任务</td><td>1ms 周期</td><td>200us</td><td>5</td></tr>
+            <tr><td>采集任务</td><td>10ms 周期</td><td>1ms</td><td>4</td></tr>
+            <tr><td>通信任务</td><td>串口帧到达</td><td>2ms</td><td>3</td></tr>
+            <tr><td>业务 / 状态机任务</td><td>事件驱动</td><td>不定</td><td>2</td></tr>
+            <tr><td>日志 / 存储任务</td><td>队列非空</td><td>10ms（写 Flash）</td><td>1</td></tr>
+            <tr><td>Idle</td><td>—</td><td>—</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>3. 任务内部结构：事件驱动优于轮询</h2>
+        <p>任务的主循环应当“等待事件 → 处理 → 再等待”，而不是不停轮询标志位：</p>
+        <pre><code class="language-c">/* 不推荐：轮询 + 固定延时，响应慢且浪费 CPU */
+for (;;) {
+    if (g_rx_flag) { g_rx_flag = 0; handle_rx(); }
+    if (g_key_flag) { g_key_flag = 0; handle_key(); }
+    vTaskDelay(pdMS_TO_TICKS(10));
+}
+
+/* 推荐：阻塞等待消息，有事件立即处理，没有事件时不占 CPU */
+typedef enum { EV_RX_FRAME, EV_KEY, EV_TIMEOUT, EV_CMD } event_type_t;
+typedef struct {
+    event_type_t type;
+    uint16_t     len;
+    uint8_t      data[32];
+} app_event_t;
+
+static void app_task(void *arg)
+{
+    app_event_t ev;
+    for (;;) {
+        if (xQueueReceive(app_queue, &amp;ev, portMAX_DELAY) == pdTRUE) {
+            app_fsm_dispatch(&amp;ev);          /* 交给状态机处理 */
+        }
+    }
+}</code></pre>
+        <p>这就是“活动对象”（Active Object）模式：<strong>每个任务拥有一个消息队列和一个状态机，其他任务和中断只能通过发消息与它交互</strong>，不直接访问它的内部数据。好处是共享数据大幅减少，几乎不需要互斥锁；状态机的写法见 <a href="../../../foundation/data-structure/c-state-machine/c-state-machine.html?v=176874b30373">状态机设计</a>。</p>
+      </section>
+
+      <section>
+        <h2>4. 消息设计</h2>
+        <ul>
+          <li><strong>消息结构定长且尽量小</strong>：队列按值拷贝，消息太大会占用大量 RAM 和拷贝时间。大数据（如一帧 512 字节的报文）放在内存池或环形缓冲中，消息里只传指针和长度，同时明确由谁负责释放。</li>
+          <li><strong>队列深度按突发量计算</strong>：考虑最坏情况下消费者被高优先级任务阻塞的时间内，生产者最多会产生多少条消息。</li>
+          <li><strong>发送失败要处理</strong>：中断中发送队列满时不能阻塞，应计数丢弃次数并在调试接口中可见。</li>
+          <li><strong>请求-响应</strong>：需要返回结果时，在消息中携带回复用的任务句柄（配合任务通知）或回调，避免调用方忙等。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. 时间分析：系统是否来得及</h2>
+        <p>上线前至少做一次粗略的 CPU 负载与最坏响应时间分析：</p>
+        <pre><code class="language-text">CPU 利用率 = Σ (任务最坏执行时间 / 任务周期)
+
+控制任务  200us / 1ms   = 20%
+采集任务    1ms / 10ms  = 10%
+通信任务    2ms / 20ms  = 10%   （按最短帧间隔估算）
+日志任务   10ms / 100ms = 10%
+合计                     = 50%   → 留有余量</code></pre>
+        <p>利用率只是必要条件，还要检查：</p>
+        <ul>
+          <li><strong>高优先级任务对低优先级任务的阻塞</strong>：低优先级任务的最坏响应时间 = 自身执行时间 + 所有高优先级任务在此期间的执行时间。</li>
+          <li><strong>临界区与关中断时间</strong>：最长关中断时间直接叠加到中断响应延迟上。</li>
+          <li><strong>共享资源的阻塞</strong>：低优先级任务持有互斥锁时，高优先级任务需要等待，要限制持锁时间。</li>
+        </ul>
+        <p>实测比估算更可靠：用 GPIO 在任务开始和结束时翻转电平，用逻辑分析仪测量真实执行时间和抖动；或使用 FreeRTOS 的运行时间统计功能，方法见 <a href="../../timer-memory-debug/freertos-timer-memory-debug/freertos-timer-memory-debug.html?v=176874b30373">定时器、内存与调试</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. 工作场景：一个数据采集终端的任务架构</h2>
+        <p>需求：4 路 ADC 每 10ms 采样一次，RS485 Modbus 从机响应主站查询，每分钟把统计数据写入 Flash，按键与 LED 指示，看门狗保护。</p>
+        <table>
+          <thead><tr><th>任务</th><th>触发方式</th><th>优先级</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>采集任务</td><td><code>vTaskDelayUntil</code> 10ms</td><td>4</td><td>启动 ADC + DMA，等待 DMA 完成通知后滤波</td></tr>
+            <tr><td>Modbus 任务</td><td>串口空闲中断通知</td><td>3</td><td>解析帧、读写寄存器表、回复</td></tr>
+            <tr><td>业务任务</td><td>消息队列</td><td>2</td><td>状态机：正常 / 报警 / 配置模式</td></tr>
+            <tr><td>存储任务</td><td>消息队列</td><td>1</td><td>写 Flash 耗时长，放在最低优先级</td></tr>
+            <tr><td>监控任务</td><td>1s 周期</td><td>2</td><td>检查各任务心跳后喂硬件看门狗</td></tr>
+          </tbody>
+        </table>
+        <p>设计要点：</p>
+        <ul>
+          <li>采集结果通过“最新值 + 互斥锁”或双缓冲共享给 Modbus 任务，Modbus 任务只读不写。</li>
+          <li>寄存器表的写操作（主站修改配置）通过消息交给业务任务处理，保证配置只在一个地方被修改。</li>
+          <li>存储任务写 Flash 期间如果会暂停取指（同一 Bank 擦写），要评估对采集任务的影响，必要时把关键代码放在 RAM 中执行。</li>
+          <li>每个任务在主循环中更新自己的心跳计数，监控任务确认所有心跳都在增长才喂狗，任何一个任务卡死都会触发复位。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 任务设计检查清单</h2>
+        <ul>
+          <li>任务是否按时间特性（时延、周期、阻塞、执行时长）划分，数量是否控制在必要范围。</li>
+          <li>优先级是否按时延要求分配，高优先级任务是否都会阻塞。</li>
+          <li>任务主循环是否事件驱动，而不是轮询 + 固定延时。</li>
+          <li>任务之间是否通过消息交互，共享数据是否最小化并有明确的所有者。</li>
+          <li>消息结构是否小而定长，大数据是否通过指针传递并明确释放责任。</li>
+          <li>队列深度是否按最坏突发量计算，发送失败是否计数。</li>
+          <li>是否估算过 CPU 利用率，是否实测过关键任务的执行时间与响应时间。</li>
+          <li>是否有多任务心跳监控，任何任务卡死都能被发现。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=176874b30373#realtime/task-management">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+</body>
+</html>

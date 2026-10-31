@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>嵌入式 Linux OTA 升级设计 - XYJ</title>
   <meta name="description" content="以 A/B 双分区为核心，说明升级流程、启动计数与自动回滚、SWUpdate/RAUC 框架、健康检查与数据迁移。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#soc-linux/boot-kernel-rootfs">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -37,7 +37,7 @@
           <li><strong>数据保留</strong>：用户配置、日志、业务数据在升级后仍然可用，必要时做数据迁移。</li>
           <li><strong>可观测</strong>：每台设备的当前版本、升级结果、失败原因能够上报。</li>
         </ul>
-        <p>与 MCU 的 Bootloader 升级相比，Linux 的启动链更长（Bootloader → Kernel → RootFS → 应用），但思路相同，可以对照 <a href="../../../mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=4c01baacdfc9">MCU Bootloader 与 OTA</a>。</p>
+        <p>与 MCU 的 Bootloader 升级相比，Linux 的启动链更长（Bootloader → Kernel → RootFS → 应用），但思路相同，可以对照 <a href="../../../mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=176874b30373">MCU Bootloader 与 OTA</a>。</p>
       </section>
 
       <section>
@@ -52,7 +52,7 @@
             <tr><td>增量 / 差分</td><td>只传输差异（如 casync、bsdiff、RAUC adaptive）</td><td>节省流量</td><td>生成与校验更复杂，依赖基线版本</td></tr>
           </tbody>
         </table>
-        <p>量产设备推荐 <strong>A/B 双分区 + 签名校验 + 自动回滚</strong>，在存储允许的情况下这是最稳妥的方案。分区规划见 <a href="../../linux-basic/linux-storage-fs/linux-storage-fs.html?v=4c01baacdfc9">嵌入式存储与文件系统</a>。</p>
+        <p>量产设备推荐 <strong>A/B 双分区 + 签名校验 + 自动回滚</strong>，在存储允许的情况下这是最稳妥的方案。分区规划见 <a href="../../linux-basic/linux-storage-fs/linux-storage-fs.html?v=176874b30373">嵌入式存储与文件系统</a>。</p>
       </section>
 
       <section>
@@ -119,7 +119,7 @@ bootname=B</code></pre>
           <li>网络可以连接到服务器（如果业务依赖网络）。</li>
           <li>关键外设能够正常打开和读写（例如串口通信对端能正常响应）。</li>
         </ul>
-        <p>可以用 systemd 实现：一个 <code>health-check.service</code> 在依赖服务启动后运行检查脚本，通过后执行 <code>fw_setenv</code> 确认；硬件看门狗确保系统卡死时会重启，从而进入启动计数逻辑。systemd 服务的写法见 <a href="../../linux-basic/linux-shell-systemd/linux-shell-systemd.html?v=4c01baacdfc9">Shell 与 systemd</a>。</p>
+        <p>可以用 systemd 实现：一个 <code>health-check.service</code> 在依赖服务启动后运行检查脚本，通过后执行 <code>fw_setenv</code> 确认；硬件看门狗确保系统卡死时会重启，从而进入启动计数逻辑。systemd 服务的写法见 <a href="../../linux-basic/linux-shell-systemd/linux-shell-systemd.html?v=176874b30373">Shell 与 systemd</a>。</p>
       </section>
 
       <section>
@@ -163,11 +163,11 @@ bootname=B</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+        <a href="../../../../index.html?v=176874b30373#soc-linux/boot-kernel-rootfs">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

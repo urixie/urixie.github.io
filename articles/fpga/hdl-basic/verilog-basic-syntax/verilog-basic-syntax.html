@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 基础语法与硬件描述思维 - XYJ</title>
   <meta name="description" content="整理 Verilog 基础语法、module、端口、wire、reg、assign、always、阻塞赋值、非阻塞赋值、参数化和硬件描述思维。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#fpga/hdl-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#fpga/hdl-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-      <a href="../../../../index.html?v=4c01baacdfc9#fpga/hdl-basic">返回 Verilog专题</a>
+      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+      <a href="../../../../index.html?v=176874b30373#fpga/hdl-basic">返回 Verilog专题</a>
     </div>
 
     <article class="article card">
@@ -186,7 +186,7 @@ wire [15:0] prod     = x * y;          // 8 位 × 8 位 = 16 位</code></pre>
 wire signed [15:0] gain = 16'sd3;
 wire signed [27:0] scaled = adc_raw * gain;      // 两个操作数都是 signed，结果才是有符号乘法
 wire signed [11:0] half = adc_raw &gt;&gt;&gt; 1;         // 算术右移，保留符号位</code></pre>
-        <p><strong>一个表达式中只要有一个操作数是无符号的，整个表达式就按无符号计算</strong>，这与 C 语言的“有符号转无符号”问题类似（参见 <a href="../../../foundation/c-basic/c-integer-arithmetic/c-integer-arithmetic.html?v=4c01baacdfc9">整数运算、溢出与定点数</a>）。混合运算时用 <code>$signed()</code> 显式转换，并在仿真中用负数验证。</p>
+        <p><strong>一个表达式中只要有一个操作数是无符号的，整个表达式就按无符号计算</strong>，这与 C 语言的“有符号转无符号”问题类似（参见 <a href="../../../foundation/c-basic/c-integer-arithmetic/c-integer-arithmetic.html?v=176874b30373">整数运算、溢出与定点数</a>）。混合运算时用 <code>$signed()</code> 显式转换，并在仿真中用负数验证。</p>
       </section>
 
       <section>
@@ -221,7 +221,7 @@ generate
     end
 endgenerate</code></pre>
         <p><strong>function</strong>：封装一段可复用的组合逻辑，例如 CRC 计算、格雷码转换、饱和截位。function 不能包含时序控制（<code>@</code>、<code>#</code>），每次调用都会生成一份组合电路。</p>
-        <p><strong>task</strong>：主要用于 Testbench，封装一段带时序的激励过程，例如“发送一个 UART 字节”，见 <a href="../../verification/verilog-testbench-debug/verilog-testbench-debug.html?v=4c01baacdfc9">Testbench 仿真与调试</a>。</p>
+        <p><strong>task</strong>：主要用于 Testbench，封装一段带时序的激励过程，例如“发送一个 UART 字节”，见 <a href="../../verification/verilog-testbench-debug/verilog-testbench-debug.html?v=176874b30373">Testbench 仿真与调试</a>。</p>
       </section>
 
       <section>
@@ -296,10 +296,10 @@ endmodule</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#fpga/hdl-basic">返回 Verilog专题</a>
+        <a href="../../../../index.html?v=176874b30373#fpga/hdl-basic">返回 Verilog专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS 基础概念与调度机制 - XYJ</title>
   <meta name="description" content="整理 FreeRTOS 基础概念、任务、调度器、抢占式调度、时间片、Tick、中断优先级和嵌入式项目使用建议。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#realtime/freertos-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#realtime/freertos-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-      <a href="../../../../index.html?v=4c01baacdfc9#realtime/freertos-basic">返回 FreeRTOS专题</a>
+      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+      <a href="../../../../index.html?v=176874b30373#realtime/freertos-basic">返回 FreeRTOS专题</a>
     </div>
 
     <article class="article card">
@@ -137,7 +137,96 @@ vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
       </section>
 
       <section>
-        <h2>7. 工程使用建议</h2>
+        <h2>7. FreeRTOSConfig.h 关键配置</h2>
+        <p>FreeRTOS 的行为几乎都由 <code>FreeRTOSConfig.h</code> 决定，移植或接手项目时先读懂这个文件：</p>
+        <pre><code class="language-c">#define configUSE_PREEMPTION                    1       /* 抢占式调度 */
+#define configUSE_TIME_SLICING                  1       /* 同优先级任务按 Tick 轮转 */
+#define configCPU_CLOCK_HZ                      ( SystemCoreClock )
+#define configTICK_RATE_HZ                      1000    /* 1ms Tick */
+#define configMAX_PRIORITIES                    8       /* 够用即可，每多一级多占少量 RAM */
+#define configMINIMAL_STACK_SIZE                128     /* 单位是字（StackType_t），不是字节 */
+#define configTOTAL_HEAP_SIZE                   ( 24 * 1024 )
+#define configUSE_MUTEXES                       1
+#define configUSE_TIMERS                        1
+#define configTIMER_TASK_PRIORITY               ( configMAX_PRIORITIES - 2 )
+#define configCHECK_FOR_STACK_OVERFLOW          2
+#define configUSE_MALLOC_FAILED_HOOK            1
+#define configASSERT( x )  if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
+
+/* Cortex-M 中断优先级（以 STM32 的 4 位优先级为例） */
+#define configPRIO_BITS                         4
+#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY         15
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY    5
+#define configKERNEL_INTERRUPT_PRIORITY         ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY &lt;&lt; (8 - configPRIO_BITS) )
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY &lt;&lt; (8 - configPRIO_BITS) )
+
+/* 把内核的异常处理函数映射到启动文件中的向量名 */
+#define vPortSVCHandler     SVC_Handler
+#define xPortPendSVHandler  PendSV_Handler
+#define xPortSysTickHandler SysTick_Handler</code></pre>
+        <p><code>configASSERT</code> 一定要在开发阶段打开：中断优先级配置错误、在中断里调用了非 FromISR 接口等问题，大多会被内核中的断言直接捕获，而不是表现为随机死机。</p>
+      </section>
+
+      <section>
+        <h2>8. Cortex-M 上调度器如何工作</h2>
+        <p>理解调度器使用的三个异常，有助于排查移植问题：</p>
+        <table>
+          <thead><tr><th>异常</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td>SVC</td><td>启动第一个任务（<code>vTaskStartScheduler</code> 中触发）</td></tr>
+            <tr><td>PendSV</td><td>执行上下文切换：保存当前任务寄存器到其栈，恢复下一个任务的寄存器</td></tr>
+            <tr><td>SysTick</td><td>产生 Tick，更新延时计数，必要时挂起 PendSV 请求切换</td></tr>
+          </tbody>
+        </table>
+        <p>PendSV 被配置为<strong>最低优先级</strong>，所以上下文切换总是在所有其他中断处理完之后才执行，不会打断中断处理。中断中调用 <code>xQueueSendFromISR</code> 唤醒了更高优先级任务时，<code>portYIELD_FROM_ISR(woken)</code> 的作用就是挂起 PendSV，中断返回后立即切换到该任务。</p>
+        <p>使用 STM32CubeMX 生成的工程时，HAL 库默认使用 SysTick 作为 HAL 时基，与 FreeRTOS 冲突，应把 HAL 时基改为一个基本定时器（如 TIM6）。</p>
+      </section>
+
+      <section>
+        <h2>9. 临界区与挂起调度器</h2>
+        <p>保护共享数据的手段，从轻到重：</p>
+        <table>
+          <thead><tr><th>手段</th><th>效果</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td><code>taskENTER_CRITICAL()</code> / <code>taskEXIT_CRITICAL()</code></td><td>屏蔽优先级低于等于 <code>configMAX_SYSCALL_INTERRUPT_PRIORITY</code> 的中断</td><td>极短的操作（几条指令到几微秒）</td></tr>
+            <tr><td><code>taskENTER_CRITICAL_FROM_ISR()</code></td><td>中断中使用的版本，返回值需要传给退出函数</td><td>中断与任务共享的短数据</td></tr>
+            <tr><td><code>vTaskSuspendAll()</code> / <code>xTaskResumeAll()</code></td><td>停止任务切换，中断照常响应</td><td>较长的操作，只与其他任务共享</td></tr>
+            <tr><td>互斥锁</td><td>只阻塞争用同一资源的任务</td><td>长时间访问外设、文件系统</td></tr>
+          </tbody>
+        </table>
+        <p>注意事项：</p>
+        <ul>
+          <li>临界区内不能调用会阻塞的 API，也不能执行耗时操作，否则中断响应延迟会变得很大。</li>
+          <li>优先级高于 <code>configMAX_SYSCALL_INTERRUPT_PRIORITY</code> 的中断不受临界区影响，响应最快，但<strong>不能调用任何 FreeRTOS API</strong>。</li>
+          <li>挂起调度器期间不能调用会导致阻塞的 API（如 <code>vTaskDelay</code>）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>10. 同优先级任务与时间片</h2>
+        <p><code>configUSE_TIME_SLICING</code> 为 1 时，同优先级的就绪任务每个 Tick 轮流执行。但工程中不应依赖时间片来“公平分配”CPU：</p>
+        <ul>
+          <li>时间片轮转意味着任务会在任意位置被切换，共享数据更需要保护。</li>
+          <li>如果两个同优先级任务都在忙等，各占约一半 CPU，低优先级任务完全无法运行。</li>
+          <li>更好的做法是让每个任务在完成工作后主动阻塞，让 CPU 有空闲时间。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>11. 工作场景：裸机前后台程序迁移到 FreeRTOS</h2>
+        <p>原程序：主循环中依次调用按键扫描、串口协议解析、传感器采集、显示刷新，各模块用全局标志与中断交互，随着功能增加，串口偶尔丢帧、显示刷新卡顿。</p>
+        <ol>
+          <li><strong>建立最小工程</strong>：移植 FreeRTOS，只创建一个闪灯任务，确认 Tick、PendSV、中断优先级配置正确（打开 <code>configASSERT</code>）。</li>
+          <li><strong>按时间特性拆分任务</strong>：串口协议任务（帧到达通知）、采集任务（10ms 周期）、显示任务（50ms 周期）、按键处理合并到业务任务。任务划分方法见 <a href="../../task-management/rtos-task-design/rtos-task-design.html?v=176874b30373">RTOS 任务设计方法</a>。</li>
+          <li><strong>替换全局标志</strong>：中断中原来的 <code>g_rx_flag = 1</code> 改为任务通知或队列发送，任务阻塞等待，不再轮询。</li>
+          <li><strong>识别共享数据</strong>：采集结果被显示和协议任务读取，改为互斥锁保护或消息传递。</li>
+          <li><strong>检查中断优先级</strong>：所有调用 FromISR 接口的中断优先级数值不小于 <code>configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY</code>。</li>
+          <li><strong>测量与调整</strong>：用栈水位确定各任务栈大小，用运行时间统计确认 CPU 占用，串口丢帧问题因协议任务优先级提高而消失。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>12. 工程使用建议</h2>
         <ul>
           <li>每个任务职责要单一，不要一个任务包办所有功能。</li>
           <li>任务中避免长时间死循环占用 CPU。</li>
@@ -148,10 +237,10 @@ vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#realtime/freertos-basic">返回 FreeRTOS专题</a>
+        <a href="../../../../index.html?v=176874b30373#realtime/freertos-basic">返回 FreeRTOS专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>

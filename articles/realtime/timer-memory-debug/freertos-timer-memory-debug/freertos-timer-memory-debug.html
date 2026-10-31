@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS 软件定时器、内存与调试 - XYJ</title>
   <meta name="description" content="整理 FreeRTOS 软件定时器、定时器服务任务、动态内存、静态内存、heap_4、栈溢出检测、任务运行统计和常见调试方法。">
-  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-          <a href="../../../../index.html?v=4c01baacdfc9#realtime/timer-memory-debug">返回对应专题</a>
+          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+          <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
-      <a href="../../../../index.html?v=4c01baacdfc9#realtime/timer-memory-debug">返回 FreeRTOS专题</a>
+      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
+      <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回 FreeRTOS专题</a>
     </div>
 
     <article class="article card">
@@ -176,7 +176,139 @@ printf("%s\n", buf);</code></pre>
       </section>
 
       <section>
-        <h2>9. 工程检查清单</h2>
+        <h2>9. 定时器服务任务的配置</h2>
+        <p>所有软件定时器回调都在<strong>定时器服务任务</strong>（Timer Service / Daemon Task）中执行，定时器 API 调用通过命令队列发给它：</p>
+        <pre><code class="language-c">#define configUSE_TIMERS              1
+#define configTIMER_TASK_PRIORITY     ( configMAX_PRIORITIES - 2 )  /* 通常设为较高优先级 */
+#define configTIMER_QUEUE_LENGTH      10
+#define configTIMER_TASK_STACK_DEPTH  ( configMINIMAL_STACK_SIZE * 2 )</code></pre>
+        <ul>
+          <li>定时器任务优先级决定回调的及时性：优先级低于忙碌的业务任务时，回调会被推迟。</li>
+          <li>命令队列满时，<code>xTimerStart()</code> 等调用会失败（或在指定超时内阻塞），中断中大量操作定时器时要加大队列长度。</li>
+          <li>回调运行在定时器任务的栈上，回调中调用的函数也要计入该任务的栈需求。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>10. 把工作推迟到定时器任务：xTimerPendFunctionCall</h2>
+        <p>中断中需要执行一段不适合在中断里完成、又不值得单独建任务的处理时，可以把函数推给定时器任务执行：</p>
+        <pre><code class="language-c">static void handle_fault_deferred(void *p1, uint32_t p2)
+{
+    log_error("fault source=%lu", (unsigned long)p2);    /* 打日志等耗时操作 */
+    power_stage_shutdown_sequence();
+}
+
+void FAULT_IRQHandler(void)
+{
+    BaseType_t woken = pdFALSE;
+    pwm_force_off();                                      /* 紧急动作仍在中断中立即完成 */
+    xTimerPendFunctionCallFromISR(handle_fault_deferred, NULL, read_fault_source(), &amp;woken);
+    portYIELD_FROM_ISR(woken);
+}</code></pre>
+        <p>前面提到的 <code>xEventGroupSetBitsFromISR()</code> 内部就是用这一机制实现的。</p>
+      </section>
+
+      <section>
+        <h2>11. 堆管理方案的选择</h2>
+        <table>
+          <thead><tr><th>方案</th><th>特点</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>heap_1</td><td>只分配不释放，最简单、确定</td><td>启动时创建所有对象，之后不再分配</td></tr>
+            <tr><td>heap_2</td><td>可释放，不合并相邻空闲块（已不推荐）</td><td>老项目兼容</td></tr>
+            <tr><td>heap_3</td><td>包装标准库 <code>malloc</code> / <code>free</code>，加调度器保护</td><td>需要与 C 库共用堆</td></tr>
+            <tr><td>heap_4</td><td>可释放，合并相邻空闲块，减少碎片</td><td><strong>大多数项目的默认选择</strong></td></tr>
+            <tr><td>heap_5</td><td>在 heap_4 基础上支持多块不连续内存</td><td>内部 SRAM + 外部 SDRAM、多个 SRAM 区域</td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-c">/* heap_5：使用前必须先定义内存区域（按地址从低到高排列） */
+static uint8_t sram1_heap[32 * 1024];
+static uint8_t sram2_heap[16 * 1024] __attribute__((section(".sram2")));
+
+const HeapRegion_t regions[] = {
+    { sram1_heap, sizeof(sram1_heap) },
+    { sram2_heap, sizeof(sram2_heap) },
+    { NULL, 0 }
+};
+
+int main(void)
+{
+    vPortDefineHeapRegions(regions);   /* 在创建任何内核对象之前调用 */
+    /* ... */
+}</code></pre>
+        <p>运行时监控堆的健康状况：</p>
+        <pre><code class="language-c">size_t free_now = xPortGetFreeHeapSize();
+size_t free_min = xPortGetMinimumEverFreeHeapSize();  /* 历史最低值，判断余量最有用 */</code></pre>
+        <p><strong>历史最低剩余值</strong>才是衡量余量的指标。如果程序运行期间反复申请和释放不同大小的内存，即使总剩余量足够，也可能因为碎片而申请失败；关键路径尽量使用静态创建或固定大小的内存池。</p>
+      </section>
+
+      <section>
+        <h2>12. 断言与钩子函数</h2>
+        <p>开发阶段把所有“出错时会被调用”的钩子都实现出来，让问题在第一现场暴露：</p>
+        <pre><code class="language-c">void vApplicationMallocFailedHook(void)            /* configUSE_MALLOC_FAILED_HOOK */
+{
+    taskDISABLE_INTERRUPTS();
+    fault_record("malloc failed", xPortGetFreeHeapSize());
+    for (;;);
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *name)   /* configCHECK_FOR_STACK_OVERFLOW */
+{
+    taskDISABLE_INTERRUPTS();
+    fault_record("stack overflow", (uint32_t)name);
+    for (;;);
+}
+
+void vAssertCalled(const char *file, int line)     /* configASSERT 调用 */
+{
+    taskDISABLE_INTERRUPTS();
+    fault_record(file, line);
+    for (;;);
+}</code></pre>
+        <p><code>fault_record</code> 可以把信息写到复位后不清零的 RAM 区域，配合看门狗复位，下次启动时读出并上报。量产版本中是否保留断言要权衡：保留断言能在现场暴露问题，但需要确保断言触发后系统能通过复位恢复。</p>
+      </section>
+
+      <section>
+        <h2>13. RTOS 下的 HardFault 分析</h2>
+        <p>RTOS 系统发生 HardFault 时，除了常规的寄存器分析，还要确定<strong>是哪个任务</strong>出的问题：</p>
+        <ol>
+          <li>在 HardFault 处理中判断 <code>LR</code>（EXC_RETURN）的第 2 位，确定异常发生时使用的是 PSP（任务）还是 MSP（中断 / 启动阶段）。</li>
+          <li>从对应栈中取出压栈的 <code>PC</code>、<code>LR</code>，用 <code>addr2line</code> 定位出错代码。</li>
+          <li>读取 <code>pxCurrentTCB</code> 指向的任务控制块中的任务名（或调用 <code>pcTaskGetName(NULL)</code>），记录当前任务。</li>
+          <li>检查该任务的栈水位：栈溢出覆盖了相邻内存是 RTOS 中 HardFault 的常见原因。</li>
+        </ol>
+        <p>调试器（如 Ozone、STM32CubeIDE、VS Code + Cortex-Debug）通常支持 RTOS 感知（RTOS-aware）调试，可以直接查看每个任务的调用栈，比只看当前栈有用得多。</p>
+      </section>
+
+      <section>
+        <h2>14. 可视化跟踪工具</h2>
+        <p>当问题与时序有关（偶发延迟、任务饿死、优先级反转）时，日志往往不够用。可视化跟踪工具会记录任务切换、中断、队列操作等事件，并在时间轴上显示：</p>
+        <table>
+          <thead><tr><th>工具</th><th>特点</th></tr></thead>
+          <tbody>
+            <tr><td>SEGGER SystemView</td><td>通过 J-Link RTT 实时采集，开销小，免费用于非商业评估</td></tr>
+            <tr><td>Percepio Tracealyzer</td><td>功能全面，支持多种分析视图，商业软件</td></tr>
+            <tr><td>内核 trace 宏 + GPIO</td><td>在 <code>traceTASK_SWITCHED_IN()</code> 等宏中翻转 GPIO，用逻辑分析仪观察</td></tr>
+          </tbody>
+        </table>
+        <p>即使没有专用工具，用 trace 宏 + GPIO 的方式也能直接看到任务的实际执行时间和切换顺序。</p>
+      </section>
+
+      <section>
+        <h2>15. 工作场景：运行一段时间后创建对象失败</h2>
+        <p>现象：设备运行若干小时后，某次网络重连时 <code>xTaskCreate</code> 返回失败，重连任务无法启动。</p>
+        <ol>
+          <li><strong>查看堆状态</strong>：<code>xPortGetFreeHeapSize()</code> 显示剩余 6KB，而新任务只需要 2KB 栈，说明问题不是总量不足。</li>
+          <li><strong>怀疑碎片</strong>：网络模块每次重连都动态创建并删除任务，同时协议层频繁申请大小不一的报文缓冲区，空闲内存被切成许多小块。</li>
+          <li><strong>改进</strong>：</li>
+          <li>网络重连任务改为常驻任务，平时阻塞等待重连请求。</li>
+          <li>报文缓冲区改为固定大小的内存池（例如 8 个 256 字节的块）。</li>
+          <li>关键对象（主要任务、队列、互斥锁）改为静态创建。</li>
+          <li><strong>监控</strong>：周期性记录 <code>xPortGetMinimumEverFreeHeapSize()</code>，长时间运行确认稳定。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>16. 工程检查清单</h2>
         <ul>
           <li>任务栈是否做过水位检测。</li>
           <li>软件定时器回调是否足够短。</li>
@@ -186,14 +318,19 @@ printf("%s\n", buf);</code></pre>
           <li>是否开启断言和栈溢出钩子。</li>
           <li>队列长度是否根据峰值流量设计。</li>
           <li>任务优先级是否按实时性设计。</li>
+          <li>定时器服务任务的优先级、命令队列长度和栈大小是否按需配置。</li>
+          <li>堆方案是否选择合适（通常为 heap_4 / heap_5），是否监控历史最低剩余堆空间。</li>
+          <li>是否实现了内存申请失败、栈溢出和断言钩子，并能在复位后读出故障记录。</li>
+          <li>HardFault 处理是否能区分 PSP / MSP 并记录出错任务。</li>
+          <li>时序相关问题是否使用 SystemView、Tracealyzer 或 trace 宏 + GPIO 分析。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=4c01baacdfc9#realtime/timer-memory-debug">返回 FreeRTOS专题</a>
+        <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回 FreeRTOS专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
 </body>
 </html>
