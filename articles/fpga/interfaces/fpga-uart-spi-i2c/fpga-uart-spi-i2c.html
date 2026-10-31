@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FPGA 实现 UART、SPI 与 I2C - XYJ</title>
   <meta name="description" content="整理用 Verilog 实现串行接口的方法：UART 发送与中点采样接收、SPI 主机模式与时钟边沿、I2C 三态开漏与时钟拉伸、接口模块的设计规范，以及 FPGA 与 MCU 之间通信通道的选择。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#fpga/interfaces">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -78,14 +78,14 @@
         end
     end
 endmodule</code></pre>
-        <p>这个实现中，发送的第一位（起始位）要等一个完整的波特率周期后才输出，属于可以接受的固定延迟。波特率误差的计算方法与 MCU 相同：50MHz / 434 = 115207bps，误差约 0.006%，完全可以忽略。系统时钟较低、波特率较高时要核算误差，见 <a href="../../../mcu/peripheral/mcu-uart-spi-i2c/mcu-uart-spi-i2c.html?v=801833ccbdeb">UART、SPI 与 I2C 通信接口</a>。</p>
+        <p>这个实现中，发送的第一位（起始位）要等一个完整的波特率周期后才输出，属于可以接受的固定延迟。波特率误差的计算方法与 MCU 相同：50MHz / 434 = 115207bps，误差约 0.006%，完全可以忽略。系统时钟较低、波特率较高时要核算误差，见 <a href="../../../mcu/peripheral/mcu-uart-spi-i2c/mcu-uart-spi-i2c.html?v=4c01baacdfc9">UART、SPI 与 I2C 通信接口</a>。</p>
       </section>
 
       <section>
         <h2>3. UART 接收：同步、过采样与中点采样</h2>
         <p>接收比发送难，因为 RX 信号是<strong>异步输入</strong>，与 FPGA 时钟没有任何关系：</p>
         <ol>
-          <li><strong>先同步</strong>：RX 引脚必须经过两级寄存器同步后才能使用，否则亚稳态会导致状态机跳到非法状态，见 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</li>
+          <li><strong>先同步</strong>：RX 引脚必须经过两级寄存器同步后才能使用，否则亚稳态会导致状态机跳到非法状态，见 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=4c01baacdfc9">跨时钟域处理</a>。</li>
           <li><strong>检测起始位下降沿</strong>，之后等待半个位时间，在起始位中点确认电平仍为低（过滤毛刺）。</li>
           <li><strong>之后每隔一个位时间采样一次</strong>，正好落在每一位的中点，对时钟误差和边沿抖动的容忍度最大。</li>
           <li><strong>检查停止位</strong>：停止位不为高时报告帧错误，并丢弃该字节。</li>
@@ -149,7 +149,7 @@ end</code></pre>
           <li><strong>START / STOP 条件</strong>：SCL 为高期间 SDA 下降是 START、上升是 STOP；数据位只能在 SCL 为低时改变。</li>
           <li><strong>约束引脚</strong>：在约束文件中为 SDA、SCL 开启内部上拉（<code>PULLUP true</code>）只适用于调试，板上仍应有外部上拉电阻。</li>
         </ul>
-        <p>完整的 I2C 主机设计实例（包括 ACK 检查、读写状态机和 CRC 校验），见 <a href="../../anlogic/aht20-iic-verilog/aht20-iic-verilog.html?v=801833ccbdeb">AHT20 IIC 读取实例</a>。</p>
+        <p>完整的 I2C 主机设计实例（包括 ACK 检查、读写状态机和 CRC 校验），见 <a href="../../anlogic/aht20-iic-verilog/aht20-iic-verilog.html?v=4c01baacdfc9">AHT20 IIC 读取实例</a>。</p>
       </section>
 
       <section>
@@ -197,11 +197,11 @@ end</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#fpga/interfaces">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

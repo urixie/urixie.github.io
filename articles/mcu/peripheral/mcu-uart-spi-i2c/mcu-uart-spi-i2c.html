@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>MCU UART、SPI 与 I2C 通信接口 - XYJ</title>
   <meta name="description" content="对比 UART、SPI、I2C 的选型要点，整理波特率误差、RS-485 方向控制、SPI 模式与片选时序、I2C 上拉选择、地址写法与总线锁死恢复，并给出用逻辑分析仪定位通信问题的方法。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#mcu/peripheral">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -58,7 +58,7 @@
           <li>8 位 MCU 常用 11.0592MHz 晶振，正是因为它能被标准波特率整除。</li>
         </ul>
         <p><strong>帧格式</strong>：数据位、校验位、停止位双方必须一致，最常用的是 8N1（8 位数据、无校验、1 位停止）。帧错误（FE）通常意味着波特率不匹配或线路干扰，溢出错误（ORE）意味着软件来不及读取，噪声错误（NE）意味着线路质量差，这些错误标志都应该被统计。</p>
-        <p><strong>接收方式的选择</strong>：低速、少量数据用接收中断；高速或大数据量用 DMA。不定长帧推荐“DMA 循环接收 + 空闲线中断”，实现见 <a href="../../../foundation/embedded-c/c-interrupt-concurrency/c-interrupt-concurrency.html?v=801833ccbdeb">中断、并发与临界区</a>。</p>
+        <p><strong>接收方式的选择</strong>：低速、少量数据用接收中断；高速或大数据量用 DMA。不定长帧推荐“DMA 循环接收 + 空闲线中断”，实现见 <a href="../../../foundation/embedded-c/c-interrupt-concurrency/c-interrupt-concurrency.html?v=4c01baacdfc9">中断、并发与临界区</a>。</p>
       </section>
 
       <section>
@@ -166,11 +166,11 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#mcu/peripheral">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

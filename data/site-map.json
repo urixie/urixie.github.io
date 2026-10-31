@@ -727,7 +727,7 @@
       {
         "id": "linux-basic",
         "title": "Linux基础",
-        "desc": "建立嵌入式 Linux 调试常用命令、目录结构、进程内存和服务部署基础。",
+        "desc": "嵌入式 Linux 常用命令、目录结构、进程内存、服务部署与存储文件系统。",
         "articles": [
           {
             "navTitle": "Linux · 基础命令与文件系统",
@@ -747,7 +747,7 @@
               "process",
               "strace"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "Linux · Shell 脚本与 systemd 服务",
@@ -757,7 +757,7 @@
               "Shell",
               "systemd"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "Linux SD 卡格式化与文件复制：设备识别、FAT32 与完整性校验",
@@ -771,13 +771,25 @@
               "SHA-256"
             ],
             "updated": "2026-10-19"
+          },
+          {
+            "navTitle": "存储与文件系统",
+            "navDesc": "eMMC/NAND、UBI、只读 rootfs、掉电安全",
+            "href": "articles/soc-linux/linux-basic/linux-storage-fs/linux-storage-fs.html",
+            "tags": [
+              "Linux",
+              "eMMC",
+              "NAND",
+              "文件系统"
+            ],
+            "updated": "2026-10-31"
           }
         ]
       },
       {
         "id": "boot-kernel-rootfs",
         "title": "启动链路与系统构建",
-        "desc": "从 U-Boot、Kernel 到 RootFS 的构建流程和镜像组成。",
+        "desc": "从 U-Boot、Kernel 到 RootFS 的构建流程、镜像组成与 OTA 升级设计。",
         "articles": [
           {
             "navTitle": "U-Boot · 组成与构建流程",
@@ -797,7 +809,7 @@
               "Kernel",
               "Kconfig"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "RootFS · 根文件系统组成与构建",
@@ -807,15 +819,52 @@
               "RootFS",
               "Buildroot"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "OTA 升级设计",
+            "navDesc": "A/B 分区、bootcount 回滚、RAUC/SWUpdate",
+            "href": "articles/soc-linux/boot-kernel-rootfs/linux-ota-update/linux-ota-update.html",
+            "tags": [
+              "Linux",
+              "OTA",
+              "U-Boot",
+              "RAUC"
+            ],
+            "updated": "2026-10-31"
           }
         ]
       },
       {
         "id": "driver-debug",
         "title": "驱动与系统调试",
-        "desc": "设备树、dmesg、sysfs、procfs、内核模块、交叉编译和远程调试。",
+        "desc": "字符设备驱动、用户态外设访问、设备树与内核调试、性能与总线排查。",
         "articles": [
+          {
+            "navTitle": "字符设备驱动",
+            "navDesc": "platform 驱动、devm、中断与 misc 设备",
+            "href": "articles/soc-linux/driver-debug/linux-char-driver/linux-char-driver.html",
+            "tags": [
+              "Linux",
+              "驱动",
+              "设备树",
+              "中断"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "用户态访问外设",
+            "navDesc": "libgpiod、i2c-dev、spidev、termios",
+            "href": "articles/soc-linux/driver-debug/linux-userspace-peripheral/linux-userspace-peripheral.html",
+            "tags": [
+              "Linux",
+              "GPIO",
+              "I2C",
+              "SPI",
+              "串口"
+            ],
+            "updated": "2026-10-31"
+          },
           {
             "navTitle": "嵌入式 Linux · 驱动与系统调试",
             "navDesc": "设备树 / dmesg / sysfs / procfs / 内核模块 / 交叉编译 / gdbserver · 面向板级调试",
@@ -824,7 +873,7 @@
               "设备树",
               "板级调试"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           }
         ]
       },

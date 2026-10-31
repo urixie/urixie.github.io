@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 状态机设计方法 - XYJ</title>
   <meta name="description" content="整理 Verilog 有限状态机 FSM 的设计方法，包括一段式、两段式、三段式状态机、状态编码、状态跳转、输出逻辑和工程检查清单。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#fpga/hdl-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#fpga/hdl-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-      <a href="../../../../index.html?v=801833ccbdeb#fpga/hdl-basic">返回 Verilog专题</a>
+      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+      <a href="../../../../index.html?v=4c01baacdfc9#fpga/hdl-basic">返回 Verilog专题</a>
     </div>
 
     <article class="article card">
@@ -241,7 +241,7 @@ always @(posedge clk or negedge rst_n) begin
     else if (state == S_IDLE)                    retry_cnt &lt;= 0;
     else if (state == S_WAIT &amp;&amp; next_state == S_SEND) retry_cnt &lt;= retry_cnt + 1'b1;
 end</code></pre>
-        <p>这个结构把“正常流程、超时、重试、错误上报、错误清除”都显式地表达在状态图中，仿真时可以逐条验证：正常应答、第 2 次重试成功、3 次都超时进入错误状态、错误清除后能重新开始。软件中的同类设计思路见 <a href="../../../foundation/data-structure/c-state-machine/c-state-machine.html?v=801833ccbdeb">状态机与事件驱动设计</a>。</p>
+        <p>这个结构把“正常流程、超时、重试、错误上报、错误清除”都显式地表达在状态图中，仿真时可以逐条验证：正常应答、第 2 次重试成功、3 次都超时进入错误状态、错误清除后能重新开始。软件中的同类设计思路见 <a href="../../../foundation/data-structure/c-state-machine/c-state-machine.html?v=4c01baacdfc9">状态机与事件驱动设计</a>。</p>
       </section>
 
       <section>
@@ -262,10 +262,10 @@ end</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#fpga/hdl-basic">返回 Verilog专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#fpga/hdl-basic">返回 Verilog专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

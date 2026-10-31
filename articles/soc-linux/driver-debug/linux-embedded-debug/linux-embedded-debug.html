@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>嵌入式 Linux 驱动与系统调试 - XYJ</title>
   <meta name="description" content="整理嵌入式 Linux 驱动与系统调试，包括设备树、设备节点、dmesg.sysfs.procfs、内核模块、交叉编译、gdbserver.strace 和串口日志。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#soc-linux/driver-debug">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/driver-debug">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-      <a href="../../../../index.html?v=801833ccbdeb#soc-linux/driver-debug">返回 Linux专题</a>
+      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+      <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/driver-debug">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -138,7 +138,101 @@ gdbserver :2345 ./app
       </section>
 
       <section>
-        <h2>9. 工程检查清单</h2>
+        <h2>9. 动态调试：打开驱动中的 pr_debug</h2>
+        <p>驱动中的 <code>pr_debug()</code> / <code>dev_dbg()</code> 默认不输出。开启 <code>CONFIG_DYNAMIC_DEBUG</code> 后，可以在运行时按文件、函数、模块打开：</p>
+        <pre><code class="language-bash">mount -t debugfs none /sys/kernel/debug 2&gt;/dev/null
+
+# 打开某个模块的所有调试输出（+p 打印，+f 带函数名，+l 带行号）
+echo 'module xyj_sensor +pfl' &gt; /sys/kernel/debug/dynamic_debug/control
+# 打开某个源文件
+echo 'file drivers/spi/spi-rockchip.c +p' &gt; /sys/kernel/debug/dynamic_debug/control
+# 查看当前状态
+grep xyj_sensor /sys/kernel/debug/dynamic_debug/control
+
+# 启动阶段的驱动：通过内核命令行打开
+#   dyndbg="module xyj_sensor +p"  或  xyj_sensor.dyndbg=+p</code></pre>
+        <p>同时把控制台日志级别调高（<code>dmesg -n 8</code>），或直接用 <code>dmesg -w</code> 实时查看。</p>
+      </section>
+
+      <section>
+        <h2>10. ftrace：看清内核里发生了什么</h2>
+        <p>ftrace 是内核自带的跟踪框架，不需要额外工具，适合分析“驱动函数有没有被调用”“中断处理耗时多少”：</p>
+        <pre><code class="language-bash">cd /sys/kernel/debug/tracing        # 新内核也可以使用 /sys/kernel/tracing
+
+# 跟踪某个函数调用关系
+echo xyj_sensor_read &gt; set_graph_function
+echo function_graph &gt; current_tracer
+echo 1 &gt; tracing_on; sleep 2; echo 0 &gt; tracing_on
+cat trace | head -50
+
+# 使用内核预置的事件：观察 I2C 传输与中断
+echo 1 &gt; events/i2c/enable
+echo 1 &gt; events/irq/irq_handler_entry/enable
+cat trace_pipe</code></pre>
+        <p><code>function_graph</code> 会显示每个函数的耗时，能直接定位驱动中的慢路径。主机上安装 <code>trace-cmd</code> / KernelShark 可以更方便地录制和图形化查看。</p>
+      </section>
+
+      <section>
+        <h2>11. perf：用户态和内核态的性能分析</h2>
+        <pre><code class="language-bash">perf top -p $(pidof gateway)          # 实时查看热点函数
+perf record -g -p $(pidof gateway) -- sleep 10
+perf report                           # 按调用栈分析 CPU 占用
+perf stat -e cycles,instructions,cache-misses ./algo_test</code></pre>
+        <p>交叉编译环境下，perf 需要与目标内核版本匹配（Buildroot 中启用 <code>BR2_PACKAGE_LINUX_TOOLS_PERF</code>）。要得到完整调用栈，被分析程序需要保留帧指针（<code>-fno-omit-frame-pointer</code>）或调试信息。</p>
+      </section>
+
+      <section>
+        <h2>12. 外设总线调试</h2>
+        <p>驱动或应用访问外设失败时，先区分是<strong>软件问题</strong>还是<strong>总线 / 硬件问题</strong>：</p>
+        <table>
+          <thead><tr><th>总线</th><th>软件侧工具</th><th>硬件侧手段</th></tr></thead>
+          <tbody>
+            <tr><td>I2C</td><td><code>i2cdetect -y N</code>、<code>i2cget</code>、<code>i2cdump</code>、i2c ftrace 事件</td><td>逻辑分析仪看 START / ACK / NACK，检查上拉电阻</td></tr>
+            <tr><td>SPI</td><td>spidev 测试程序（<code>spidev_test</code>）、设备树中的模式与频率</td><td>逻辑分析仪看 CS、时钟极性与相位</td></tr>
+            <tr><td>UART</td><td><code>stty -F /dev/ttyS3 -a</code>、<code>microcom</code>、回环测试</td><td>示波器量波特率、电平（TTL / RS232 / RS485）</td></tr>
+            <tr><td>GPIO</td><td><code>gpioinfo</code>、<code>gpioget</code>、<code>/sys/kernel/debug/gpio</code></td><td>万用表 / 示波器确认电平</td></tr>
+            <tr><td>pinctrl</td><td><code>/sys/kernel/debug/pinctrl/*/pinmux-pins</code></td><td>对照原理图确认引脚复用</td></tr>
+          </tbody>
+        </table>
+        <p>用户态访问方法见 <a href="../linux-userspace-peripheral/linux-userspace-peripheral.html?v=4c01baacdfc9">用户态访问外设</a>，驱动的 probe 流程见 <a href="../linux-char-driver/linux-char-driver.html?v=4c01baacdfc9">字符设备驱动</a>。<code>pinmux-pins</code> 能直接看到每个引脚当前被哪个设备占用，是排查引脚冲突最快的方法。</p>
+      </section>
+
+      <section>
+        <h2>13. 网络问题排查</h2>
+        <pre><code class="language-bash">ip -br addr; ip route; ip neigh               # 地址、路由、ARP
+ss -tunap                                     # 连接与监听端口，以及对应进程
+ethtool eth0                                  # 链路速率、双工、是否 link up
+ethtool -S eth0 | grep -i -E 'err|drop'       # 网卡统计中的错误与丢包
+tcpdump -i eth0 -nn port 1883 -w /tmp/mqtt.pcap   # 抓包后拷回电脑用 Wireshark 分析
+ping -I eth0 -c 4 192.168.1.1</code></pre>
+        <p>排查顺序：物理链路（<code>ethtool</code>）→ IP 与路由 → DNS → 连接建立（<code>ss</code>、<code>tcpdump</code>）→ 应用协议。多网口设备（以太网 + 4G + Wi-Fi）要特别注意默认路由和路由优先级（metric）。</p>
+      </section>
+
+      <section>
+        <h2>14. 启动时间分析</h2>
+        <pre><code class="language-bash">dmesg | head -1 ; dmesg | tail -1             # 内核时间戳范围
+systemd-analyze                               # kernel / userspace 各阶段耗时
+systemd-analyze blame | head -20
+systemd-analyze critical-chain
+# 内核阶段：命令行加 initcall_debug，再按耗时排序
+dmesg | grep 'initcall' | sort -t' ' -k8 -n | tail</code></pre>
+        <p>常见优化：减少 U-Boot 等待时间（<code>bootdelay</code>），内核去掉不需要的驱动或改为模块，延迟加载非关键驱动，rootfs 使用 squashfs，用户态服务并行启动、非关键服务延后启动。</p>
+      </section>
+
+      <section>
+        <h2>15. 工作场景：SPI 设备读回全是 0xFF</h2>
+        <ol>
+          <li><strong>确认设备节点</strong>：<code>ls /dev/spidev*</code> 存在，<code>dmesg</code> 无 probe 错误。</li>
+          <li><strong>确认引脚复用</strong>：查看 <code>pinmux-pins</code>，发现 SPI 的 MISO 引脚被 UART 占用，设备树中两个节点使用了同一组引脚。</li>
+          <li><strong>修正设备树</strong>：禁用冲突的 UART 节点，重新编译 DTB。</li>
+          <li><strong>复测</strong>：数据仍然偶尔出错。逻辑分析仪显示时钟极性与器件要求不一致，把 <code>spi-cpol</code> / <code>spi-cpha</code>（或应用中的 <code>SPI_MODE_x</code>）改为器件手册要求的模式。</li>
+          <li><strong>验证余量</strong>：把时钟频率从 10MHz 降到 5MHz 对比误码率，确认最终频率有足够余量。</li>
+          <li><strong>记录</strong>：把引脚分配、SPI 模式和频率写入板级文档，避免下一块板重复踩坑。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>16. 工程检查清单</h2>
         <ul>
           <li>设备树节点是否实际进入运行系统。</li>
           <li>compatible 是否和驱动匹配。</li>
@@ -147,14 +241,19 @@ gdbserver :2345 ./app
           <li>用户程序打开路径是否与设备节点一致。</li>
           <li>应用架构和动态库是否匹配目标板。</li>
           <li>问题是否能通过 strace.gdbserver 或串口日志复现。</li>
+          <li>内核是否开启 <code>CONFIG_DYNAMIC_DEBUG</code>、ftrace 等调试能力（至少在调试版中）。</li>
+          <li>外设访问失败时，是否先用 pinmux、总线工具和逻辑分析仪区分软件与硬件问题。</li>
+          <li>性能问题是否用 perf / ftrace 定位热点，而不是凭感觉优化。</li>
+          <li>网络问题是否按物理链路、IP 路由、DNS、连接、应用协议的顺序排查。</li>
+          <li>启动时间是否用 <code>systemd-analyze</code> 和 <code>initcall_debug</code> 量化分析过。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#soc-linux/driver-debug">返回 Linux专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/driver-debug">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式 Linux 存储与文件系统 - XYJ</title>
+  <meta name="description" content="对比 NOR、NAND、eMMC 等存储介质与 ext4、squashfs、UBIFS 等文件系统，说明分区规划、只读根文件系统与掉电安全写文件的方法。">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/linux-basic">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>嵌入式 Linux 存储与文件系统</h1>
+      <p class="article-summary">对比 NOR、NAND、eMMC 等存储介质与 ext4、squashfs、UBIFS 等文件系统，说明分区规划、只读根文件系统与掉电安全写文件的方法。</p>
+
+      <section>
+        <h2>1. 嵌入式存储介质怎么选</h2>
+        <p>嵌入式 Linux 设备的存储方案决定了文件系统选择、升级方式和掉电可靠性，项目早期就要定下来：</p>
+        <table>
+          <thead><tr><th>介质</th><th>特点</th><th>坏块 / 磨损管理</th><th>常用文件系统</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td>SPI NOR</td><td>容量小（16~64MB），可靠、读快写慢</td><td>无坏块，擦写约 10 万次</td><td>squashfs + JFFS2 / UBIFS</td><td>小型网关、只读系统</td></tr>
+            <tr><td>裸 NAND（SLC/MLC）</td><td>容量中等，便宜，有坏块</td><td>需要软件（MTD + UBI）管理</td><td>UBIFS、squashfs over UBI</td><td>工控、老平台</td></tr>
+            <tr><td>SPI NAND</td><td>引脚少，容量 128MB~1GB</td><td>同裸 NAND，片内 ECC</td><td>UBIFS</td><td>中低端网关、IPC</td></tr>
+            <tr><td>eMMC</td><td>内置控制器，块设备接口</td><td>控制器内部完成</td><td>ext4、squashfs、f2fs</td><td>RK3568 / i.MX 等主流板卡</td></tr>
+            <tr><td>SD 卡</td><td>可拔插、便于调试</td><td>控制器内部完成，质量参差</td><td>ext4、FAT（启动分区）</td><td>开发调试、数据记录</td></tr>
+          </tbody>
+        </table>
+        <p>关键区别是：<strong>NOR / NAND 是 MTD 设备</strong>（<code>/dev/mtdN</code>），需要用懂擦除块的文件系统；<strong>eMMC / SD 是块设备</strong>（<code>/dev/mmcblkN</code>），可以直接使用 ext4 等通用文件系统。把 ext4 直接放在裸 NAND 上是错误用法。</p>
+      </section>
+
+      <section>
+        <h2>2. 分区规划</h2>
+        <p>以 eMMC 为例，一个支持 A/B 升级的典型分区表：</p>
+        <table>
+          <thead><tr><th>分区</th><th>大小</th><th>内容</th><th>挂载方式</th></tr></thead>
+          <tbody>
+            <tr><td>bootloader</td><td>4~8MB</td><td>SPL / U-Boot（部分 SoC 放在固定偏移）</td><td>不挂载</td></tr>
+            <tr><td>env</td><td>64KB~1MB</td><td>U-Boot 环境变量（建议双份冗余）</td><td>不挂载</td></tr>
+            <tr><td>boot_a / boot_b</td><td>32~64MB</td><td>Kernel、DTB（FIT 镜像）</td><td>不挂载或只读</td></tr>
+            <tr><td>rootfs_a / rootfs_b</td><td>512MB~2GB</td><td>只读根文件系统</td><td>只读</td></tr>
+            <tr><td>data</td><td>剩余空间</td><td>配置、日志、用户数据</td><td>读写</td></tr>
+          </tbody>
+        </table>
+        <p>规划原则：</p>
+        <ul>
+          <li><strong>系统与数据分离</strong>：rootfs 只读、data 读写，升级只替换系统分区，不碰用户数据。</li>
+          <li><strong>日志有上限</strong>：日志写入 data 分区并配置轮转，防止写满分区导致应用写配置失败。</li>
+          <li><strong>预留余量</strong>：rootfs 分区至少预留 30% 以上空间，后续版本增加功能不需要重新分区（重新分区意味着现场设备无法 OTA）。</li>
+        </ul>
+        <p>查看分区与挂载状态的常用命令：</p>
+        <pre><code class="language-bash">lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT,LABEL   # 块设备与分区
+cat /proc/mtd                                # MTD 分区（NOR / NAND）
+cat /proc/partitions
+findmnt                                      # 挂载树，包含挂载选项
+df -h; df -i                                 # 空间与 inode 使用率</code></pre>
+      </section>
+
+      <section>
+        <h2>3. 常用文件系统对比</h2>
+        <table>
+          <thead><tr><th>文件系统</th><th>类型</th><th>掉电安全</th><th>特点</th></tr></thead>
+          <tbody>
+            <tr><td>squashfs</td><td>只读、压缩</td><td>只读，天然安全</td><td>体积小（xz/zstd 压缩），适合 rootfs</td></tr>
+            <tr><td>ext4</td><td>块设备读写</td><td>日志保护元数据</td><td>通用、工具齐全，eMMC 首选读写文件系统</td></tr>
+            <tr><td>f2fs</td><td>块设备读写</td><td>检查点机制</td><td>针对闪存优化，对写放大更友好</td></tr>
+            <tr><td>UBIFS</td><td>MTD 读写</td><td>日志结构，掉电安全</td><td>运行在 UBI 之上，NAND 首选</td></tr>
+            <tr><td>JFFS2</td><td>MTD 读写</td><td>掉电安全</td><td>老方案，大容量下挂载慢，新项目优先 UBIFS</td></tr>
+            <tr><td>tmpfs</td><td>内存</td><td>掉电丢失</td><td>/tmp、/run、运行时缓存</td></tr>
+            <tr><td>vfat</td><td>块设备</td><td>不安全</td><td>启动分区、与 Windows 交换数据</td></tr>
+          </tbody>
+        </table>
+        <div class="article-note">ext4 的日志默认只保护<strong>元数据</strong>（<code>data=ordered</code>），不保证文件内容完整。应用写配置文件时仍然要用“写临时文件 + fsync + rename”的方式，见下文。</div>
+      </section>
+
+      <section>
+        <h2>4. NAND 上的 MTD 与 UBI</h2>
+        <p>裸 NAND 有坏块、需要 ECC 和磨损均衡，Linux 的分层是：</p>
+        <pre><code class="language-text">UBIFS（文件系统）
+  └─ UBI 卷（ubi0:rootfs、ubi0:data ...）  磨损均衡、坏块管理、逻辑擦除块映射
+      └─ MTD 分区（/dev/mtd3）             原始擦除 / 读写接口
+          └─ NAND 控制器驱动 + ECC</code></pre>
+        <p>制作和挂载 UBI 卷的典型步骤：</p>
+        <pre><code class="language-bash"># 主机端：用 ubinize 把 UBIFS 镜像打包成 UBI 镜像（参数必须与 NAND 页大小、擦除块大小匹配）
+mkfs.ubifs -r rootfs/ -m 2048 -e 126976 -c 2048 -o rootfs.ubifs
+ubinize -o rootfs.ubi -m 2048 -p 128KiB ubinize.cfg
+
+# 设备端：附加 MTD 分区、挂载数据卷
+ubiattach /dev/ubi_ctrl -m 4
+ubinfo -a                         # 查看卷与坏块、最大擦写次数
+mount -t ubifs ubi0:data /data</code></pre>
+        <p><code>-m</code>（最小写入单元，即页大小）、<code>-e</code>（逻辑擦除块大小）、<code>-p</code>（物理擦除块大小）必须与芯片一致，参数错误时会出现挂载失败或 “bad VID header” 一类错误。更换 NAND 型号时要重点核对这些参数。</p>
+      </section>
+
+      <section>
+        <h2>5. 只读 RootFS 与 overlayfs</h2>
+        <p>只读 rootfs 的好处：掉电不会损坏系统、所有设备的系统分区内容一致、问题容易复现。但一些程序需要写 <code>/etc</code>、<code>/var</code>，常用的处理方式：</p>
+        <ul>
+          <li><code>/tmp</code>、<code>/run</code>、<code>/var/log</code>（或 <code>/var/volatile</code>）挂载为 tmpfs。</li>
+          <li>需要持久化的配置放在 data 分区，<code>/etc</code> 中对应文件改为软链接。</li>
+          <li>或者使用 <strong>overlayfs</strong>：只读的 rootfs 作为下层，data 分区上的目录作为可写上层，合并后对应用透明。</li>
+        </ul>
+        <pre><code class="language-bash"># 把 /etc 做成 overlay：下层只读，上层与工作目录在 data 分区（必须在同一文件系统）
+mkdir -p /data/overlay/etc/upper /data/overlay/etc/work
+mount -t overlay overlay \
+  -o lowerdir=/etc,upperdir=/data/overlay/etc/upper,workdir=/data/overlay/etc/work /etc</code></pre>
+        <div class="article-warning">overlayfs 的上层保存的是“与出厂不同的文件”，系统升级后旧的上层文件会覆盖新版本 rootfs 中的同名文件，可能导致新版本配置不生效。升级流程中要明确：哪些上层文件需要保留、哪些需要清除。</div>
+      </section>
+
+      <section>
+        <h2>6. 掉电安全：应用层怎么写文件</h2>
+        <p>文件系统只能保证自身结构不损坏，<strong>应用数据是否完整由应用负责</strong>。写配置、写计数等关键数据的标准做法：</p>
+        <pre><code class="language-c">/* 原子替换：要么是旧文件，要么是新文件，不会出现写了一半的文件 */
+int save_config_atomic(const char *path, const void *buf, size_t len)
+{
+    char tmp[256];
+    snprintf(tmp, sizeof(tmp), "%s.tmp", path);
+
+    int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd &lt; 0) return -1;
+    if (write(fd, buf, len) != (ssize_t)len || fsync(fd) != 0) {   /* 数据落盘 */
+        close(fd);
+        unlink(tmp);
+        return -1;
+    }
+    close(fd);
+    if (rename(tmp, path) != 0) return -1;                          /* 原子替换 */
+
+    /* 同步目录项，保证 rename 本身也已落盘 */
+    char dir[256];
+    snprintf(dir, sizeof(dir), "%s", path);
+    char *slash = strrchr(dir, '/');
+    if (slash) *slash = '\0';
+    int dfd = open(slash ? dir : ".", O_RDONLY | O_DIRECTORY);
+    if (dfd &gt;= 0) { fsync(dfd); close(dfd); }
+    return 0;
+}</code></pre>
+        <p>其他要点：</p>
+        <ul>
+          <li>关键数据再加一层校验（CRC + 版本号），读取时校验失败则回退到备份或默认值。</li>
+          <li>不要频繁 <code>sync</code> 整个系统；对单个文件 <code>fsync</code> 即可。</li>
+          <li>高频写入的数据（如计数、状态）先在内存中合并，定时或在关机流程中写入，降低闪存磨损。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：设备反复掉电后无法启动</h2>
+        <p>现象：现场设备在频繁断电后出现无法启动、配置丢失或 <code>EXT4-fs error</code> 日志。排查与改进路径：</p>
+        <ol>
+          <li><strong>看串口日志</strong>：确认是 rootfs 挂载失败、文件系统检查失败，还是应用读到损坏的配置后异常退出。</li>
+          <li><strong>检查挂载方式</strong>：rootfs 是否以读写方式挂载？如果是，改为只读（squashfs 或 ext4 <code>ro</code>），可写内容迁移到 data 分区。</li>
+          <li><strong>data 分区自修复</strong>：启动脚本中对 data 分区执行 <code>fsck</code> 或挂载失败时重新格式化并恢复默认配置，保证设备至少能启动。</li>
+          <li><strong>应用写文件改为原子替换</strong>，并为关键配置增加校验和双份备份。</li>
+          <li><strong>评估介质健康</strong>：eMMC 可以通过 <code>mmc extcsd read /dev/mmcblk0</code> 查看寿命估计字段（<code>EXT_CSD_DEVICE_LIFE_TIME_EST</code>），NAND 通过 <code>ubinfo</code> 查看最大擦写计数。</li>
+          <li><strong>硬件侧</strong>：评估是否需要掉电检测 + 储能电容，在掉电前给系统留出几十毫秒写完关键数据。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. 存储与文件系统检查清单</h2>
+        <ul>
+          <li>存储介质类型（MTD 或块设备）是否明确，文件系统选择是否匹配介质。</li>
+          <li>分区表是否区分系统分区与数据分区，rootfs 是否预留了足够的升级余量。</li>
+          <li>rootfs 是否只读挂载，需要写入的目录是否由 tmpfs、data 分区或 overlayfs 提供。</li>
+          <li>NAND / UBI 参数（页大小、擦除块大小）是否与芯片一致，更换物料时是否复核。</li>
+          <li>关键文件是否使用“临时文件 + fsync + rename”的原子写入，并带有校验。</li>
+          <li>日志是否有轮转与上限，data 分区写满时系统能否正常运行。</li>
+          <li>data 分区损坏时是否有自修复或恢复出厂配置的路径。</li>
+          <li>是否在掉电测试中反复验证过（数百次以上随机断电）。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/linux-basic">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+</body>
+</html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>MCU 定时器与 PWM - XYJ</title>
   <meta name="description" content="整理 MCU 定时器的工程用法：时钟与预分频计算、PWM 频率与分辨率取舍、预装载、边沿与中心对齐、互补输出与死区、输入捕获测频测宽、定时器触发 ADC，以及常见的定时器资源规划。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#mcu/peripheral">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -125,7 +125,7 @@ void TIM4_IRQHandler(void)
 
       <section>
         <h2>6. 定时器触发 ADC：让采样时刻精确</h2>
-        <p>用软件在定时中断里启动 ADC，采样时刻会受中断延迟影响而抖动；让定时器的更新事件或比较事件直接触发 ADC 转换，采样间隔由硬件保证，再配合 DMA 搬运结果，CPU 完全不参与。电机控制中常把 ADC 采样点设在 PWM 中心（下管导通期间）以准确测量相电流，正是利用了这个机制。详见 <a href="../mcu-adc/mcu-adc.html?v=801833ccbdeb">ADC 采样与模拟前端</a>。</p>
+        <p>用软件在定时中断里启动 ADC，采样时刻会受中断延迟影响而抖动；让定时器的更新事件或比较事件直接触发 ADC 转换，采样间隔由硬件保证，再配合 DMA 搬运结果，CPU 完全不参与。电机控制中常把 ADC 采样点设在 PWM 中心（下管导通期间）以准确测量相电流，正是利用了这个机制。详见 <a href="../mcu-adc/mcu-adc.html?v=4c01baacdfc9">ADC 采样与模拟前端</a>。</p>
       </section>
 
       <section>
@@ -159,11 +159,11 @@ void TIM4_IRQHandler(void)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#mcu/peripheral">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

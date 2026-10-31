@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux 进程、线程与内存管理 - XYJ</title>
   <meta name="description" content="整理 Linux 进程、线程、虚拟内存、文件描述符、信号、ps/top./proc/pid/maps.strace.core dump 和嵌入式 Linux 进程调试方法。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#soc-linux/linux-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/linux-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-      <a href="../../../../index.html?v=801833ccbdeb#soc-linux/linux-basic">返回 Linux专题</a>
+      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+      <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/linux-basic">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -141,7 +141,125 @@ gdb ./app core
       </section>
 
       <section>
-        <h2>8. 工程检查清单</h2>
+        <h2>8. 多线程编程要点</h2>
+        <p>嵌入式 Linux 应用常见的结构是“一个进程、多个线程”：通信线程、采集线程、业务线程、日志线程。pthread 的基本用法：</p>
+        <pre><code class="language-c">#include &lt;pthread.h&gt;
+
+static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  g_cond = PTHREAD_COND_INITIALIZER;
+static int g_ready;
+
+static void *worker(void *arg)
+{
+    pthread_mutex_lock(&amp;g_lock);
+    while (!g_ready)                         /* 必须用 while：防止虚假唤醒 */
+        pthread_cond_wait(&amp;g_cond, &amp;g_lock); /* 等待时自动释放锁，被唤醒后重新加锁 */
+    pthread_mutex_unlock(&amp;g_lock);
+    /* ... 处理数据 ... */
+    return NULL;
+}
+
+int main(void)
+{
+    pthread_t tid;
+    pthread_create(&amp;tid, NULL, worker, NULL);
+    pthread_setname_np(tid, "worker");       /* 便于 top -H / gdb 中识别线程 */
+
+    pthread_mutex_lock(&amp;g_lock);
+    g_ready = 1;
+    pthread_cond_signal(&amp;g_cond);
+    pthread_mutex_unlock(&amp;g_lock);
+
+    pthread_join(tid, NULL);
+    return 0;
+}</code></pre>
+        <p>工程要点：</p>
+        <ul>
+          <li><strong>给线程命名</strong>：<code>top -H -p &lt;pid&gt;</code> 和 gdb 的 <code>info threads</code> 中可以直接看到线程名，定位 CPU 占用高的线程非常方便。</li>
+          <li><strong>锁的粒度</strong>：锁只保护共享数据，不要在持锁期间做阻塞 IO（读串口、网络发送、写文件）。</li>
+          <li><strong>加锁顺序</strong>：需要同时持有多把锁时，所有线程按相同顺序加锁，避免死锁。</li>
+          <li><strong>线程退出</strong>：要么 <code>pthread_join</code> 回收，要么 <code>pthread_detach</code>，否则线程资源不会释放。</li>
+          <li>编译时加 <code>-pthread</code>，调试数据竞争时可以用 <code>-fsanitize=thread</code>（需要工具链支持）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>9. 进程间通信怎么选</h2>
+        <table>
+          <thead><tr><th>方式</th><th>特点</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>管道 / FIFO</td><td>简单，单向字节流</td><td>父子进程、脚本与程序之间</td></tr>
+            <tr><td>Unix 域套接字</td><td>双向、可传文件描述符、支持多客户端</td><td>本机服务与客户端（最常用）</td></tr>
+            <tr><td>共享内存 + 信号量</td><td>速度最快，需要自行同步</td><td>视频帧、大块采样数据</td></tr>
+            <tr><td>消息队列（POSIX mq）</td><td>带消息边界、可设优先级</td><td>小消息、多生产者</td></tr>
+            <tr><td>D-Bus</td><td>标准化、有工具支持</td><td>与系统服务（NetworkManager、BlueZ）交互</td></tr>
+            <tr><td>TCP / MQTT 本地回环</td><td>与远程通信接口统一</td><td>进程以后可能分布到多台设备</td></tr>
+          </tbody>
+        </table>
+        <p>嵌入式设备中最推荐 <strong>Unix 域套接字</strong>：它是本机通信的通用方案，客户端断开时服务端能感知（读到 0 或 EPIPE），比共享内存更容易做到健壮。</p>
+      </section>
+
+      <section>
+        <h2>10. 内存使用分析：RSS、PSS 与泄漏</h2>
+        <p><code>top</code> 中的内存数字经常被误读：</p>
+        <table>
+          <thead><tr><th>指标</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>VSZ / VIRT</td><td>虚拟地址空间大小，包含未实际使用的映射，参考意义有限</td></tr>
+            <tr><td>RSS / RES</td><td>实际驻留在物理内存中的页，<strong>共享库的页会被每个进程重复计算</strong></td></tr>
+            <tr><td>PSS</td><td>共享页按共享进程数平摊后的值，加总接近真实占用</td></tr>
+            <tr><td>USS</td><td>进程独占的页，进程退出后能释放的内存</td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-bash">cat /proc/&lt;pid&gt;/status | grep -E 'VmRSS|VmHWM|Threads'   # VmHWM：RSS 峰值
+cat /proc/&lt;pid&gt;/smaps_rollup                             # Pss、Private_Dirty 汇总（4.14+ 内核）
+free -h                                                   # 关注 available，而不是 free
+cat /proc/meminfo | grep -E 'MemAvailable|Slab|CmaFree'</code></pre>
+        <p>判断内存泄漏：长时间（几小时到几天）定时记录 <code>VmRSS</code> 或 <code>Pss</code>，持续单调上涨且不回落就是可疑泄漏。定位方法：</p>
+        <ul>
+          <li>开发阶段在 x86 主机上用 Valgrind 或 AddressSanitizer（<code>-fsanitize=address</code>）跑单元测试和模拟场景。</li>
+          <li>在目标板上可以用 <code>heaptrack</code>、glibc 的 <code>mtrace</code>，或在自己的内存分配封装中统计分配次数和大小。</li>
+        </ul>
+        <div class="article-note"><code>free</code> 显示 free 很少通常不是问题：Linux 会把空闲内存用作页缓存，需要时再回收。判断内存是否紧张应看 <code>MemAvailable</code>。</div>
+      </section>
+
+      <section>
+        <h2>11. OOM 与内存不足时的行为</h2>
+        <p>物理内存耗尽时，内核的 OOM killer 会根据 <code>oom_score</code> 选择一个进程杀掉。嵌入式设备上要主动控制：</p>
+        <pre><code class="language-bash">dmesg | grep -i -E 'oom|killed process'        # 查看是否发生过 OOM
+cat /proc/&lt;pid&gt;/oom_score                       # 当前得分
+echo -1000 &gt; /proc/&lt;pid&gt;/oom_score_adj          # 关键进程：基本不会被选中</code></pre>
+        <p>systemd 服务中可以用 <code>OOMScoreAdjust=</code> 设置，并用 <code>MemoryMax=</code> 限制某个非关键服务的内存上限，让它在超限时被单独处理，而不是拖垮整个系统。</p>
+      </section>
+
+      <section>
+        <h2>12. 实时性：调度策略与 CPU 绑定</h2>
+        <p>普通线程使用 <code>SCHED_OTHER</code>（CFS）调度，时延不确定。对时延敏感的线程（控制环、高速采集）可以：</p>
+        <pre><code class="language-c">struct sched_param sp = { .sched_priority = 50 };      /* SCHED_FIFO 优先级 1~99 */
+pthread_setschedparam(pthread_self(), SCHED_FIFO, &amp;sp); /* 需要 root 或 CAP_SYS_NICE */
+
+cpu_set_t set;
+CPU_ZERO(&amp;set);
+CPU_SET(3, &amp;set);                                       /* 绑定到 CPU3 */
+pthread_setaffinity_np(pthread_self(), sizeof(set), &amp;set);
+
+mlockall(MCL_CURRENT | MCL_FUTURE);                     /* 锁定内存，避免缺页导致的延迟 */</code></pre>
+        <p>注意 <code>SCHED_FIFO</code> 线程如果死循环不让出 CPU，会饿死同核上的其他任务。标准内核的调度延迟通常在几十微秒到毫秒级；需要更确定的时延时，考虑 PREEMPT_RT 补丁（6.12 起已合入主线）或把硬实时部分交给 MCU / 协处理器。用 <code>cyclictest</code> 可以测量实际调度延迟。</p>
+      </section>
+
+      <section>
+        <h2>13. 工作场景：应用运行几天后变慢、最终被杀</h2>
+        <ol>
+          <li><code>dmesg</code> 中发现 <code>Out of memory: Killed process xxx</code>，确认是 OOM。</li>
+          <li>部署脚本每 10 分钟记录主程序的 <code>VmRSS</code> 和线程数，发现 RSS 每小时增长约 2MB，线程数稳定。</li>
+          <li>在主机上用 AddressSanitizer 回放通信报文，发现协议解析失败的分支中漏了 <code>free</code>。</li>
+          <li>修复后长时间运行，RSS 稳定在固定范围；同时给主程序设置 <code>OOMScoreAdjust=-500</code>，给日志上传服务设置 <code>MemoryMax=32M</code>。</li>
+          <li>加入运行时监控：内存超过阈值时上报告警，而不是等到被杀才发现。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>14. 工程检查清单</h2>
         <ul>
           <li>进程是否还活着，PID 是否变化。</li>
           <li>CPU 占用是否异常。</li>
@@ -150,14 +268,19 @@ gdb ./app core
           <li>崩溃后是否保留 core dump。</li>
           <li>文件、设备、socket 失败是否用 strace 验证。</li>
           <li>退出信号是否能触发资源清理。</li>
+          <li>线程是否命名，持锁期间是否避免了阻塞 IO，多把锁是否有统一的加锁顺序。</li>
+          <li>本机进程间通信是否优先使用 Unix 域套接字，对端断开时能否正确处理。</li>
+          <li>是否长时间记录 RSS / PSS 判断内存泄漏，并在主机上用 ASan / Valgrind 验证。</li>
+          <li>关键进程是否设置了 <code>oom_score_adj</code>，非关键服务是否限制了内存上限。</li>
+          <li>实时线程是否合理设置调度策略、CPU 绑定和内存锁定，并用 cyclictest 实测延迟。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#soc-linux/linux-basic">返回 Linux专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/linux-basic">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

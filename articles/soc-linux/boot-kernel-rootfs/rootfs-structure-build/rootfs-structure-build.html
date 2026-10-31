@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>根文件系统组成与构建流程 - XYJ</title>
   <meta name="description" content="整理嵌入式 Linux 根文件系统的目录结构、BusyBox、动态库、设备节点、init、挂载、Buildroot.Ubuntu Base、打包格式和常见启动问题。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-      <a href="../../../../index.html?v=801833ccbdeb#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+      <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -170,7 +170,98 @@ chroot rootfs /bin/bash</code></pre>
       </section>
 
       <section>
-        <h2>11. 工程检查清单</h2>
+        <h2>11. Buildroot 的工程化组织：BR2_EXTERNAL</h2>
+        <p>直接修改 Buildroot 源码树，升级 Buildroot 版本时会很痛苦。推荐把所有产品相关内容放在独立的外部目录中：</p>
+        <pre><code class="language-text">xyj-br2-external/
+├── external.desc            # name: XYJ
+├── external.mk              # include $(sort $(wildcard $(BR2_EXTERNAL_XYJ_PATH)/package/*/*.mk))
+├── Config.in                # source "$BR2_EXTERNAL_XYJ_PATH/package/gateway/Config.in"
+├── configs/
+│   └── xyj_rk3568_defconfig
+├── board/xyj/
+│   ├── rootfs-overlay/      # 直接覆盖到 rootfs 的文件（/etc 配置、systemd 服务等）
+│   ├── post-build.sh        # 生成镜像前对 target 目录做最后调整
+│   ├── post-image.sh        # 生成分区镜像、升级包
+│   └── genimage.cfg
+└── package/gateway/         # 自己的应用软件包
+    ├── Config.in
+    └── gateway.mk</code></pre>
+        <pre><code class="language-bash">make BR2_EXTERNAL=../xyj-br2-external xyj_rk3568_defconfig
+make menuconfig                      # 修改后
+make savedefconfig                   # 写回 configs/xyj_rk3568_defconfig
+make gateway-rebuild                 # 只重新编译某个包
+make -j$(nproc)</code></pre>
+        <p>一个本地应用包的描述文件示例：</p>
+        <pre><code class="language-makefile"># package/gateway/gateway.mk
+GATEWAY_VERSION = 1.0
+GATEWAY_SITE = $(BR2_EXTERNAL_XYJ_PATH)/../gateway
+GATEWAY_SITE_METHOD = local
+GATEWAY_DEPENDENCIES = libgpiod
+GATEWAY_CONF_OPTS = -DCMAKE_BUILD_TYPE=Release
+
+$(eval $(cmake-package))</code></pre>
+        <p><code>SITE_METHOD = local</code> 让 Buildroot 直接使用本地源码目录，配合 <code>make gateway-rebuild</code> 就能快速迭代应用程序。</p>
+      </section>
+
+      <section>
+        <h2>12. 裁剪体积与启动时间</h2>
+        <table>
+          <thead><tr><th>手段</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr><td>使用 squashfs（xz / zstd 压缩）</td><td>rootfs 体积通常缩小一半以上</td></tr>
+            <tr><td>选择合适的 C 库</td><td>glibc 兼容性最好；musl 体积更小，部分软件需要适配</td></tr>
+            <tr><td>去掉调试符号（<code>BR2_STRIP_strip</code>）</td><td>发布镜像体积显著减小，调试符号另外保存用于分析 core</td></tr>
+            <tr><td>只启用需要的 BusyBox applet 和软件包</td><td>减少体积和攻击面</td></tr>
+            <tr><td>禁用不需要的服务、按需启动</td><td>缩短启动时间</td></tr>
+            <tr><td><code>systemd-analyze blame</code> / <code>bootchart</code></td><td>找出启动慢的服务</td></tr>
+          </tbody>
+        </table>
+        <p>去掉调试符号时，保留一份带符号的镜像或 <code>staging</code> 目录，现场 core dump 才能被解析。</p>
+      </section>
+
+      <section>
+        <h2>13. 用户、权限与基本安全</h2>
+        <p>量产设备的 rootfs 至少要做到：</p>
+        <ul>
+          <li><strong>root 账户</strong>：禁用密码登录，或者每台设备使用不同的密码；不要所有设备共用一个默认密码。</li>
+          <li><strong>SSH</strong>：只允许密钥登录（<code>PasswordAuthentication no</code>），调试版本与发布版本使用不同配置。</li>
+          <li><strong>串口控制台</strong>：发布版本可以关闭登录 shell，或者要求认证。</li>
+          <li><strong>业务进程</strong>以独立用户运行，只授予必要的设备访问权限。</li>
+          <li><strong>关闭不需要的网络服务</strong>，用 <code>ss -tulnp</code> 检查监听端口。</li>
+          <li><strong>文件权限</strong>：Buildroot 中使用 <code>BR2_ROOTFS_DEVICE_TABLE</code> / users table（<code>BR2_ROOTFS_USERS_TABLES</code>）声明用户和文件权限，而不是在 post-build 脚本中到处 <code>chmod</code>。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>14. 调试版与发布版</h2>
+        <p>同一套源码通常要生成两种镜像：</p>
+        <table>
+          <thead><tr><th>项目</th><th>调试版</th><th>发布版</th></tr></thead>
+          <tbody>
+            <tr><td>工具</td><td>gdbserver、strace、tcpdump、i2c-tools</td><td>不包含或最小化</td></tr>
+            <tr><td>登录</td><td>串口 / SSH 可直接登录</td><td>受限或关闭</td></tr>
+            <tr><td>日志级别</td><td>debug</td><td>info / warning</td></tr>
+            <tr><td>文件系统</td><td>可读写，方便替换程序</td><td>只读</td></tr>
+            <tr><td>符号</td><td>保留</td><td>去除（另存一份）</td></tr>
+          </tbody>
+        </table>
+        <p>用配置片段（<code>merge_config.sh</code> 或 Buildroot 的多个 defconfig 片段）区分两种构建，保证除调试差异外完全一致，避免“调试版正常、发布版有问题”。</p>
+      </section>
+
+      <section>
+        <h2>15. 工作场景：从开发板镜像到产品镜像</h2>
+        <ol>
+          <li><strong>基线</strong>：从 SoC 厂商 SDK 中提取能启动的 Buildroot 配置，确认串口登录正常。</li>
+          <li><strong>外部目录</strong>：建立 BR2_EXTERNAL，把板级配置、overlay、自研应用包移入，产品仓库与 Buildroot 版本解耦。</li>
+          <li><strong>分区与镜像</strong>：用 genimage 描述分区表，post-image 脚本生成完整烧录镜像和 OTA 升级包，分区规划见 <a href="../../linux-basic/linux-storage-fs/linux-storage-fs.html?v=4c01baacdfc9">嵌入式存储与文件系统</a>。</li>
+          <li><strong>只读化</strong>：rootfs 改为只读，可写目录迁移到 data 分区或 tmpfs。</li>
+          <li><strong>安全</strong>：配置用户、SSH 和服务，检查监听端口。</li>
+          <li><strong>可复现</strong>：在 CI 中用固定版本的 Docker 镜像构建，产物记录 Buildroot 版本、外部目录提交号和配置哈希。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>16. 工程检查清单</h2>
         <ul>
           <li>rootfs 架构是否和 Kernel/应用一致。</li>
           <li>动态库和动态链接器是否完整。</li>
@@ -179,14 +270,19 @@ chroot rootfs /bin/bash</code></pre>
           <li>U-Boot 的 <code>bootargs</code> 中 <code>root=</code> 是否匹配实际分区。</li>
           <li>rootfs 打包格式是否符合启动介质和内核配置。</li>
           <li>日志目录是否可写，是否会写满 Flash。</li>
+          <li>产品相关内容是否放在 BR2_EXTERNAL 外部目录中，而不是直接修改 Buildroot 源码树。</li>
+          <li>自研应用是否作为 Buildroot 软件包管理，能否单独重新编译。</li>
+          <li>发布镜像是否去除了调试符号，并另存一份带符号的版本用于分析 core dump。</li>
+          <li>是否禁用了默认密码与密码登录，监听端口与运行用户是否经过检查。</li>
+          <li>调试版与发布版是否由同一套配置加片段生成，构建过程能否在 CI 中复现。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

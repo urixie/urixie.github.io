@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式 Linux OTA 升级设计 - XYJ</title>
+  <meta name="description" content="以 A/B 双分区为核心，说明升级流程、启动计数与自动回滚、SWUpdate/RAUC 框架、健康检查与数据迁移。">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>嵌入式 Linux OTA 升级设计</h1>
+      <p class="article-summary">以 A/B 双分区为核心，说明升级流程、启动计数与自动回滚、SWUpdate/RAUC 框架、健康检查与数据迁移。</p>
+
+      <section>
+        <h2>1. OTA 要解决的问题</h2>
+        <p>嵌入式 Linux 设备的远程升级，核心要求只有一条：<strong>升级过程中任何时刻断电，设备都必须还能启动，并且能再次升级</strong>。在此基础上还要考虑：</p>
+        <ul>
+          <li><strong>完整性与真实性</strong>：升级包没有损坏，并且确实来自厂商（签名校验）。</li>
+          <li><strong>回滚</strong>：新版本启动失败或业务异常时，自动回到旧版本。</li>
+          <li><strong>数据保留</strong>：用户配置、日志、业务数据在升级后仍然可用，必要时做数据迁移。</li>
+          <li><strong>可观测</strong>：每台设备的当前版本、升级结果、失败原因能够上报。</li>
+        </ul>
+        <p>与 MCU 的 Bootloader 升级相比，Linux 的启动链更长（Bootloader → Kernel → RootFS → 应用），但思路相同，可以对照 <a href="../../../mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=4c01baacdfc9">MCU Bootloader 与 OTA</a>。</p>
+      </section>
+
+      <section>
+        <h2>2. 常见升级方案对比</h2>
+        <table>
+          <thead><tr><th>方案</th><th>做法</th><th>优点</th><th>缺点</th></tr></thead>
+          <tbody>
+            <tr><td>文件级更新</td><td>解压覆盖可执行文件、库</td><td>包小、实现简单</td><td>断电易损坏，版本状态难以管理</td></tr>
+            <tr><td>包管理器（opkg / apt）</td><td>按软件包升级</td><td>粒度细</td><td>设备间状态容易发散，不适合量产设备</td></tr>
+            <tr><td>单分区 + 恢复系统</td><td>正常系统 + 一个最小 recovery 系统，升级时进入 recovery 写入</td><td>存储占用少</td><td>升级期间业务中断，recovery 本身也要维护</td></tr>
+            <tr><td><strong>A/B 双分区</strong></td><td>两套系统分区，升级写入非活动分区，切换后启动</td><td>断电安全、可回滚、停机时间短</td><td>系统分区占用翻倍</td></tr>
+            <tr><td>增量 / 差分</td><td>只传输差异（如 casync、bsdiff、RAUC adaptive）</td><td>节省流量</td><td>生成与校验更复杂，依赖基线版本</td></tr>
+          </tbody>
+        </table>
+        <p>量产设备推荐 <strong>A/B 双分区 + 签名校验 + 自动回滚</strong>，在存储允许的情况下这是最稳妥的方案。分区规划见 <a href="../../linux-basic/linux-storage-fs/linux-storage-fs.html?v=4c01baacdfc9">嵌入式存储与文件系统</a>。</p>
+      </section>
+
+      <section>
+        <h2>3. A/B 升级的完整流程</h2>
+        <pre><code class="language-text">1. 下载升级包到 data 分区（或边下载边写入非活动分区）
+2. 校验签名与哈希
+3. 写入非活动槽位（例如当前运行 A，则写 boot_b + rootfs_b）
+4. 写入后回读校验
+5. 设置 bootloader 变量：下次从 B 启动，剩余尝试次数 = 3
+6. 重启
+7. U-Boot 启动 B，尝试次数减 1
+8. 系统启动后，应用健康检查通过 → 标记 B 为“好”（清除尝试计数）
+9. 若 B 连续启动失败、尝试次数耗尽 → U-Boot 自动切回 A</code></pre>
+        <p>关键是第 5~9 步的<strong>启动计数机制</strong>。U-Boot 内置的 <code>bootcount</code> 功能可以配合环境变量实现：</p>
+        <pre><code class="language-bash"># U-Boot 环境变量（示意）
+boot_slot=b
+bootlimit=3
+altbootcmd=run switch_slot; run bootcmd     # 启动次数超过 bootlimit 时执行
+upgrade_available=1                         # 只在升级后的试运行期间启用计数
+
+# Linux 端：健康检查通过后确认新系统（fw_setenv 来自 libubootenv / u-boot-tools）
+fw_setenv upgrade_available 0
+fw_setenv bootcount 0</code></pre>
+        <p><code>fw_setenv</code> 依赖 <code>/etc/fw_env.config</code> 描述环境变量所在的设备、偏移和大小，必须与 U-Boot 编译配置一致，否则读写的是错误位置。环境变量建议启用冗余（两份副本），避免写环境变量时断电导致两个槽位都无法启动。</p>
+      </section>
+
+      <section>
+        <h2>4. 升级框架：SWUpdate 与 RAUC</h2>
+        <p>自己实现 A/B 升级容易遗漏细节，工程上常用成熟框架：</p>
+        <table>
+          <thead><tr><th>框架</th><th>升级包格式</th><th>特点</th></tr></thead>
+          <tbody>
+            <tr><td>SWUpdate</td><td><code>.swu</code>（cpio，内含 <code>sw-description</code>）</td><td>灵活，支持脚本 hook、Lua 处理器、Web 界面和 hawkBit 服务器</td></tr>
+            <tr><td>RAUC</td><td><code>.raucb</code>（squashfs + 签名）</td><td>槽位模型清晰，强制签名，支持 adaptive 增量更新</td></tr>
+            <tr><td>Mender</td><td>Artifact</td><td>带服务器与设备管理，开源版功能有限制</td></tr>
+          </tbody>
+        </table>
+        <p>RAUC 的系统配置示例，清楚描述了槽位与 bootloader 的关系：</p>
+        <pre><code class="language-ini"># /etc/rauc/system.conf
+[system]
+compatible=xyj-gateway-rk3568
+bootloader=uboot
+
+[keyring]
+path=/etc/rauc/ca.cert.pem
+
+[slot.rootfs.0]
+device=/dev/mmcblk0p5
+type=ext4
+bootname=A
+
+[slot.rootfs.1]
+device=/dev/mmcblk0p6
+type=ext4
+bootname=B</code></pre>
+        <p><code>compatible</code> 字段用于防止把其他产品的升级包装到这台设备上；升级包签名证书对应的私钥要严格保管，<strong>不要放进代码仓库或 CI 日志</strong>。</p>
+      </section>
+
+      <section>
+        <h2>5. 升级后的健康检查</h2>
+        <p>“能启动”不等于“能工作”。确认新版本之前，健康检查至少应包括：</p>
+        <ul>
+          <li>关键服务（主业务进程、网络管理、看门狗喂狗进程）在规定时间内启动并持续运行。</li>
+          <li>网络可以连接到服务器（如果业务依赖网络）。</li>
+          <li>关键外设能够正常打开和读写（例如串口通信对端能正常响应）。</li>
+        </ul>
+        <p>可以用 systemd 实现：一个 <code>health-check.service</code> 在依赖服务启动后运行检查脚本，通过后执行 <code>fw_setenv</code> 确认；硬件看门狗确保系统卡死时会重启，从而进入启动计数逻辑。systemd 服务的写法见 <a href="../../linux-basic/linux-shell-systemd/linux-shell-systemd.html?v=4c01baacdfc9">Shell 与 systemd</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. 数据兼容与迁移</h2>
+        <p>升级失败最常见的原因之一不是系统本身，而是<strong>新版本读不懂旧数据</strong>：</p>
+        <ul>
+          <li>配置文件带版本号，新程序启动时检测到旧版本格式就执行迁移，迁移前先备份。</li>
+          <li>迁移要考虑回滚：B 版本把配置迁移成新格式后，如果回滚到 A，A 要么能读新格式，要么能使用迁移前的备份。</li>
+          <li>数据库（SQLite 等）的 schema 变更同样需要版本管理和迁移脚本。</li>
+          <li>不要在升级包中覆盖 data 分区的用户数据。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：给网关设备设计一套 OTA</h2>
+        <p>需求：RK3568 网关，eMMC 8GB，4G / 以太网联网，现场设备约 5000 台。</p>
+        <ol>
+          <li><strong>分区</strong>：boot_a/boot_b（64MB）、rootfs_a/rootfs_b（1.5GB，ext4 只读挂载）、data（剩余）。</li>
+          <li><strong>框架</strong>：RAUC + U-Boot bootcount，升级包使用公司 CA 签名，<code>compatible</code> 区分硬件型号。</li>
+          <li><strong>下载</strong>：设备定期查询版本服务器，支持断点续传；4G 网络下限速并避开业务高峰。</li>
+          <li><strong>灰度</strong>：先升级内部测试设备，再按 1% → 10% → 全量分批，每批观察升级成功率和回滚率。</li>
+          <li><strong>确认</strong>：启动后健康检查服务验证业务进程、网络和串口外设，通过后确认新槽位。</li>
+          <li><strong>上报</strong>：设备上报当前槽位、版本号、上次升级结果和回滚原因，后台统计异常。</li>
+          <li><strong>兜底</strong>：保留 USB / TF 卡本地升级入口和 Maskrom 烧录方式，用于现场维修。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. OTA 检查清单</h2>
+        <ul>
+          <li>升级过程中任意时刻断电，设备是否都能启动并再次升级（需要实测，而不是推理）。</li>
+          <li>升级包是否签名，设备端是否校验签名、哈希和硬件兼容性（compatible）。</li>
+          <li>是否有启动计数与自动回滚，环境变量是否启用冗余副本。</li>
+          <li><code>fw_env.config</code> 是否与 U-Boot 环境变量的位置和大小一致。</li>
+          <li>健康检查是否覆盖关键业务，而不只是“系统启动成功”。</li>
+          <li>新版本是否兼容旧数据，回滚后旧版本能否读取数据。</li>
+          <li>是否支持断点续传、限速与分批灰度发布。</li>
+          <li>签名私钥是否妥善保管，没有出现在仓库、镜像或日志中。</li>
+          <li>是否保留了本地升级与底层烧录的兜底手段。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
+</body>
+</html>

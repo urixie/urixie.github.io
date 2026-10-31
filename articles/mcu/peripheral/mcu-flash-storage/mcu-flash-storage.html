@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>MCU 内部 Flash 与数据存储 - XYJ</title>
   <meta name="description" content="整理用 MCU 内部 Flash 保存数据的工程要点：擦写特性与系列差异、擦除期间的 CPU 停顿、写入流程与校验、A/B 双备份掉电安全、EEPROM 模拟与磨损均衡、选项字节与读保护，以及参数存储模块设计。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#mcu/peripheral">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -55,7 +55,7 @@
         <ul>
           <li><strong>中断响应被延迟</strong>：擦除一个扇区可能需要上百毫秒，期间所有中断都无法及时响应，串口可能丢数据，电机控制可能失控。</li>
           <li><strong>看门狗可能超时</strong>：长时间擦除前要喂狗，必要时把擦除拆成多次。</li>
-          <li><strong>对策</strong>：把 Flash 操作函数和必须及时响应的中断处理函数放到 RAM 中运行（见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=801833ccbdeb">编译、链接与启动流程</a>）；或选用双 bank 的芯片，在一个 bank 执行代码的同时擦写另一个 bank（Read-While-Write）。</li>
+          <li><strong>对策</strong>：把 Flash 操作函数和必须及时响应的中断处理函数放到 RAM 中运行（见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=4c01baacdfc9">编译、链接与启动流程</a>）；或选用双 bank 的芯片，在一个 bank 执行代码的同时擦写另一个 bank（Read-While-Write）。</li>
         </ul>
       </section>
 
@@ -113,7 +113,7 @@ out:
     uint8_t  payload[48];
     uint32_t crc32;          /* 覆盖前面所有字段 */
 } param_record_t;</code></pre>
-        <p>结构体版本兼容和迁移方法见 <a href="../../../foundation/data-structure/c-struct-data-layout/c-struct-data-layout.html?v=801833ccbdeb">结构体与数据组织</a>。</p>
+        <p>结构体版本兼容和迁移方法见 <a href="../../../foundation/data-structure/c-struct-data-layout/c-struct-data-layout.html?v=4c01baacdfc9">结构体与数据组织</a>。</p>
       </section>
 
       <section>
@@ -178,11 +178,11 @@ out:
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#mcu/peripheral">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux Kernel 组成与构建流程 - XYJ</title>
   <meta name="description" content="整理 Linux Kernel 的源码组成、Kconfig.defconfig、设备树、内核模块、交叉编译、Image/zImage/uImage/dtb、安装模块和嵌入式 Linux 内核调试方法。">
-  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+  <script src="../../../../assets/js/theme-init.js?v=4c01baacdfc9"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=4c01baacdfc9">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-          <a href="../../../../index.html?v=801833ccbdeb#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+          <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+          <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
-      <a href="../../../../index.html?v=801833ccbdeb#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+      <a href="../../../../index.html?v=4c01baacdfc9">← 返回首页</a>
+      <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -142,7 +142,121 @@ make -j$(nproc) Image modules dtbs</code></pre>
       </section>
 
       <section>
-        <h2>8. Kernel 调试检查清单</h2>
+        <h2>8. 管理配置：savedefconfig 与 config 片段</h2>
+        <p>直接把完整的 <code>.config</code> 提交到仓库，会混入大量自动生成的默认项，升级内核时难以对比。推荐做法：</p>
+        <pre><code class="language-bash"># 在 menuconfig 中修改后，生成精简的 defconfig（只保留与默认值不同的项）
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig
+cp defconfig arch/arm64/configs/xyj_rk3568_defconfig
+
+# 对比两次配置的差异
+scripts/diffconfig .config.old .config
+
+# 用配置片段叠加（例如调试版本额外打开的选项）
+scripts/kconfig/merge_config.sh -m arch/arm64/configs/xyj_rk3568_defconfig debug.config
+make ARCH=arm64 olddefconfig</code></pre>
+        <p><code>debug.config</code> 这类片段只包含几行 <code>CONFIG_xxx=y</code>，发布版与调试版共用同一个基础配置，差异一目了然。Buildroot / Yocto 中也有对应的配置片段机制。</p>
+      </section>
+
+      <section>
+        <h2>9. 内核编译与修改的工程习惯</h2>
+        <ul>
+          <li><strong>基于厂商 BSP 内核</strong>：SoC 厂商的内核包含主线尚未合入的驱动，开发板通常从厂商仓库的某个稳定分支开始。</li>
+          <li><strong>修改以补丁形式管理</strong>：在厂商分支上建立自己的分支，每个修改一个提交；或者在 Buildroot / Yocto 中用补丁文件管理，便于升级基线时重放。</li>
+          <li><strong>版本可追溯</strong>：设置 <code>CONFIG_LOCALVERSION</code>，并让构建脚本把 Git 提交号写入版本字符串，设备上 <code>uname -a</code> 即可知道对应的源码版本。</li>
+          <li><strong>只编译需要的部分</strong>：修改驱动后只编译模块（<code>make M=drivers/xxx modules</code>）或只编译设备树（<code>make dtbs</code>），缩短迭代时间。</li>
+        </ul>
+        <pre><code class="language-bash">make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image dtbs modules
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- rockchip/rk3568-xyj-board.dtb   # 只编译单个 DTB
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- M=drivers/misc modules          # 只编译某个目录的模块</code></pre>
+      </section>
+
+      <section>
+        <h2>10. 设备树修改实践</h2>
+        <p>板级差异尽量只修改板级 dts，而不改 SoC 公共的 dtsi：</p>
+        <pre><code class="language-dts">/* rk3568-xyj-board.dts：在板级文件中引用并覆盖 SoC dtsi 定义的节点 */
+#include "rk3568.dtsi"
+
+&amp;uart3 {
+    pinctrl-names = "default";
+    pinctrl-0 = &lt;&amp;uart3m1_xfer&gt;;
+    status = "okay";
+};
+
+&amp;i2c1 {
+    status = "okay";
+    clock-frequency = &lt;400000&gt;;
+
+    temp_sensor: sensor@48 {
+        compatible = "ti,tmp102";
+        reg = &lt;0x48&gt;;
+    };
+};
+
+&amp;spi1 {
+    status = "disabled";          /* 本板不使用 */
+};</code></pre>
+        <p>几个容易出错的地方：</p>
+        <ul>
+          <li><strong>引脚复用冲突</strong>：两个外设使用了同一组引脚，后 probe 的那个会失败，dmesg 中会有 pinctrl 相关错误。</li>
+          <li><strong>compatible 字符串</strong>必须与驱动 <code>of_match_table</code> 中的条目完全一致。</li>
+          <li>修改后检查实际生效的设备树：<code>dtc -I fs -O dts /proc/device-tree &gt; live.dts</code>，确认节点和属性与预期一致。</li>
+        </ul>
+        <p>设备树 overlay（<code>.dtbo</code>）可以在不重新编译主设备树的情况下启用扩展板外设，适合同一主板搭配不同扩展板的产品，U-Boot 中通过 <code>fdt apply</code> 加载。</p>
+      </section>
+
+      <section>
+        <h2>11. 启动参数（bootargs）</h2>
+        <p>内核命令行决定了控制台、根文件系统和很多调试行为：</p>
+        <pre><code class="language-text">console=ttyS2,1500000 root=/dev/mmcblk0p5 rootfstype=ext4 ro rootwait
+loglevel=4 panic=5 init=/sbin/init</code></pre>
+        <table>
+          <thead><tr><th>参数</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>console=</code></td><td>内核与 init 的控制台，串口号与波特率必须与硬件一致</td></tr>
+            <tr><td><code>earlycon</code></td><td>在串口驱动加载前就输出日志，用于排查“Starting kernel...”之后没有输出的问题</td></tr>
+            <tr><td><code>root=</code> / <code>rootfstype=</code> / <code>rootwait</code></td><td>根文件系统位置与类型，<code>rootwait</code> 等待 eMMC / SD 初始化完成</td></tr>
+            <tr><td><code>ro</code> / <code>rw</code></td><td>根文件系统挂载方式</td></tr>
+            <tr><td><code>panic=5</code></td><td>panic 后 5 秒自动重启，量产设备推荐设置</td></tr>
+            <tr><td><code>initcall_debug</code></td><td>打印每个驱动初始化的耗时，用于优化启动时间</td></tr>
+            <tr><td><code>quiet</code> / <code>loglevel=</code></td><td>减少控制台输出，加快启动</td></tr>
+          </tbody>
+        </table>
+        <p>运行中的参数可以通过 <code>cat /proc/cmdline</code> 确认，排查启动问题时第一步就要看它。</p>
+      </section>
+
+      <section>
+        <h2>12. 内核崩溃信息怎么读</h2>
+        <p>驱动 bug 导致的 Oops / panic 会打印调用栈，关键信息：</p>
+        <pre><code class="language-text">Unable to handle kernel NULL pointer dereference at virtual address 0000000000000010
+pc : xyj_sensor_read+0x2c/0x90 [xyj_sensor]
+lr : xyj_sensor_show+0x24/0x50 [xyj_sensor]
+Call trace:
+ xyj_sensor_read+0x2c/0x90 [xyj_sensor]
+ xyj_sensor_show+0x24/0x50 [xyj_sensor]
+ dev_attr_show+0x20/0x60</code></pre>
+        <ul>
+          <li><code>NULL pointer dereference at ...0010</code>：访问空指针偏移 0x10 处，通常是结构体指针为空时访问其成员。</li>
+          <li><code>pc : 函数名+偏移/函数长度 [模块名]</code>：出错指令位置。</li>
+          <li>用 <code>faddr2line</code> 把偏移转换为源码行（需要带调试信息的 vmlinux 或 .ko）：</li>
+        </ul>
+        <pre><code class="language-bash">./scripts/faddr2line drivers/misc/xyj_sensor.ko xyj_sensor_read+0x2c/0x90</code></pre>
+        <p>开启 <code>CONFIG_DEBUG_INFO</code>、<code>CONFIG_KALLSYMS_ALL</code> 能让调用栈信息更完整；现场设备可以开启 <code>pstore</code> / <code>ramoops</code>，把 panic 日志保存在保留内存中，重启后从 <code>/sys/fs/pstore/</code> 读取。</p>
+      </section>
+
+      <section>
+        <h2>13. 工作场景：为新板卡适配一个 I2C 温度传感器</h2>
+        <ol>
+          <li><strong>确认驱动</strong>：在内核源码中搜索型号（<code>grep -r "tmp102" drivers/</code>），确认已有驱动和对应的 compatible 字符串，在 menuconfig 中打开（<code>CONFIG_SENSORS_TMP102</code>）。</li>
+          <li><strong>修改设备树</strong>：在板级 dts 的对应 I2C 节点下添加子节点，地址与硬件一致，确认 I2C 控制器为 <code>okay</code>。</li>
+          <li><strong>单独编译 DTB 和模块</strong>，替换后重启。</li>
+          <li><strong>验证</strong>：<code>i2cdetect -y 1</code> 中对应地址显示为 <code>UU</code>（已被驱动占用），<code>dmesg</code> 无报错，<code>/sys/class/hwmon/hwmonN/temp1_input</code> 能读到温度。</li>
+          <li><strong>固化</strong>：用 <code>savedefconfig</code> 更新配置，提交 dts 修改与配置变更。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>14. Kernel 调试检查清单</h2>
         <ul>
           <li>内核 Image.dtb、模块是否来自同一次构建。</li>
           <li><code>.config</code> 中驱动是 <code>y</code> 还是 <code>m</code>。</li>
@@ -151,14 +265,19 @@ make -j$(nproc) Image modules dtbs</code></pre>
           <li>模块安装路径是否和 <code>uname -r</code> 一致。</li>
           <li>dmesg 中是否有 probe 失败、时钟、pinctrl、电源或中断错误。</li>
           <li>内核启动参数 <code>console</code>、<code>root</code>、<code>rootwait</code> 是否正确。</li>
+          <li>内核配置是否以 <code>savedefconfig</code> 生成的精简 defconfig 管理，调试选项是否使用配置片段叠加。</li>
+          <li>内核修改是否以独立提交或补丁形式管理，版本字符串能否追溯到源码提交。</li>
+          <li>板级差异是否只修改板级 dts，引脚复用是否检查过冲突。</li>
+          <li>bootargs 中的控制台、根文件系统和 <code>panic=</code> 等参数是否与产品一致，可通过 <code>/proc/cmdline</code> 确认。</li>
+          <li>是否掌握 Oops 调用栈与 <code>faddr2line</code> 的使用，现场设备是否开启 pstore 保存崩溃日志。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=801833ccbdeb#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+        <a href="../../../../index.html?v=4c01baacdfc9#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+  <script src="../../../../assets/js/main.js?v=4c01baacdfc9"></script>
 </body>
 </html>
