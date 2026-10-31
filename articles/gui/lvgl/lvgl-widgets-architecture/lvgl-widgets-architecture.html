@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>LVGL 控件、布局与界面架构 - XYJ</title>
+  <meta name="description" content="介绍 LVGL 对象树、Flex/Grid 布局、样式与事件，以及界面与业务分离、观察者绑定和多页面管理的工程做法。">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#gui/lvgl">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>LVGL 控件、布局与界面架构</h1>
+      <p class="article-summary">介绍 LVGL 对象树、Flex/Grid 布局、样式与事件，以及界面与业务分离、观察者绑定和多页面管理的工程做法。</p>
+
+      <section>
+        <h2>1. LVGL 的对象模型</h2>
+        <p>LVGL 中一切控件都是对象（<code>lv_obj_t</code>），对象之间构成父子树：</p>
+        <ul>
+          <li><strong>屏幕</strong>是树的根，<code>lv_screen_active()</code> 返回当前屏幕。</li>
+          <li>子对象的坐标相对于父对象，父对象移动、隐藏、删除时，子对象跟随。</li>
+          <li>删除父对象会自动删除所有子对象，页面切换时只需删除页面根对象。</li>
+        </ul>
+        <pre><code class="language-c">lv_obj_t *scr   = lv_screen_active();
+lv_obj_t *panel = lv_obj_create(scr);            /* 容器 */
+lv_obj_set_size(panel, lv_pct(100), 80);
+lv_obj_align(panel, LV_ALIGN_TOP_MID, 0, 0);
+
+lv_obj_t *label = lv_label_create(panel);
+lv_label_set_text(label, "Temperature");
+lv_obj_center(label);
+
+lv_obj_t *btn = lv_button_create(scr);
+lv_obj_t *btn_label = lv_label_create(btn);
+lv_label_set_text(btn_label, "Start");</code></pre>
+        <p>常用控件：标签（label）、按钮（button）、开关（switch）、滑块（slider）、下拉框（dropdown）、圆弧（arc）、进度条（bar）、图表（chart）、表格（table）、键盘（keyboard）、标签页（tabview）、列表（list）、消息框（msgbox）。</p>
+      </section>
+
+      <section>
+        <h2>2. 布局：Flex 与 Grid</h2>
+        <p>手工计算坐标的界面难以维护，换一块分辨率不同的屏就要重新调整。LVGL 提供类似 CSS 的布局：</p>
+        <pre><code class="language-c">/* Flex：参数行纵向排列，每行左侧名称、右侧数值 */
+lv_obj_t *list = lv_obj_create(scr);
+lv_obj_set_size(list, lv_pct(100), lv_pct(100));
+lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+lv_obj_set_style_pad_row(list, 8, 0);
+
+for (int i = 0; i &lt; 4; i++) {
+    lv_obj_t *row = lv_obj_create(list);
+    lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_label_set_text(lv_label_create(row), param_names[i]);
+    value_labels[i] = lv_label_create(row);
+}</code></pre>
+        <ul>
+          <li><strong>Flex</strong>：一维排列，适合列表、工具栏、按钮组。</li>
+          <li><strong>Grid</strong>：二维网格，适合仪表盘式的多块数据布局。</li>
+          <li>尺寸尽量使用 <code>lv_pct()</code> 和 <code>LV_SIZE_CONTENT</code>，界面可以适配不同分辨率。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. 样式与主题</h2>
+        <p>样式（<code>lv_style_t</code>）类似 CSS 类，可以被多个对象共享，并且按部件（part）和状态（state）分别设置：</p>
+        <pre><code class="language-c">static lv_style_t style_card;
+static lv_style_t style_btn_pressed;
+
+void ui_styles_init(void)
+{
+    lv_style_init(&amp;style_card);
+    lv_style_set_bg_color(&amp;style_card, lv_color_hex(0x1E293B));
+    lv_style_set_radius(&amp;style_card, 8);
+    lv_style_set_pad_all(&amp;style_card, 12);
+    lv_style_set_border_width(&amp;style_card, 0);
+
+    lv_style_init(&amp;style_btn_pressed);
+    lv_style_set_bg_color(&amp;style_btn_pressed, lv_color_hex(0x059669));
+}
+
+/* 使用：默认状态应用卡片样式，按下状态叠加按下样式 */
+lv_obj_add_style(panel, &amp;style_card, LV_PART_MAIN | LV_STATE_DEFAULT);
+lv_obj_add_style(btn, &amp;style_btn_pressed, LV_PART_MAIN | LV_STATE_PRESSED);</code></pre>
+        <p>工程习惯：</p>
+        <ul>
+          <li><strong>样式变量必须是静态或全局的</strong>，对象只保存样式的指针，局部变量样式在函数返回后失效会导致显示异常或崩溃。</li>
+          <li>颜色、圆角、间距等集中定义在一个文件里，相当于设计规范，修改主题只改一处。</li>
+          <li>少用 <code>lv_obj_set_style_xxx()</code> 设置本地样式，大量本地样式会占用更多内存。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 事件处理</h2>
+        <pre><code class="language-c">static void start_btn_cb(lv_event_t *e)
+{
+    lv_obj_t *btn = lv_event_get_target(e);
+    device_t *dev = lv_event_get_user_data(e);
+    lv_obj_add_state(btn, LV_STATE_DISABLED);    /* 防止重复点击 */
+    app_post_cmd(CMD_START, dev-&gt;id);            /* 发消息给业务任务，而不是在回调里执行耗时操作 */
+}
+
+lv_obj_add_event_cb(btn, start_btn_cb, LV_EVENT_CLICKED, &amp;g_device);</code></pre>
+        <p>事件回调在 <code>lv_timer_handler()</code> 中执行，<strong>回调里不能做耗时或阻塞操作</strong>（例如读写 Flash、等待串口应答），否则整个界面会卡住。正确做法是发送命令给业务任务，结果返回后再更新界面。</p>
+      </section>
+
+      <section>
+        <h2>5. 界面与业务分离</h2>
+        <p>界面代码最容易变成“业务逻辑、通信协议、控件操作混在一起”的状态。推荐的分层：</p>
+        <pre><code class="language-text">业务层（任务 / 状态机）   只关心数据和命令，不包含任何 lv_ 调用
+      │  数据更新消息 ↓        ↑ 用户命令消息
+界面适配层（GUI 任务内）   把数据转换成控件更新；把控件事件转换成命令
+      │
+LVGL 控件（页面）          只负责显示和交互</code></pre>
+        <p>LVGL v9 提供了观察者（Observer）机制，可以把控件直接绑定到一个“主题”（subject）上，数据变化时控件自动更新：</p>
+        <pre><code class="language-c">static lv_subject_t temp_subject;
+
+void ui_bind_init(void)
+{
+    lv_subject_init_int(&amp;temp_subject, 0);
+    lv_label_bind_text(temp_label, &amp;temp_subject, "%d °C");   /* 标签自动跟随数值 */
+}
+
+/* GUI 任务收到数据更新消息后 */
+void ui_on_temperature(int value)
+{
+    lv_subject_set_int(&amp;temp_subject, value);
+}</code></pre>
+        <p>这样业务层只需要发送“温度变为 25”这样的数据消息，不需要知道界面上有哪些控件在显示它。</p>
+      </section>
+
+      <section>
+        <h2>6. 多页面管理</h2>
+        <ul>
+          <li><strong>按需创建</strong>：每个页面提供 <code>page_xxx_create()</code> 和 <code>page_xxx_destroy()</code>，切换时创建新页面、删除旧页面，内存占用只取决于当前页面。</li>
+          <li><strong>常驻页面</strong>：频繁切换且创建开销大的页面可以常驻，切换时用 <code>lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN)</code> 隐藏。</li>
+          <li><strong>屏幕切换动画</strong>：<code>lv_screen_load_anim(new_scr, LV_SCR_LOAD_ANIM_FADE_IN, 200, 0, true)</code>，最后一个参数为 true 时自动删除旧屏幕。</li>
+          <li>页面删除后，业务层不能再持有其中控件的指针，否则会访问已释放的内存，这是 LVGL 项目中常见的崩溃原因。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：一个设备参数显示与设置界面</h2>
+        <p>需求：800×480 触摸屏，主页显示 6 个实时参数，设置页可修改报警阈值，数据来自 Modbus 通信任务。</p>
+        <ol>
+          <li><strong>设计规范</strong>：先定义颜色、字号、间距和卡片样式，所有页面共用。</li>
+          <li><strong>页面结构</strong>：主页 Grid 布局 3×2 卡片；设置页使用列表 + 数字键盘；顶部状态栏常驻显示通信状态和时间。</li>
+          <li><strong>数据流</strong>：通信任务解析数据后发送消息给 GUI 任务，GUI 任务更新 subject；设置页确认后发送“写参数”命令给业务任务，结果返回后提示成功或失败。</li>
+          <li><strong>防误操作</strong>：写入过程中禁用确认按钮，超时提示失败并恢复。</li>
+          <li><strong>验证</strong>：反复切换页面 1000 次检查内存；通信中断时界面显示离线状态而不是停留在旧数据。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. 界面开发检查清单</h2>
+        <ul>
+          <li>布局是否使用 Flex / Grid 和百分比尺寸，而不是写死坐标。</li>
+          <li>样式变量是否为静态或全局，颜色和尺寸是否集中定义。</li>
+          <li>事件回调中是否避免了耗时和阻塞操作。</li>
+          <li>业务层是否与 LVGL 调用分离，数据通过消息或 subject 传递。</li>
+          <li>页面删除后是否没有残留的控件指针被使用。</li>
+          <li>通信中断、数据异常等状态在界面上是否有明确显示。</li>
+          <li>是否长时间反复切换页面验证内存稳定。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=56c52c2d6fcc#gui/lvgl">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
+</body>
+</html>

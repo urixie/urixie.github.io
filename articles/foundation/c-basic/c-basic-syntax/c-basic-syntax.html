@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言基础语法整理 - XYJ</title>
   <meta name="description" content="面向嵌入式工程实践整理 C 语言基础语法，包括变量、类型、运算符、流程控制、函数和源文件组织方式。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#foundation/c-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#foundation/c-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-      <a href="../../../../index.html?v=176874b30373#foundation/c-basic">返回 C语言专题</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc#foundation/c-basic">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -173,7 +173,7 @@ app_err_t app_adc_read(uint8_t channel, uint16_t *out_value);
           假设设备通过 UART 收到一帧 <code>AA 55 CMD LEN VALUE_L VALUE_H</code>：前两个字节是帧头，第三个字节是命令，第四个字节表示后续有效载荷长度，最后两个字节是小端格式的测量值。这个例子把定长类型、位移、条件判断、指针参数和错误码串在一起，正好对应真实驱动中的最小闭环。
         </p>
         <figure class="article-figure">
-          <img src="images/c-basic-flow.svg?v=176874b30373" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
+          <img src="images/c-basic-flow.svg?v=56c52c2d6fcc" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
           <figcaption>图 1：基础语法最终要服务于一条可验证的数据处理链。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stddef.h&gt;
@@ -243,7 +243,7 @@ f(hi, lo);</code></pre>
         <p>短路求值是可以放心依赖的：<code>&amp;&amp;</code> 左边为假时右边不执行，<code>||</code> 左边为真时右边不执行。判空和越界检查经常利用这一点：</p>
         <pre><code class="language-c">if (p != NULL &amp;&amp; p-&gt;len &gt; 0U) { }            /* p 为空时不会解引用 */
 if (idx &lt; ARRAY_SIZE(table) &amp;&amp; table[idx] == key) { }   /* 先检查下标再访问 */</code></pre>
-        <p>工作中还要警惕其他常见的未定义行为：有符号整数溢出、移位位数超过类型宽度、解引用空指针或越界指针、使用未初始化的局部变量。整数相关的细节见 <a href="../c-integer-arithmetic/c-integer-arithmetic.html?v=176874b30373">整数运算、溢出与定点数</a>。这些问题在 <code>-O0</code> 下往往“看起来正常”，开启优化后才暴露。</p>
+        <p>工作中还要警惕其他常见的未定义行为：有符号整数溢出、移位位数超过类型宽度、解引用空指针或越界指针、使用未初始化的局部变量。整数相关的细节见 <a href="../c-integer-arithmetic/c-integer-arithmetic.html?v=56c52c2d6fcc">整数运算、溢出与定点数</a>。这些问题在 <code>-O0</code> 下往往“看起来正常”，开启优化后才暴露。</p>
       </section>
 
       <section>
@@ -307,7 +307,7 @@ static inline uint32_t square_u32(uint32_t x) { return x * x; }</code></pre>
             <tr><td>注释和代码不一致</td><td>注释写 100ms，代码是 1000</td><td>注释写“为什么”，数值用常量表达</td></tr>
           </tbody>
         </table>
-        <p>更系统的分层与接口设计，见 <a href="../../embedded-c/c-modular-driver-layer/c-modular-driver-layer.html?v=176874b30373">模块化与驱动分层设计</a>。</p>
+        <p>更系统的分层与接口设计，见 <a href="../../embedded-c/c-modular-driver-layer/c-modular-driver-layer.html?v=56c52c2d6fcc">模块化与驱动分层设计</a>。</p>
       </section>
 
       <section>
@@ -328,11 +328,11 @@ static inline uint32_t square_u32(uint32_t x) { return x * x; }</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#foundation/c-basic">返回 C语言专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#foundation/c-basic">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

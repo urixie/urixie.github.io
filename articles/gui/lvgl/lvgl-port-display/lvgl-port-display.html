@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>LVGL 移植：显示、触摸与 RTOS 集成 - XYJ</title>
+  <meta name="description" content="基于 LVGL v9 说明 lv_conf.h 配置、显示缓冲与 flush 回调、触摸输入、RTOS 下的线程安全和性能优化方法。">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#gui/lvgl">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>LVGL 移植：显示、触摸与 RTOS 集成</h1>
+      <p class="article-summary">基于 LVGL v9 说明 lv_conf.h 配置、显示缓冲与 flush 回调、触摸输入、RTOS 下的线程安全和性能优化方法。</p>
+
+      <section>
+        <h2>1. LVGL 移植需要做什么</h2>
+        <p>LVGL 是一个与硬件无关的 C 图形库，移植到一块新板子上只需要提供三样东西：</p>
+        <table>
+          <thead><tr><th>接口</th><th>作用</th><th>实现方式</th></tr></thead>
+          <tbody>
+            <tr><td>时基</td><td>告诉 LVGL 过去了多少毫秒</td><td><code>lv_tick_set_cb()</code> 或在 1ms 中断中调用 <code>lv_tick_inc(1)</code></td></tr>
+            <tr><td>显示刷新</td><td>把 LVGL 渲染好的像素块写到屏幕</td><td>flush 回调：SPI / 8080 并口 / RGB / MIPI 驱动</td></tr>
+            <tr><td>输入设备</td><td>读取触摸、按键、编码器</td><td>read 回调：读取触摸芯片坐标或按键状态</td></tr>
+          </tbody>
+        </table>
+        <p>此外需要周期性调用 <code>lv_timer_handler()</code>，它负责处理动画、输入、刷新等全部工作。本文代码基于 LVGL v9，v8 的接口名称不同（例如 <code>lv_disp_drv_t</code>、<code>lv_btn_create</code>），迁移时注意对照官方迁移说明。</p>
+      </section>
+
+      <section>
+        <h2>2. 配置 lv_conf.h</h2>
+        <p>从 <code>lv_conf_template.h</code> 复制为 <code>lv_conf.h</code>，把开头的 <code>#if 0</code> 改为 <code>#if 1</code>。最关键的几项：</p>
+        <pre><code class="language-c">#define LV_COLOR_DEPTH       16          /* RGB565，SPI 屏最常用 */
+#define LV_USE_STDLIB_MALLOC LV_STDLIB_BUILTIN
+#define LV_MEM_SIZE          (48 * 1024U) /* LVGL 内部堆：控件、样式、字体缓存等都在这里 */
+#define LV_DEF_REFR_PERIOD   20          /* 刷新周期（ms），33 约等于 30fps */
+#define LV_USE_LOG           1
+#define LV_LOG_LEVEL         LV_LOG_LEVEL_WARN
+#define LV_USE_ASSERT_NULL   1
+#define LV_USE_ASSERT_MALLOC 1
+#define LV_USE_PERF_MONITOR  1           /* 屏幕角落显示帧率和 CPU 占用（调试用） */
+#define LV_USE_MEM_MONITOR   1           /* 显示内存使用（调试用） */
+#define LV_FONT_MONTSERRAT_14 1          /* 只启用需要的字体 */</code></pre>
+        <p>只启用用到的控件和字体，Flash 占用可以从几百 KB 降到一百多 KB。中文字体需要用字体转换工具生成，只包含实际使用的字符，否则一个完整中文字库就会占用数 MB。</p>
+      </section>
+
+      <section>
+        <h2>3. 显示驱动：缓冲区与 flush 回调</h2>
+        <pre><code class="language-c">#define LCD_W 320
+#define LCD_H 240
+/* 部分刷新缓冲区：1/10 屏，RGB565 每像素 2 字节 */
+static uint8_t buf1[LCD_W * LCD_H / 10 * 2];
+static uint8_t buf2[LCD_W * LCD_H / 10 * 2];
+
+static void lcd_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+{
+    uint32_t w = lv_area_get_width(area);
+    uint32_t h = lv_area_get_height(area);
+
+    lv_draw_sw_rgb565_swap(px_map, w * h);      /* SPI 屏通常需要高低字节交换 */
+    lcd_set_window(area-&gt;x1, area-&gt;y1, area-&gt;x2, area-&gt;y2);
+    lcd_write_pixels_dma(px_map, w * h * 2);    /* 启动 DMA 后立即返回 */
+    /* DMA 完成中断中调用 lv_display_flush_ready(disp) */
+}
+
+void lvgl_port_init(void)
+{
+    lv_init();
+    lv_tick_set_cb(HAL_GetTick);                 /* 直接使用系统毫秒计数 */
+
+    lv_display_t *disp = lv_display_create(LCD_W, LCD_H);
+    lv_display_set_flush_cb(disp, lcd_flush_cb);
+    lv_display_set_buffers(disp, buf1, buf2, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
+}
+
+void LCD_DMA_IRQHandler_done(void)               /* DMA 传输完成回调 */
+{
+    lv_display_flush_ready(lv_display_get_default());
+}</code></pre>
+        <p>缓冲方案的选择：</p>
+        <table>
+          <thead><tr><th>方案</th><th>RAM 需求</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr><td>单个部分缓冲（1/10 屏）</td><td>最小</td><td>渲染与传输串行，速度一般</td></tr>
+            <tr><td>两个部分缓冲</td><td>小</td><td>DMA 传输一块的同时渲染另一块，推荐</td></tr>
+            <tr><td>两个整屏缓冲（DIRECT / FULL 模式）</td><td>大（320×240 RGB565 约 150KB / 块）</td><td>无撕裂，适合带 SDRAM 的 RGB 屏</td></tr>
+          </tbody>
+        </table>
+        <p><strong><code>lv_display_flush_ready()</code> 必须被调用</strong>，否则 LVGL 会一直等待，界面卡住不动，这是移植中最常见的问题。</p>
+      </section>
+
+      <section>
+        <h2>4. 输入设备：触摸屏</h2>
+        <pre><code class="language-c">static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
+{
+    uint16_t x, y;
+    if (touch_get_point(&amp;x, &amp;y)) {               /* 读取触摸芯片（如 GT911、FT6336）的坐标 */
+        data-&gt;point.x = x;
+        data-&gt;point.y = y;
+        data-&gt;state = LV_INDEV_STATE_PRESSED;
+    } else {
+        data-&gt;state = LV_INDEV_STATE_RELEASED;   /* 松开时保留上一次坐标 */
+    }
+}
+
+void lvgl_input_init(void)
+{
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, touch_read_cb);
+}</code></pre>
+        <p>触摸常见问题：</p>
+        <ul>
+          <li><strong>坐标方向不对</strong>：屏幕旋转后触摸坐标需要交换 X/Y 或镜像，按实际方向在 read 回调中转换。</li>
+          <li><strong>坐标偏移</strong>：电阻屏需要校准；电容屏检查触摸芯片配置的分辨率是否与屏幕一致。</li>
+          <li><strong>I2C 读取太慢</strong>：read 回调在 <code>lv_timer_handler()</code> 中被调用，读取阻塞会拖慢整个界面。可以用触摸中断引脚判断是否有触摸，没有触摸时不读 I2C。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. 主循环与 RTOS 集成</h2>
+        <p>裸机系统中，在主循环里调用即可：</p>
+        <pre><code class="language-c">while (1) {
+    uint32_t idle_ms = lv_timer_handler();      /* 返回距离下一次需要处理的时间 */
+    delay_ms(idle_ms &lt; 5 ? idle_ms : 5);
+}</code></pre>
+        <p>RTOS 系统中，<strong>LVGL 不是线程安全的</strong>，所有 LVGL 调用必须在同一个任务中进行，或者用互斥锁保护：</p>
+        <pre><code class="language-c">static void gui_task(void *arg)
+{
+    lvgl_port_init();
+    lvgl_input_init();
+    ui_create();
+    for (;;) {
+        lv_lock();                              /* v9 配置 LV_USE_OS 后可用；也可自己用互斥锁 */
+        uint32_t t = lv_timer_handler();
+        lv_unlock();
+        vTaskDelay(pdMS_TO_TICKS(t &lt; 5 ? 5 : (t &gt; 20 ? 20 : t)));
+    }
+}</code></pre>
+        <p>推荐的做法是<strong>其他任务不直接调用 LVGL</strong>，而是通过消息队列把数据发给 GUI 任务，由 GUI 任务更新控件。任务划分的方法见 <a href="../../../realtime/task-management/rtos-task-design/rtos-task-design.html?v=56c52c2d6fcc">RTOS 任务设计方法</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. 性能优化</h2>
+        <table>
+          <thead><tr><th>问题</th><th>优化方法</th></tr></thead>
+          <tbody>
+            <tr><td>SPI 传输慢</td><td>提高 SPI 时钟（多数屏支持 40~80MHz 写入），使用 DMA，使用双缓冲</td></tr>
+            <tr><td>渲染慢</td><td>开启编译优化（-O2），关闭不必要的阴影、渐变、透明度，减少大面积重绘</td></tr>
+            <tr><td>整屏刷新频繁</td><td>只更新变化的控件，避免周期性地重设相同的文本</td></tr>
+            <tr><td>动画卡顿</td><td>降低动画区域面积，或使用 GPU / DMA2D（STM32 的 Chrom-ART）加速</td></tr>
+            <tr><td>内存不足</td><td>减小 <code>LV_MEM_SIZE</code> 之外的缓冲，删除不再显示的屏幕对象</td></tr>
+          </tbody>
+        </table>
+        <p><code>LV_USE_PERF_MONITOR</code> 显示的 FPS 和 CPU 占用是优化的依据。一块 320×240 的 SPI 屏全屏刷新一次需要传输 150KB，SPI 40MHz 时理论上约 30ms，所以全屏动画很难超过 30fps，界面设计要避免大面积动画。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：一块 SPI 屏点亮后的调试顺序</h2>
+        <ol>
+          <li><strong>先不用 LVGL</strong>：直接调用屏幕驱动填充红、绿、蓝纯色和渐变条，确认初始化序列、颜色顺序（RGB/BGR）、字节序和显示方向正确。</li>
+          <li><strong>接入 LVGL 显示</strong>：显示一个标签，确认 flush 回调和 <code>flush_ready</code> 正常；颜色不对时检查字节交换。</li>
+          <li><strong>接入触摸</strong>：在 read 回调中打印坐标，点击四个角确认方向与范围。</li>
+          <li><strong>打开性能监视</strong>：观察 FPS 与 CPU 占用，按上表逐项优化。</li>
+          <li><strong>长时间运行</strong>：打开内存监视，反复切换页面，确认内存没有持续增长。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. LVGL 移植检查清单</h2>
+        <ul>
+          <li>时基是否正确提供，<code>lv_timer_handler()</code> 是否被周期性调用。</li>
+          <li>flush 回调完成后是否一定调用了 <code>lv_display_flush_ready()</code>。</li>
+          <li>颜色深度、字节序、显示方向是否与屏幕一致。</li>
+          <li>触摸坐标方向、范围是否与显示一致，read 回调是否足够快。</li>
+          <li>RTOS 中是否只有一个任务调用 LVGL，或者有互斥锁保护。</li>
+          <li><code>LV_MEM_SIZE</code> 是否足够，字体是否只包含需要的字符。</li>
+          <li>是否使用 DMA 和双缓冲，帧率和 CPU 占用是否经过测量。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=56c52c2d6fcc#gui/lvgl">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
+</body>
+</html>

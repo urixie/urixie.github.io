@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>用 Tauri 开发串口上位机 - XYJ</title>
+  <meta name="description" content="基于 Tauri 2 与 serialport 库，说明工程结构、Rust 命令、后台接收线程与事件推送、前端调用和打包发布要点。">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#host-tools/tauri-rust">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>用 Tauri 开发串口上位机</h1>
+      <p class="article-summary">基于 Tauri 2 与 serialport 库，说明工程结构、Rust 命令、后台接收线程与事件推送、前端调用和打包发布要点。</p>
+
+      <section>
+        <h2>1. 为什么用 Tauri 做上位机</h2>
+        <p>嵌入式工程师常用的上位机技术路线：</p>
+        <table>
+          <thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead>
+          <tbody>
+            <tr><td>C# WinForms / WPF</td><td>开发快，串口库成熟</td><td>主要面向 Windows</td></tr>
+            <tr><td>Qt（C++ / PySide）</td><td>跨平台，控件丰富</td><td>体积较大，授权需要注意</td></tr>
+            <tr><td>Python + Tkinter / PyQt</td><td>上手快，适合内部工具</td><td>打包体积大，发布给客户不够专业</td></tr>
+            <tr><td>Electron</td><td>Web 技术做界面，生态丰富</td><td>安装包和内存占用大</td></tr>
+            <tr><td><strong>Tauri（Rust + Web 前端）</strong></td><td>安装包小（几 MB）、性能好、跨平台</td><td>需要学习 Rust，前后端通信要设计</td></tr>
+          </tbody>
+        </table>
+        <p>Tauri 的结构是：<strong>界面用 Web 技术（HTML / CSS / JS，可选 Vue、React 等）编写，运行在系统自带的 WebView 中；设备通信、文件处理等逻辑用 Rust 编写</strong>。前端通过 <code>invoke</code> 调用 Rust 命令，Rust 通过事件把数据推送给前端。本文基于 Tauri 2。</p>
+      </section>
+
+      <section>
+        <h2>2. 工程结构</h2>
+        <pre><code class="language-text">my-tool/
+├── src/                     # 前端：页面、组件、样式
+│   └── main.ts
+├── src-tauri/
+│   ├── Cargo.toml           # Rust 依赖：tauri、serialport、serde 等
+│   ├── tauri.conf.json      # 应用名称、窗口、打包配置
+│   ├── capabilities/        # 前端可使用的插件权限
+│   └── src/
+│       ├── main.rs
+│       ├── lib.rs           # 注册命令、管理状态
+│       └── serial.rs        # 串口逻辑
+└── package.json</code></pre>
+        <pre><code class="language-bash">npm create tauri-app@latest       # 按提示选择前端框架
+cd my-tool
+cargo add serialport --manifest-path src-tauri/Cargo.toml
+npm run tauri dev                 # 开发模式，前端修改热更新
+npm run tauri build               # 生成安装包（Windows 为 msi / exe）</code></pre>
+      </section>
+
+      <section>
+        <h2>3. Rust 端：串口命令</h2>
+        <pre><code class="language-rust">// src-tauri/src/lib.rs
+use std::io::{Read, Write};
+use std::sync::Mutex;
+use std::time::Duration;
+use serialport::SerialPort;
+use tauri::State;
+
+#[derive(Default)]
+struct AppState {
+    port: Mutex&lt;Option&lt;Box&lt;dyn SerialPort&gt;&gt;&gt;,
+}
+
+#[tauri::command]
+fn list_ports() -&gt; Result&lt;Vec&lt;String&gt;, String&gt; {
+    let ports = serialport::available_ports().map_err(|e| e.to_string())?;
+    Ok(ports.into_iter().map(|p| p.port_name).collect())
+}
+
+#[tauri::command]
+fn write_bytes(state: State&lt;'_, AppState&gt;, data: Vec&lt;u8&gt;) -&gt; Result&lt;(), String&gt; {
+    let mut guard = state.port.lock().map_err(|e| e.to_string())?;
+    let port = guard.as_mut().ok_or("串口未打开")?;
+    port.write_all(&amp;data).map_err(|e| e.to_string())
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .manage(AppState::default())
+        .invoke_handler(tauri::generate_handler![list_ports, open_port, write_bytes, close_port])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}</code></pre>
+        <p>要点：</p>
+        <ul>
+          <li>命令返回 <code>Result&lt;T, String&gt;</code>，错误信息会作为 Promise 的 reject 传给前端，前端可以直接显示给用户。</li>
+          <li>串口对象放在 <code>Mutex</code> 中，由 Tauri 的状态管理（<code>manage</code>）共享给所有命令。</li>
+          <li>前端传来的参数会自动反序列化，<code>Vec&lt;u8&gt;</code> 对应 JS 中的数字数组。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 后台接收线程与事件推送</h2>
+        <p>串口接收不能在命令里阻塞等待，应该在打开串口时启动后台线程，收到数据后通过事件推送给前端：</p>
+        <pre><code class="language-rust">use tauri::{AppHandle, Emitter};
+
+#[tauri::command]
+fn open_port(app: AppHandle, state: State&lt;'_, AppState&gt;, name: String, baud: u32) -&gt; Result&lt;(), String&gt; {
+    let port = serialport::new(&amp;name, baud)
+        .timeout(Duration::from_millis(50))
+        .open()
+        .map_err(|e| format!("打开 {name} 失败：{e}"))?;
+
+    let mut reader = port.try_clone().map_err(|e| e.to_string())?;
+    *state.port.lock().unwrap() = Some(port);
+
+    std::thread::spawn(move || {
+        let mut buf = [0u8; 1024];
+        loop {
+            match reader.read(&amp;mut buf) {
+                Ok(n) if n &gt; 0 =&gt; {
+                    let _ = app.emit("serial-data", buf[..n].to_vec());
+                }
+                Ok(_) =&gt; {}
+                Err(e) if e.kind() == std::io::ErrorKind::TimedOut =&gt; {}   // 超时：继续等待
+                Err(e) =&gt; {
+                    let _ = app.emit("serial-error", e.to_string());       // 设备拔出等错误
+                    break;
+                }
+            }
+        }
+    });
+    Ok(())
+}</code></pre>
+        <p>实际工程中还需要：关闭串口时通知接收线程退出（例如用 <code>AtomicBool</code> 标志或通道）；高速数据时不要每收到几个字节就发一次事件，而是在 Rust 端组帧或按时间（如 20ms）合并后再推送，避免前端被大量事件拖慢。</p>
+      </section>
+
+      <section>
+        <h2>5. 前端：调用命令与监听事件</h2>
+        <pre><code class="language-ts">import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+
+const ports = await invoke&lt;string[]&gt;('list_ports');
+
+try {
+  await invoke('open_port', { name: ports[0], baud: 115200 });
+} catch (err) {
+  showError(String(err));                       // Rust 返回的 Err 字符串
+}
+
+const unlisten = await listen&lt;number[]&gt;('serial-data', (event) =&gt; {
+  appendHex(new Uint8Array(event.payload));     // 显示为十六进制
+});
+
+await invoke('write_bytes', { data: [0x01, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0x0B] });</code></pre>
+        <p>注意：<code>invoke</code> 的参数名在 JS 侧使用 camelCase，Rust 函数参数使用 snake_case，Tauri 会自动转换。界面关闭或切换页面时调用 <code>unlisten()</code> 取消监听。</p>
+      </section>
+
+      <section>
+        <h2>6. 协议处理放在哪一端</h2>
+        <table>
+          <thead><tr><th>放在 Rust 端</th><th>放在前端</th></tr></thead>
+          <tbody>
+            <tr><td>组帧、校验（CRC）、超时重发</td><td>显示格式、图表</td></tr>
+            <tr><td>高速数据的解析和统计</td><td>用户输入校验</td></tr>
+            <tr><td>文件读写、固件升级流程</td><td>交互流程控制</td></tr>
+            <tr><td>加解密</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p>原则是：<strong>与设备通信的时序、可靠性相关的逻辑放在 Rust 端</strong>，前端只处理“已经解析好的数据”和用户交互。这样协议代码可以写单元测试，也可以被命令行工具复用。二进制解析和加密的写法见 <a href="../host-binary-parse-crypto/host-binary-parse-crypto.html?v=56c52c2d6fcc">二进制解析与加密</a>，设备端的串口协议设计见 <a href="../../../mcu/peripheral/mcu-uart-spi-i2c/mcu-uart-spi-i2c.html?v=56c52c2d6fcc">UART、SPI 与 I2C</a>。</p>
+      </section>
+
+      <section>
+        <h2>7. 打包与发布</h2>
+        <ul>
+          <li><strong>Windows</strong>：生成 msi 或 NSIS 安装包；系统需要 WebView2（Windows 10/11 通常已内置，安装包可配置自动安装）。</li>
+          <li><strong>串口驱动</strong>：USB 转串口芯片（CH340、CP2102 等）的驱动不包含在应用中，需要告知用户或单独提供。</li>
+          <li><strong>代码签名</strong>：给客户发布时建议对安装包进行代码签名，否则可能被系统或杀毒软件拦截。</li>
+          <li><strong>自动更新</strong>：Tauri 提供 updater 插件，更新包需要签名，签名私钥不要提交到仓库。</li>
+          <li><strong>权限</strong>：使用文件对话框、文件系统等插件时，需要在 <code>capabilities</code> 中声明前端可调用的权限，只授予需要的范围。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. 工作场景：一个 Modbus 调试上位机</h2>
+        <p>需求：选择串口和波特率，周期性读取设备的 20 个寄存器并显示曲线，可以修改参数并写入，支持导出 CSV。</p>
+        <ol>
+          <li><strong>Rust 端</strong>：串口管理、Modbus RTU 组帧和 CRC 校验、请求超时与重试、周期轮询任务；每轮读取结果作为一个事件推送。</li>
+          <li><strong>前端</strong>：串口选择、寄存器表格、实时曲线（只保留最近 N 个点）、参数写入表单。</li>
+          <li><strong>错误处理</strong>：设备无应答、CRC 错误、串口拔出都在界面上显示状态，并统计通信成功率。</li>
+          <li><strong>导出</strong>：前端调用 Rust 命令，Rust 端把缓存的数据写成 CSV，路径通过文件对话框插件选择。</li>
+          <li><strong>测试</strong>：协议模块编写单元测试（固定报文 → 解析结果），用 USB 转串口回环和真实设备分别测试。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>9. 上位机开发检查清单</h2>
+        <ul>
+          <li>串口接收是否在后台线程中进行，关闭串口时线程能否正确退出。</li>
+          <li>设备拔出、无应答、校验错误等异常是否有明确提示，而不是程序卡住或崩溃。</li>
+          <li>高速数据是否在 Rust 端合并或组帧后再推送，前端是否限制了显示的数据量。</li>
+          <li>协议、校验、超时重试等逻辑是否放在 Rust 端并有单元测试。</li>
+          <li>前端可用的插件权限是否按最小范围配置。</li>
+          <li>安装包是否考虑了 WebView2、串口驱动、代码签名与更新签名密钥的管理。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=56c52c2d6fcc#host-tools/tauri-rust">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
+</body>
+</html>

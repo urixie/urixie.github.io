@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>嵌入式 Linux 驱动与系统调试 - XYJ</title>
   <meta name="description" content="整理嵌入式 Linux 驱动与系统调试，包括设备树、设备节点、dmesg.sysfs.procfs、内核模块、交叉编译、gdbserver.strace 和串口日志。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/driver-debug">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-      <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回 Linux专题</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/driver-debug">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -194,7 +194,7 @@ perf stat -e cycles,instructions,cache-misses ./algo_test</code></pre>
             <tr><td>pinctrl</td><td><code>/sys/kernel/debug/pinctrl/*/pinmux-pins</code></td><td>对照原理图确认引脚复用</td></tr>
           </tbody>
         </table>
-        <p>用户态访问方法见 <a href="../linux-userspace-peripheral/linux-userspace-peripheral.html?v=176874b30373">用户态访问外设</a>，驱动的 probe 流程见 <a href="../linux-char-driver/linux-char-driver.html?v=176874b30373">字符设备驱动</a>。<code>pinmux-pins</code> 能直接看到每个引脚当前被哪个设备占用，是排查引脚冲突最快的方法。</p>
+        <p>用户态访问方法见 <a href="../linux-userspace-peripheral/linux-userspace-peripheral.html?v=56c52c2d6fcc">用户态访问外设</a>，驱动的 probe 流程见 <a href="../linux-char-driver/linux-char-driver.html?v=56c52c2d6fcc">字符设备驱动</a>。<code>pinmux-pins</code> 能直接看到每个引脚当前被哪个设备占用，是排查引脚冲突最快的方法。</p>
       </section>
 
       <section>
@@ -250,10 +250,10 @@ dmesg | grep 'initcall' | sort -t' ' -k8 -n | tail</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回 Linux专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/driver-debug">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

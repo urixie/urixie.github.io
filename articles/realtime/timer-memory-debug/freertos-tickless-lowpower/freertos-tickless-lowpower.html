@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS Tickless 与低功耗 - XYJ</title>
   <meta name="description" content="说明 Tickless Idle 的原理，内置 SysTick 实现的限制，以及用 LPTIM 自定义实现进入 Stop 模式的方法和常见功耗问题。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#realtime/timer-memory-debug">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -33,7 +33,7 @@
         <p>FreeRTOS 依靠周期性的 Tick 中断（通常 1ms）推进时间。即使所有任务都在阻塞等待，CPU 也会每毫秒被唤醒一次处理 Tick，这对电池供电设备是很大的浪费：</p>
         <pre><code class="language-text">普通模式：  |T|T|T|T|T|T|T|T|T|T|   每 1ms 唤醒一次，CPU 无法长时间休眠
 Tickless：  |T|.......休眠.......|T|  预计空闲 N 个 Tick，就停掉 Tick 休眠 N 个 Tick</code></pre>
-        <p>Tickless Idle 的思路是：当调度器发现<strong>下一个任务要在 N 个 Tick 之后才就绪</strong>时，停止周期 Tick，设置一个定时器在 N 个 Tick 后唤醒，进入低功耗模式；醒来后把错过的 Tick 数补回内核时间。MCU 本身的低功耗模式与时钟配置见 <a href="../../../mcu/peripheral/mcu-clock-reset-lowpower/mcu-clock-reset-lowpower.html?v=176874b30373">时钟、复位与低功耗</a>。</p>
+        <p>Tickless Idle 的思路是：当调度器发现<strong>下一个任务要在 N 个 Tick 之后才就绪</strong>时，停止周期 Tick，设置一个定时器在 N 个 Tick 后唤醒，进入低功耗模式；醒来后把错过的 Tick 数补回内核时间。MCU 本身的低功耗模式与时钟配置见 <a href="../../../mcu/peripheral/mcu-clock-reset-lowpower/mcu-clock-reset-lowpower.html?v=56c52c2d6fcc">时钟、复位与低功耗</a>。</p>
       </section>
 
       <section>
@@ -158,11 +158,11 @@ void app_suppress_ticks_and_sleep(TickType_t expected_idle)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#realtime/timer-memory-debug">返回对应专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#realtime/timer-memory-debug">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FreeRTOS 基础概念与调度机制 - XYJ</title>
   <meta name="description" content="整理 FreeRTOS 基础概念、任务、调度器、抢占式调度、时间片、Tick、中断优先级和嵌入式项目使用建议。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#realtime/freertos-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#realtime/freertos-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-      <a href="../../../../index.html?v=176874b30373#realtime/freertos-basic">返回 FreeRTOS专题</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc#realtime/freertos-basic">返回 FreeRTOS专题</a>
     </div>
 
     <article class="article card">
@@ -217,7 +217,7 @@ vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
         <p>原程序：主循环中依次调用按键扫描、串口协议解析、传感器采集、显示刷新，各模块用全局标志与中断交互，随着功能增加，串口偶尔丢帧、显示刷新卡顿。</p>
         <ol>
           <li><strong>建立最小工程</strong>：移植 FreeRTOS，只创建一个闪灯任务，确认 Tick、PendSV、中断优先级配置正确（打开 <code>configASSERT</code>）。</li>
-          <li><strong>按时间特性拆分任务</strong>：串口协议任务（帧到达通知）、采集任务（10ms 周期）、显示任务（50ms 周期）、按键处理合并到业务任务。任务划分方法见 <a href="../../task-management/rtos-task-design/rtos-task-design.html?v=176874b30373">RTOS 任务设计方法</a>。</li>
+          <li><strong>按时间特性拆分任务</strong>：串口协议任务（帧到达通知）、采集任务（10ms 周期）、显示任务（50ms 周期）、按键处理合并到业务任务。任务划分方法见 <a href="../../task-management/rtos-task-design/rtos-task-design.html?v=56c52c2d6fcc">RTOS 任务设计方法</a>。</li>
           <li><strong>替换全局标志</strong>：中断中原来的 <code>g_rx_flag = 1</code> 改为任务通知或队列发送，任务阻塞等待，不再轮询。</li>
           <li><strong>识别共享数据</strong>：采集结果被显示和协议任务读取，改为互斥锁保护或消息传递。</li>
           <li><strong>检查中断优先级</strong>：所有调用 FromISR 接口的中断优先级数值不小于 <code>configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY</code>。</li>
@@ -237,10 +237,10 @@ vTaskDelay(pdMS_TO_TICKS(100));</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#realtime/freertos-basic">返回 FreeRTOS专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#realtime/freertos-basic">返回 FreeRTOS专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

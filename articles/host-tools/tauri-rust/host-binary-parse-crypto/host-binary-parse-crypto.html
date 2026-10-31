@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>上位机二进制解析、校验与加密 - XYJ</title>
+  <meta name="description" content="以固件头为例说明二进制格式定义与 Rust 解析，CRC 参数一致性，签名、HMAC 与 AES-GCM 的适用场景和密钥管理。">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#host-tools/tauri-rust">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>上位机二进制解析、校验与加密</h1>
+      <p class="article-summary">以固件头为例说明二进制格式定义与 Rust 解析，CRC 参数一致性，签名、HMAC 与 AES-GCM 的适用场景和密钥管理。</p>
+
+      <section>
+        <h2>1. 上位机为什么要处理二进制数据</h2>
+        <p>嵌入式上位机经常需要处理设备产生或使用的二进制数据：</p>
+        <ul>
+          <li><strong>固件文件</strong>：解析固件头（版本、长度、CRC），生成升级包，校验完整性。</li>
+          <li><strong>设备日志 / 采集记录</strong>：设备把定长记录写入 Flash 或 SD 卡，上位机读取后解析成表格。</li>
+          <li><strong>配置文件</strong>：上位机生成二进制配置下发给设备，或从设备读回解析显示。</li>
+          <li><strong>通信报文</strong>：协议帧的组包和解析。</li>
+        </ul>
+        <p>这些数据的格式由设备端的 C 结构体定义，上位机必须<strong>按字节精确解析</strong>，不能依赖语言自身的内存布局。</p>
+      </section>
+
+      <section>
+        <h2>2. 格式定义：先写清楚再写代码</h2>
+        <p>以固件头为例，格式文档应当明确每个字段的偏移、长度、字节序和含义：</p>
+        <table>
+          <thead><tr><th>偏移</th><th>长度</th><th>字段</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>4</td><td>magic</td><td>固定值 <code>0x46574844</code>（小端存储）</td></tr>
+            <tr><td>4</td><td>2</td><td>header_ver</td><td>头格式版本，用于兼容</td></tr>
+            <tr><td>6</td><td>2</td><td>hw_id</td><td>硬件型号</td></tr>
+            <tr><td>8</td><td>4</td><td>fw_version</td><td>主.次.修订编码为 <code>0x00MMmmpp</code></td></tr>
+            <tr><td>12</td><td>4</td><td>image_size</td><td>镜像长度（不含头）</td></tr>
+            <tr><td>16</td><td>4</td><td>image_crc32</td><td>镜像 CRC32（IEEE）</td></tr>
+            <tr><td>20</td><td>12</td><td>reserved</td><td>保留，填 0</td></tr>
+          </tbody>
+        </table>
+        <p>设备端对应的 C 结构体需要显式控制对齐和字节序，方法见 <a href="../../../foundation/data-structure/c-struct-data-layout/c-struct-data-layout.html?v=56c52c2d6fcc">结构体与数据布局</a>。<strong>头格式中一定要有版本字段</strong>，以后增加字段时上位机和设备都能识别新旧格式。</p>
+      </section>
+
+      <section>
+        <h2>3. Rust 解析：显式偏移与字节序</h2>
+        <pre><code class="language-rust">#[derive(Debug, Clone)]
+pub struct FwHeader {
+    pub header_ver: u16,
+    pub hw_id: u16,
+    pub fw_version: u32,
+    pub image_size: u32,
+    pub image_crc32: u32,
+}
+
+#[derive(Debug)]
+pub enum ParseError {
+    TooShort(usize),
+    BadMagic(u32),
+    UnsupportedVersion(u16),
+}
+
+const MAGIC: u32 = 0x4657_4844;
+const HEADER_LEN: usize = 32;
+
+fn u16_le(b: &amp;[u8], off: usize) -&gt; u16 { u16::from_le_bytes([b[off], b[off + 1]]) }
+fn u32_le(b: &amp;[u8], off: usize) -&gt; u32 { u32::from_le_bytes(b[off..off + 4].try_into().unwrap()) }
+
+pub fn parse_header(b: &amp;[u8]) -&gt; Result&lt;FwHeader, ParseError&gt; {
+    if b.len() &lt; HEADER_LEN {
+        return Err(ParseError::TooShort(b.len()));
+    }
+    let magic = u32_le(b, 0);
+    if magic != MAGIC {
+        return Err(ParseError::BadMagic(magic));
+    }
+    let header_ver = u16_le(b, 4);
+    if header_ver != 1 {
+        return Err(ParseError::UnsupportedVersion(header_ver));
+    }
+    Ok(FwHeader {
+        header_ver,
+        hw_id: u16_le(b, 6),
+        fw_version: u32_le(b, 8),
+        image_size: u32_le(b, 12),
+        image_crc32: u32_le(b, 16),
+    })
+}</code></pre>
+        <p>要点：</p>
+        <ul>
+          <li><strong>先检查长度再访问</strong>，所有来自文件或设备的数据都视为不可信输入。</li>
+          <li>用 <code>from_le_bytes</code> / <code>from_be_bytes</code> 明确字节序，不要直接把字节转换成结构体。</li>
+          <li>错误类型要具体（太短、魔数错误、版本不支持），方便在界面上给出有用的提示。</li>
+          <li>字段多、格式复杂时，可以使用 <code>nom</code>、<code>binrw</code> 等解析库，但简单格式手写反而更清晰。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 校验：CRC 与哈希</h2>
+        <p>CRC 用于检测传输和存储中的意外错误，上位机与设备必须使用<strong>完全相同的 CRC 参数</strong>（多项式、初始值、输入输出反转、结果异或值）：</p>
+        <pre><code class="language-rust">// Cargo.toml: crc = "3"
+use crc::{Crc, CRC_32_ISO_HDLC, CRC_16_MODBUS};
+
+const CRC32: Crc&lt;u32&gt; = Crc::&lt;u32&gt;::new(&amp;CRC_32_ISO_HDLC);   // 与 zlib / 以太网相同的 CRC32
+const CRC16_MODBUS: Crc&lt;u16&gt; = Crc::&lt;u16&gt;::new(&amp;CRC_16_MODBUS);
+
+pub fn verify_image(header: &amp;FwHeader, image: &amp;[u8]) -&gt; bool {
+    image.len() == header.image_size as usize &amp;&amp; CRC32.checksum(image) == header.image_crc32
+}</code></pre>
+        <p>设备端常用的“STM32 硬件 CRC 单元”默认参数与标准 CRC32 不同（不反转、不异或），两端结果对不上时首先核对参数。可以用一个固定字符串（例如 <code>"123456789"</code>）的校验值作为两端的测试向量。</p>
+        <div class="article-warning">CRC 和 SHA-256 只能发现意外损坏，<strong>不能防止恶意篡改</strong>：攻击者修改固件后重新计算 CRC 即可。需要确认固件来源时必须使用数字签名。</div>
+      </section>
+
+      <section>
+        <h2>5. 加密与签名：各自解决什么问题</h2>
+        <table>
+          <thead><tr><th>需求</th><th>技术</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>检测意外损坏</td><td>CRC32、SHA-256</td><td>不需要密钥</td></tr>
+            <tr><td>确认来源、防篡改</td><td>数字签名（Ed25519、ECDSA P-256）</td><td>私钥签名，设备内置公钥验证</td></tr>
+            <tr><td>共享密钥下的防篡改</td><td>HMAC-SHA256</td><td>双方持有同一密钥，密钥泄露则失效</td></tr>
+            <tr><td>防止内容被读取</td><td>AES-GCM、AES-CTR 等加密</td><td>加密不等于防篡改，推荐使用带认证的 AES-GCM</td></tr>
+          </tbody>
+        </table>
+        <p>固件升级的典型组合是：<strong>签名保证来源可信（必须），加密保护知识产权（可选）</strong>。设备端的验证流程见 <a href="../../../mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=56c52c2d6fcc">Bootloader 与 OTA</a>。</p>
+        <pre><code class="language-rust">// 使用 AES-256-GCM 加密配置数据（Cargo.toml: aes-gcm = "0.10"）
+use aes_gcm::{aead::{Aead, AeadCore, KeyInit, OsRng}, Aes256Gcm, Key};
+
+pub fn encrypt_config(key_bytes: &amp;[u8; 32], plain: &amp;[u8]) -&gt; Result&lt;Vec&lt;u8&gt;, aes_gcm::Error&gt; {
+    let key = Key::&lt;Aes256Gcm&gt;::from_slice(key_bytes);
+    let cipher = Aes256Gcm::new(key);
+    let nonce = Aes256Gcm::generate_nonce(&amp;mut OsRng);       // 每次加密使用新的随机 nonce（12 字节）
+    let mut out = nonce.to_vec();                            // 输出格式：nonce || 密文 || 认证标签
+    out.extend(cipher.encrypt(&amp;nonce, plain)?);
+    Ok(out)
+}</code></pre>
+        <p>使用加密时的工程要点：</p>
+        <ul>
+          <li><strong>同一密钥下 nonce 绝不能重复</strong>，否则 GCM 的安全性完全失效。</li>
+          <li>不要自己设计加密算法或“异或混淆”，使用经过验证的库。</li>
+          <li>解密失败（认证标签不匹配）时直接拒绝，不要尝试使用解密出来的数据。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 密钥管理</h2>
+        <p>加密方案中最薄弱的环节通常是密钥管理，而不是算法：</p>
+        <ul>
+          <li><strong>签名私钥</strong>只保存在受控的签名环境中（专用机器、HSM 或 CI 的密钥管理服务），绝不能放进上位机程序、代码仓库或发给客户的文件中。</li>
+          <li><strong>上位机内嵌的密钥可以被提取</strong>：任何发布给用户的程序都可以被逆向，内嵌对称密钥只能提高门槛，不能作为安全边界。</li>
+          <li>设备端密钥尽量每台设备不同（由设备唯一 ID 派生或产线写入），单台设备被破解不影响整批设备。</li>
+          <li>密钥需要有轮换方案：签名公钥可以在设备中预置多个，或者通过受签名保护的升级包更新。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：固件打包与升级工具</h2>
+        <p>需求：上位机工具把编译产物打包成升级文件，通过串口发送给设备的 Bootloader。</p>
+        <ol>
+          <li><strong>打包（在发布流水线中执行）</strong>：读取 <code>.bin</code>，填写固件头（版本来自 Git 标签、硬件型号、长度、CRC32），用 Ed25519 私钥对“头 + 镜像”签名，签名附加在文件末尾。</li>
+          <li><strong>上位机加载</strong>：解析头部，检查魔数、头版本、硬件型号是否与连接的设备匹配，校验 CRC；签名由设备验证，上位机只携带公钥做预检查，提前发现错误文件。</li>
+          <li><strong>传输</strong>：按块发送，每块带序号和 CRC16，设备应答后发送下一块，超时重发。</li>
+          <li><strong>设备验证</strong>：Bootloader 收完后验证签名，通过后才写入标志切换到新固件。</li>
+          <li><strong>测试</strong>：准备错误魔数、错误型号、篡改一个字节、截断文件等测试用例，确认每种情况都被拒绝并给出明确提示。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. 二进制处理检查清单</h2>
+        <ul>
+          <li>二进制格式是否有文档，明确偏移、长度、字节序，并包含格式版本字段。</li>
+          <li>解析前是否检查长度，所有外部输入是否按不可信数据处理。</li>
+          <li>两端 CRC 参数是否一致，是否有固定测试向量。</li>
+          <li>是否区分了完整性校验、来源认证和保密需求，防篡改是否使用了签名或 HMAC。</li>
+          <li>加密是否使用 AES-GCM 等带认证的模式，nonce 是否保证不重复。</li>
+          <li>签名私钥是否只存在于受控环境，没有出现在上位机程序和代码仓库中。</li>
+          <li>是否用损坏、篡改、截断等异常文件测试过解析与校验流程。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=56c52c2d6fcc#host-tools/tauri-rust">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
+</body>
+</html>

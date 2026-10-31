@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>AI 编程助手在嵌入式开发中的使用 - XYJ</title>
+  <meta name="description" content="说明 Claude Code、Codex 等 AI 编程助手适合与不适合的嵌入式工作、项目上下文文件、推荐工作流程和提问方式。">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#dev-tools/coding-agent">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>AI 编程助手在嵌入式开发中的使用</h1>
+      <p class="article-summary">说明 Claude Code、Codex 等 AI 编程助手适合与不适合的嵌入式工作、项目上下文文件、推荐工作流程和提问方式。</p>
+
+      <section>
+        <h2>1. AI 编程助手在嵌入式开发中的定位</h2>
+        <p>Claude Code、Codex 这类命令行 AI 编程助手可以读取整个代码仓库、执行命令、修改文件和运行测试。它们在嵌入式开发中能明显提高效率，但嵌入式有自己的特殊性：<strong>代码最终运行在真实硬件上，时序、寄存器、电气特性无法通过“编译通过”来验证</strong>。</p>
+        <p>比较合理的定位是：把 AI 助手当作一个<strong>读代码快、写样板代码快、但不了解你的硬件的同事</strong>。它擅长的事情交给它，涉及硬件事实的部分由工程师确认。</p>
+      </section>
+
+      <section>
+        <h2>2. 适合交给 AI 的工作</h2>
+        <table>
+          <thead><tr><th>工作</th><th>说明</th><th>注意</th></tr></thead>
+          <tbody>
+            <tr><td>阅读陌生代码</td><td>梳理厂商 SDK、开源驱动、老项目的调用关系和初始化流程</td><td>关键结论回到源码确认</td></tr>
+            <tr><td>样板代码</td><td>寄存器位定义、外设初始化框架、命令解析表、状态机骨架</td><td>寄存器地址和位定义对照数据手册核对</td></tr>
+            <tr><td>上位机与脚本</td><td>串口工具、数据解析脚本、日志分析、构建脚本、CI 配置</td><td>风险低，收益最高</td></tr>
+            <tr><td>单元测试</td><td>为协议解析、算法、环形缓冲等纯逻辑代码编写测试</td><td>让它先运行测试，确认测试本身能失败</td></tr>
+            <tr><td>代码审查</td><td>检查并发访问、整数溢出、边界条件、资源泄漏</td><td>作为补充，不替代人工审查</td></tr>
+            <tr><td>文档整理</td><td>根据代码生成接口说明、寄存器表、变更说明</td><td>核对准确性</td></tr>
+            <tr><td>问题分析</td><td>分析编译错误、链接错误、HardFault 寄存器转储、内核 Oops 日志</td><td>提供完整日志和 map / elf 信息</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>3. 需要特别谨慎的地方</h2>
+        <ul>
+          <li><strong>寄存器与硬件细节</strong>：AI 可能给出看似合理但不存在的寄存器名、错误的位偏移，或把另一个系列芯片的外设用法套过来。任何寄存器操作都要对照该芯片的参考手册。</li>
+          <li><strong>时序与实时性</strong>：中断优先级、临界区、DMA 与 Cache 一致性、外设时序要求，这些问题编译器和单元测试都发现不了。</li>
+          <li><strong>安全相关代码</strong>：加密、签名验证、Bootloader 跳转、看门狗策略，需要逐行审查。</li>
+          <li><strong>“修好了”的错觉</strong>：让测试通过的最快方式之一是修改测试本身，审查改动时要留意这一点。</li>
+          <li><strong>数据安全</strong>：不要把密钥、密码、客户数据交给 AI；涉及保密协议的代码是否可以使用在线 AI 服务，要先确认公司规定。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 给 AI 提供项目上下文</h2>
+        <p>AI 助手每次开始工作时并不了解项目约定。在仓库根目录放一份说明文件（Claude Code 读取 <code>CLAUDE.md</code>，Codex 读取 <code>AGENTS.md</code>），写清楚它需要知道的事情：</p>
+        <pre><code class="language-markdown"># 项目说明
+
+## 硬件
+- MCU：STM32G431CBU6（Cortex-M4F，128KB Flash，32KB SRAM）
+- 外设分配见 docs/pinout.md，不要修改引脚分配
+
+## 构建与测试
+- 构建：cmake --preset release &amp;&amp; cmake --build --preset release
+- 主机单元测试：cmake --preset test &amp;&amp; ctest --preset test
+- 修改代码后必须保证上述两条命令通过
+
+## 代码约定
+- C11，不使用动态内存分配（禁止 malloc）
+- 中断服务函数只做标志设置和数据搬运，处理放在任务中
+- 寄存器访问使用 LL 库，不使用 HAL
+- 第三方代码在 third_party/，不要修改
+
+## 注意
+- 寄存器相关修改需在提交说明中注明参考手册章节</code></pre>
+        <p>这份文件也是给新同事看的项目说明，写好它本身就有价值。</p>
+      </section>
+
+      <section>
+        <h2>5. 推荐的工作流程</h2>
+        <ol>
+          <li><strong>任务拆小</strong>：“给 Modbus 从机增加 0x10 写多个寄存器功能，并补充单元测试”比“完善 Modbus 功能”更容易得到正确结果。</li>
+          <li><strong>先计划后修改</strong>：让 AI 先说明打算修改哪些文件、如何实现，确认方向后再动手。</li>
+          <li><strong>让它自己验证</strong>：要求 AI 修改后执行编译和测试，把错误信息反馈给它继续修正，而不是由人来回复制粘贴。</li>
+          <li><strong>审查差异</strong>：用 <code>git diff</code> 逐个文件审查改动，重点看是否有超出任务范围的修改。</li>
+          <li><strong>硬件验证</strong>：编译和测试通过后，上板验证由工程师完成，结果（日志、波形）可以再交给 AI 分析。</li>
+          <li><strong>小步提交</strong>：每完成一个可验证的步骤就提交，出问题时可以回退。Git 工作习惯见 <a href="../git-embedded-workflow/git-embedded-workflow.html?v=56c52c2d6fcc">嵌入式项目的 Git 工作流</a>。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>6. 提问的方式</h2>
+        <p>AI 的回答质量很大程度取决于提供的信息：</p>
+        <table>
+          <thead><tr><th>不好的问法</th><th>更好的问法</th></tr></thead>
+          <tbody>
+            <tr><td>“串口收不到数据”</td><td>“STM32G4 的 USART2 使用 DMA 循环接收 + 空闲中断，波特率 115200，示波器看 RX 引脚有波形，但空闲中断从不触发。相关代码在 drivers/uart.c，请检查初始化和中断使能”</td></tr>
+            <tr><td>“程序死机了”</td><td>“运行约 2 小时后 HardFault，下面是 HardFault 处理中打印的寄存器和 map 文件中相关地址段，请分析可能原因”</td></tr>
+            <tr><td>“写一个 SPI 驱动”</td><td>“参考 drivers/i2c_sensor.c 的分层方式，为 W25Q64 写一个 SPI Flash 驱动，提供读、页编程、扇区擦除和读 ID，SPI 底层接口已在 bsp/spi.h 中”</td></tr>
+          </tbody>
+        </table>
+        <p>要点：说明芯片型号和软件环境、已经确认的事实、相关文件位置，以及期望的产出形式。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：用 AI 助手开发一个产测工具</h2>
+        <p>需求：产线需要一个工具，通过串口向设备发送测试命令，依次测试 LED、按键、ADC、Flash、RS485，生成测试报告。</p>
+        <ol>
+          <li><strong>设备端</strong>：工程师定义测试命令协议（命令码、参数、应答格式），写入文档。让 AI 根据文档在固件中实现命令解析框架和各测试项的骨架，工程师补充和核对硬件相关部分。</li>
+          <li><strong>上位机端</strong>：让 AI 根据同一份协议文档编写 Python 或 Tauri 上位机：串口选择、逐项测试、超时处理、结果判定、CSV 报告。这部分几乎可以完全交给 AI，工程师负责审查和试用。</li>
+          <li><strong>测试</strong>：让 AI 为协议解析编写单元测试，并写一个模拟设备的脚本（虚拟串口应答），在没有硬件时也能测试上位机流程。</li>
+          <li><strong>上线</strong>：工程师在真实设备上验证，把产线反馈的问题和日志交给 AI 修改。</li>
+        </ol>
+        <p>整个过程中，AI 承担了大量协议实现、界面和测试代码的编写，工程师把精力放在协议设计、硬件相关代码和最终验证上。</p>
+      </section>
+
+      <section>
+        <h2>8. AI 辅助开发检查清单</h2>
+        <ul>
+          <li>仓库中是否有 <code>CLAUDE.md</code> / <code>AGENTS.md</code> 等说明文件，写明硬件、构建测试命令和代码约定。</li>
+          <li>任务是否拆分得足够小，是否先确认实现方案再修改代码。</li>
+          <li>AI 修改后是否自行执行了编译和测试，测试是否被不当修改。</li>
+          <li>寄存器、时序、中断与安全相关代码是否经过工程师对照手册审查。</li>
+          <li>是否用 <code>git diff</code> 审查了全部改动，并小步提交。</li>
+          <li>是否避免向 AI 提供密钥、密码和受保密协议约束的数据。</li>
+          <li>最终功能是否在真实硬件上验证。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=56c52c2d6fcc#dev-tools/coding-agent">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
+</body>
+</html>

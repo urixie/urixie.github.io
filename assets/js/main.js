@@ -573,7 +573,8 @@ function scrollPageToTop() {
 const CODE_LANG_LABELS = {
   c: 'C', cpp: 'C', h: 'C', bash: 'Bash', sh: 'Bash', shell: 'Bash', console: 'Bash',
   verilog: 'Verilog', python: 'Python', makefile: 'Makefile', ini: 'INI', dts: 'DTS',
-  json: 'JSON', armasm: 'ASM', tcl: 'Tcl', xdc: 'XDC', sdc: 'SDC', plaintext: '文本', text: '文本', txt: '文本'
+  json: 'JSON', armasm: 'ASM', tcl: 'Tcl', xdc: 'XDC', sdc: 'SDC', plaintext: '文本', text: '文本', txt: '文本',
+  rust: 'Rust', ts: 'TypeScript', cmake: 'CMake', gitignore: '.gitignore', markdown: 'Markdown'
 };
 const AUTO_HIGHLIGHT_LANGUAGES = ['c', 'bash', 'verilog', 'python', 'ini', 'dts', 'makefile', 'json'];
 const CODE_COLLAPSE_LINES = 40;

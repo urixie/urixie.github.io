@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式项目的 Git 工作流 - XYJ</title>
+  <meta name="description" content="整理嵌入式项目的 .gitignore、厂商 SDK 管理、分支与提交习惯、固件版本嵌入、Git LFS、CI 与 git bisect 定位回归问题。">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#dev-tools/coding-agent">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>嵌入式项目的 Git 工作流</h1>
+      <p class="article-summary">整理嵌入式项目的 .gitignore、厂商 SDK 管理、分支与提交习惯、固件版本嵌入、Git LFS、CI 与 git bisect 定位回归问题。</p>
+
+      <section>
+        <h2>1. 嵌入式项目用 Git 的特殊之处</h2>
+        <p>与纯软件项目相比，嵌入式项目在版本管理上有几个特点：</p>
+        <ul>
+          <li><strong>IDE 工程文件多</strong>：Keil、IAR、STM32CubeIDE、Vivado 会生成大量用户相关或自动生成的文件。</li>
+          <li><strong>厂商 SDK 体积大</strong>：HAL 库、BSP、内核源码动辄几百 MB。</li>
+          <li><strong>二进制文件多</strong>：固件、比特流、数据手册、原理图 PDF。</li>
+          <li><strong>软硬件版本要对应</strong>：同一份代码可能运行在多个硬件版本上，现场设备需要追溯到准确的源码版本。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. .gitignore：只提交源，不提交生成物</h2>
+        <pre><code class="language-gitignore"># 编译产物
+build/
+Debug/
+Release/
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+
+# Keil MDK：保留 .uvprojx（工程）与 .uvoptx（可选），忽略用户与输出文件
+*.uvguix.*
+*.scvd
+Objects/
+Listings/
+JLinkLog.txt
+
+# IAR
+settings/
+*.dep
+
+# Vivado：工程目录整体忽略，用 Tcl 脚本重建
+*.cache/
+*.hw/
+*.runs/
+*.sim/
+*.ip_user_files/
+.Xil/
+*.jou
+*.log
+
+# 编辑器
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json</code></pre>
+        <p>判断一个文件该不该提交：<strong>换一台电脑、拿到仓库后，没有它能否从源码重新生成？</strong> 能重新生成的就不提交。Vivado 工程的脚本化重建方法见 <a href="../../../fpga/xilinx/vivado-flow-debug/vivado-flow-debug.html?v=56c52c2d6fcc">Vivado 设计流程与调试</a>。</p>
+      </section>
+
+      <section>
+        <h2>3. 厂商 SDK 怎么管理</h2>
+        <table>
+          <thead><tr><th>方式</th><th>优点</th><th>缺点</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>直接拷贝进仓库（vendoring）</td><td>简单，克隆即可编译，可直接修改</td><td>仓库变大，升级 SDK 时难以区分自己的修改</td><td>MCU 项目的 HAL 库</td></tr>
+            <tr><td>Git 子模块（submodule）</td><td>仓库小，SDK 版本精确记录</td><td>克隆需要 <code>--recursive</code>，团队容易用错</td><td>内核、U-Boot 等大仓库</td></tr>
+            <tr><td>补丁 + 构建系统拉取</td><td>修改清晰，便于升级基线</td><td>需要构建系统支持</td><td>Buildroot / Yocto 项目</td></tr>
+          </tbody>
+        </table>
+        <p>无论哪种方式，都要做到：<strong>SDK 原始版本可识别</strong>（记录版本号或提交号），<strong>自己的修改与原始代码分开</strong>（独立提交或补丁文件）。直接在拷贝的 HAL 库里到处修改又不记录，是升级 SDK 时最大的麻烦来源。</p>
+        <pre><code class="language-bash">git submodule add https://github.com/vendor/sdk.git third_party/sdk
+git -C third_party/sdk checkout v2.4.1
+git add third_party/sdk &amp;&amp; git commit -m "引入 SDK v2.4.1"
+
+# 其他人克隆
+git clone --recursive &lt;repo&gt;
+# 或已克隆后
+git submodule update --init --recursive</code></pre>
+      </section>
+
+      <section>
+        <h2>4. 分支与提交习惯</h2>
+        <p>小团队嵌入式项目推荐简单的分支模型：</p>
+        <ul>
+          <li><code>main</code>：始终可编译、可烧录，发布版本从这里打标签。</li>
+          <li>功能分支：<code>feature/modbus-master</code>、<code>fix/adc-offset</code>，完成后合并回 main。</li>
+          <li>发布维护分支（需要时）：<code>release/v1.2</code>，用于给已发布版本修复问题。</li>
+        </ul>
+        <p>提交信息写清楚“改了什么、为什么”：</p>
+        <pre><code class="language-text">修复 ADC 采样在低温下偏移
+
+低温时内部参考电压漂移导致读数偏低约 2%。
+改为每次采样同时读取 VREFINT 并按出厂校准值换算。
+
+测试：-20℃ / 25℃ / 60℃ 三点对比万用表，误差小于 0.5%。</code></pre>
+        <p>一个提交只做一件事。“修复 bug + 格式化整个文件 + 顺手改了别的”的提交，在排查回归问题时几乎无法使用。</p>
+      </section>
+
+      <section>
+        <h2>5. 版本号写进固件</h2>
+        <p>现场设备返修时，第一个问题就是“它运行的是哪个版本”。让构建系统自动把 Git 信息编译进固件：</p>
+        <pre><code class="language-makefile"># Makefile
+GIT_DESC := $(shell git describe --tags --always --dirty)
+CFLAGS += -DFW_VERSION_STR=\"$(GIT_DESC)\"</code></pre>
+        <pre><code class="language-cmake"># CMake
+execute_process(COMMAND git describe --tags --always --dirty
+                OUTPUT_VARIABLE GIT_DESC OUTPUT_STRIP_TRAILING_WHITESPACE)
+target_compile_definitions(app PRIVATE FW_VERSION_STR="${GIT_DESC}")</code></pre>
+        <p><code>git describe</code> 的输出如 <code>v1.2.0-5-g3a7f2c1-dirty</code>，含义是：最近的标签 <code>v1.2.0</code>，之后 5 个提交，当前提交 <code>3a7f2c1</code>，<code>-dirty</code> 表示有未提交的修改。<strong>发布的固件不应该带 <code>-dirty</code></strong>，构建脚本可以检测到后拒绝生成发布包。设备通过串口命令或通信协议可以读取版本字符串。构建与链接流程见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=56c52c2d6fcc">编译、链接与启动</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. 二进制文件与 Git LFS</h2>
+        <p>数据手册、原理图、测试用的固件样本等二进制文件，频繁修改会让仓库迅速膨胀。可以使用 Git LFS：</p>
+        <pre><code class="language-bash">git lfs install
+git lfs track "*.pdf" "docs/**/*.xlsx" "firmware-samples/*.bin"
+git add .gitattributes</code></pre>
+        <p>但要注意：编译产物（每次构建都变化的 <code>.hex</code>、<code>.bit</code>）不应该放进仓库，即使使用 LFS 也不推荐，应当作为发布产物保存在 CI 或发布页面中。</p>
+      </section>
+
+      <section>
+        <h2>7. 提交前检查与持续集成</h2>
+        <p>用 Git 钩子或 CI 自动执行检查，比依赖人工更可靠：</p>
+        <pre><code class="language-bash"># .git/hooks/pre-commit（或使用 pre-commit 框架统一管理）
+#!/bin/sh
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(c|h)$')
+[ -z "$files" ] &amp;&amp; exit 0
+clang-format --dry-run --Werror $files || { echo "请先运行 clang-format"; exit 1; }</code></pre>
+        <p>CI 中至少应包括：</p>
+        <ul>
+          <li>使用固定版本的交叉编译工具链（Docker 镜像）编译所有目标板配置。</li>
+          <li>编译警告视为错误（<code>-Wall -Wextra -Werror</code>），静态检查（cppcheck、clang-tidy）。</li>
+          <li>运行可以在主机上执行的单元测试（协议解析、算法、状态机）。</li>
+          <li>保存发布产物：<code>.elf</code>（带调试符号，用于分析现场崩溃）、<code>.hex</code> / <code>.bin</code>、<code>.map</code>，以及版本信息。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. 工作场景：定位一个“某个版本之后才出现”的问题</h2>
+        <p>现象：v1.3.0 之后，设备偶尔在上电时 Modbus 无响应，v1.2.0 正常。</p>
+        <p>v1.2.0 与 v1.3.0 之间有 47 个提交，用二分查找定位引入问题的提交：</p>
+        <pre><code class="language-bash">git bisect start
+git bisect bad v1.3.0
+git bisect good v1.2.0
+# Git 切换到中间的提交：编译、烧录、反复上电测试，然后标记
+git bisect good    # 或 git bisect bad
+# 约 6 次后定位到引入问题的提交
+git bisect reset</code></pre>
+        <ol>
+          <li><strong>二分查找</strong>：每一步编译、烧录并上电测试 20 次，根据结果标记 good / bad，约 6 轮后定位到问题提交。</li>
+          <li><strong>分析提交</strong>：问题提交调整了时钟初始化顺序，串口在时钟稳定前就完成了初始化。</li>
+          <li><strong>修复与回归</strong>：修复后在 main 上提交，并 cherry-pick 到 <code>release/v1.3</code> 分支发布 v1.3.1。</li>
+        </ol>
+        <p><code>git bisect</code> 能发挥作用的前提是：每个提交都能独立编译、提交粒度足够小。这也是坚持“一个提交只做一件事”的回报。</p>
+      </section>
+
+      <section>
+        <h2>9. Git 工程检查清单</h2>
+        <ul>
+          <li><code>.gitignore</code> 是否排除了编译产物和 IDE 用户文件，工程能否从仓库干净地重新构建。</li>
+          <li>厂商 SDK 的原始版本是否可识别，自己的修改是否与原始代码分开。</li>
+          <li>提交是否小而独立，提交信息是否说明原因和测试情况。</li>
+          <li>固件中是否自动嵌入了 <code>git describe</code> 版本信息，发布版本是否禁止 <code>-dirty</code>。</li>
+          <li>发布产物（elf、hex/bin、map）是否保存在 CI 或发布页面，而不是提交进仓库。</li>
+          <li>是否有提交前格式检查和 CI 编译、静态检查、单元测试。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=56c52c2d6fcc#dev-tools/coding-agent">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
+</body>
+</html>

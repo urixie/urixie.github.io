@@ -1040,13 +1040,33 @@
       {
         "id": "lvgl",
         "title": "LVGL",
-        "desc": "LVGL 控件、布局、主题和屏幕交互相关内容后续补充。",
-        "placeholders": [
-          "LVGL控件",
-          "主题配色",
-          "屏幕交互"
-        ],
-        "articles": []
+        "desc": "LVGL 移植、显示与触摸驱动、控件布局、样式主题与界面架构。",
+        "articles": [
+          {
+            "navTitle": "LVGL 移植与显示驱动",
+            "navDesc": "flush 回调、双缓冲、触摸、RTOS 集成",
+            "href": "articles/gui/lvgl/lvgl-port-display/lvgl-port-display.html",
+            "tags": [
+              "LVGL",
+              "GUI",
+              "显示",
+              "触摸"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "控件、布局与界面架构",
+            "navDesc": "对象树、Flex/Grid、样式、界面与业务分离",
+            "href": "articles/gui/lvgl/lvgl-widgets-architecture/lvgl-widgets-architecture.html",
+            "tags": [
+              "LVGL",
+              "GUI",
+              "布局",
+              "架构"
+            ],
+            "updated": "2026-10-31"
+          }
+        ]
       },
       {
         "id": "nxp",
@@ -1077,13 +1097,33 @@
       {
         "id": "tauri-rust",
         "title": "Rust/Tauri",
-        "desc": "Rust/Tauri 上位机、文件解析、加密配置和设备通信内容后续补充。",
-        "placeholders": [
-          "Rust/Tauri",
-          "文件解析",
-          "加密配置"
-        ],
-        "articles": []
+        "desc": "Rust/Tauri 串口上位机、二进制文件解析、校验与加密配置。",
+        "articles": [
+          {
+            "navTitle": "Tauri 串口上位机",
+            "navDesc": "Rust 命令、事件推送、协议分层与打包",
+            "href": "articles/host-tools/tauri-rust/tauri-serial-app/tauri-serial-app.html",
+            "tags": [
+              "Rust",
+              "Tauri",
+              "上位机",
+              "串口"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "二进制解析与加密",
+            "navDesc": "格式定义、CRC、签名、AES-GCM、密钥管理",
+            "href": "articles/host-tools/tauri-rust/host-binary-parse-crypto/host-binary-parse-crypto.html",
+            "tags": [
+              "Rust",
+              "二进制",
+              "CRC",
+              "加密"
+            ],
+            "updated": "2026-10-31"
+          }
+        ]
       },
       {
         "id": "wireless-client",
@@ -1181,14 +1221,32 @@
       {
         "id": "coding-agent",
         "title": "AI与代码工具",
-        "desc": "Git、Codex、Claude Code、远程开发和自动化工具相关内容后续补充。",
-        "placeholders": [
-          "Git",
-          "Codex",
-          "Claude Code",
-          "远程开发"
-        ],
-        "articles": []
+        "desc": "嵌入式项目的 Git 工作流，以及 Claude Code、Codex 等 AI 编程助手的使用方法。",
+        "articles": [
+          {
+            "navTitle": "嵌入式 Git 工作流",
+            "navDesc": "SDK 管理、版本嵌入、CI、git bisect",
+            "href": "articles/dev-tools/coding-agent/git-embedded-workflow/git-embedded-workflow.html",
+            "tags": [
+              "Git",
+              "CI",
+              "版本管理"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "AI 编程助手实践",
+            "navDesc": "适用范围、CLAUDE.md、工作流程与风险",
+            "href": "articles/dev-tools/coding-agent/ai-coding-assistant/ai-coding-assistant.html",
+            "tags": [
+              "AI",
+              "ClaudeCode",
+              "Codex",
+              "工作流"
+            ],
+            "updated": "2026-10-31"
+          }
+        ]
       }
     ]
   },

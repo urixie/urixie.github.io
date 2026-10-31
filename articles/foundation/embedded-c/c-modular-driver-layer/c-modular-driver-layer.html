@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>嵌入式 C 模块化与驱动分层设计 - XYJ</title>
   <meta name="description" content="整理嵌入式工程的模块化与分层方法：分层结构与依赖规则、头文件接口与不透明指针、函数指针操作表抽象设备、依赖注入与 PC 端测试、板级差异管理、错误码约定、初始化顺序和目录结构，并以一套业务适配两款传感器为例。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#foundation/embedded-c">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#foundation/embedded-c">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -203,7 +203,7 @@ const size_t board_led_count = sizeof(board_leds) / sizeof(board_leds[0]);</code
     sensor_init_all();     /* 依赖 i2c 和 param 中的校准值 */
     app_init();
 }</code></pre>
-        <p>RT-Thread 的 <code>INIT_BOARD_EXPORT</code>、<code>INIT_DEVICE_EXPORT</code> 等宏，利用链接器段把初始化函数按等级自动收集并依次调用，是这一思路的自动化版本，原理和 <a href="../c-embedded-c/c-embedded-c.html?v=176874b30373">GNU C 的 section 属性</a> 有关。</p>
+        <p>RT-Thread 的 <code>INIT_BOARD_EXPORT</code>、<code>INIT_DEVICE_EXPORT</code> 等宏，利用链接器段把初始化函数按等级自动收集并依次调用，是这一思路的自动化版本，原理和 <a href="../c-embedded-c/c-embedded-c.html?v=56c52c2d6fcc">GNU C 的 section 属性</a> 有关。</p>
       </section>
 
       <section>
@@ -261,11 +261,11 @@ void climate_task(void)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#foundation/embedded-c">返回对应专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#foundation/embedded-c">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>MCU ADC 采样与模拟前端 - XYJ</title>
   <meta name="description" content="整理 MCU ADC 读数不准的常见原因与对策：关键参数、采样时间与源阻抗、参考电压与 VREFINT 校准、定时触发加 DMA 的多通道采样、软件滤波与过采样、硬件布局，以及电池电压与 NTC 温度采集实例。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#mcu/peripheral">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#mcu/peripheral">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -119,7 +119,7 @@ uint16_t adc_get(uint8_t ch)
             <tr><td>过采样</td><td>采样 4^n 次求和，右移 n 位</td><td>在噪声足够的前提下提升 n 位有效分辨率</td></tr>
           </tbody>
         </table>
-        <p>过采样的原理是：在存在足够随机噪声的情况下，采样 4 次求和后右移 1 位，可以得到多 1 位的有效分辨率。12 位 ADC 采样 16 次求和右移 2 位得到 14 位结果。部分 STM32（L4、G0、G4 等）带硬件过采样单元，可直接在硬件中完成累加和移位。整数滤波的实现细节见 <a href="../../../foundation/c-basic/c-integer-arithmetic/c-integer-arithmetic.html?v=176874b30373">整数运算、溢出与定点数</a>。</p>
+        <p>过采样的原理是：在存在足够随机噪声的情况下，采样 4 次求和后右移 1 位，可以得到多 1 位的有效分辨率。12 位 ADC 采样 16 次求和右移 2 位得到 14 位结果。部分 STM32（L4、G0、G4 等）带硬件过采样单元，可直接在硬件中完成累加和移位。整数滤波的实现细节见 <a href="../../../foundation/c-basic/c-integer-arithmetic/c-integer-arithmetic.html?v=56c52c2d6fcc">整数运算、溢出与定点数</a>。</p>
       </section>
 
       <section>
@@ -166,11 +166,11 @@ static inline uint32_t ntc_ohm(uint16_t raw)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#mcu/peripheral">返回对应专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#mcu/peripheral">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

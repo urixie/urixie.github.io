@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>根文件系统组成与构建流程 - XYJ</title>
   <meta name="description" content="整理嵌入式 Linux 根文件系统的目录结构、BusyBox、动态库、设备节点、init、挂载、Buildroot.Ubuntu Base、打包格式和常见启动问题。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#soc-linux/boot-kernel-rootfs">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/boot-kernel-rootfs">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-      <a href="../../../../index.html?v=176874b30373#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+      <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
     </div>
 
     <article class="article card">
@@ -253,7 +253,7 @@ $(eval $(cmake-package))</code></pre>
         <ol>
           <li><strong>基线</strong>：从 SoC 厂商 SDK 中提取能启动的 Buildroot 配置，确认串口登录正常。</li>
           <li><strong>外部目录</strong>：建立 BR2_EXTERNAL，把板级配置、overlay、自研应用包移入，产品仓库与 Buildroot 版本解耦。</li>
-          <li><strong>分区与镜像</strong>：用 genimage 描述分区表，post-image 脚本生成完整烧录镜像和 OTA 升级包，分区规划见 <a href="../../linux-basic/linux-storage-fs/linux-storage-fs.html?v=176874b30373">嵌入式存储与文件系统</a>。</li>
+          <li><strong>分区与镜像</strong>：用 genimage 描述分区表，post-image 脚本生成完整烧录镜像和 OTA 升级包，分区规划见 <a href="../../linux-basic/linux-storage-fs/linux-storage-fs.html?v=56c52c2d6fcc">嵌入式存储与文件系统</a>。</li>
           <li><strong>只读化</strong>：rootfs 改为只读，可写目录迁移到 data 分区或 tmpfs。</li>
           <li><strong>安全</strong>：配置用户、SSH 和服务，检查监听端口。</li>
           <li><strong>可复现</strong>：在 CI 中用固定版本的 Docker 镜像构建，产物记录 Buildroot 版本、外部目录提交号和配置哈希。</li>
@@ -279,10 +279,10 @@ $(eval $(cmake-package))</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/boot-kernel-rootfs">返回 Linux专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

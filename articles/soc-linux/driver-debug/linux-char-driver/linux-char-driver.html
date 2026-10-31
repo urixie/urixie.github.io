@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Linux 字符设备驱动入门 - XYJ</title>
   <meta name="description" content="从 platform 驱动与设备树匹配、devm 资源管理、中断与 file_operations 讲起，配合一个完整驱动骨架，说明何时需要写驱动以及调试方法。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/driver-debug">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -33,7 +33,7 @@
         <p>嵌入式 Linux 项目中，大部分常见外设已经有现成的内核驱动：I2C 传感器有 IIO 驱动，SPI Flash 有 MTD 驱动，以太网 PHY、USB、显示屏也都有。自己写驱动之前先确认三件事：</p>
         <ol>
           <li><strong>内核里是否已有驱动</strong>：搜索内核源码中芯片型号或兼容字符串（<code>grep -r "ti,ads1015" drivers/</code>），往往只需要在设备树中添加节点、在内核配置中打开。</li>
-          <li><strong>能否在用户态完成</strong>：低速的 GPIO、I2C、SPI 设备，通过 <code>libgpiod</code>、<code>/dev/i2c-*</code>、<code>spidev</code> 在用户态访问就能满足需求，调试更方便，见 <a href="../linux-userspace-peripheral/linux-userspace-peripheral.html?v=176874b30373">用户态访问 GPIO、I2C、SPI 与 UART</a>。</li>
+          <li><strong>能否在用户态完成</strong>：低速的 GPIO、I2C、SPI 设备，通过 <code>libgpiod</code>、<code>/dev/i2c-*</code>、<code>spidev</code> 在用户态访问就能满足需求，调试更方便，见 <a href="../linux-userspace-peripheral/linux-userspace-peripheral.html?v=56c52c2d6fcc">用户态访问 GPIO、I2C、SPI 与 UART</a>。</li>
           <li><strong>确实需要内核驱动的情况</strong>：有严格实时性要求的中断处理、需要 DMA、需要接入内核子系统（输入、IIO、网络、显示），或者需要给多个进程提供统一的设备抽象。</li>
         </ol>
       </section>
@@ -176,7 +176,7 @@ static const struct file_operations mydev_fops = {
           <li><strong>资源是否正确</strong>：<code>cat /proc/interrupts</code> 中断计数是否增长，<code>cat /proc/iomem</code> 寄存器区域是否被申请。</li>
           <li><strong>用户接口</strong>：<code>/dev/mydev</code> 是否存在、权限是否正确，用一个最小的测试程序读写验证。</li>
         </ol>
-        <p>更多内核与驱动调试手段，见 <a href="../linux-embedded-debug/linux-embedded-debug.html?v=176874b30373">嵌入式 Linux 驱动与系统调试</a>。</p>
+        <p>更多内核与驱动调试手段，见 <a href="../linux-embedded-debug/linux-embedded-debug.html?v=56c52c2d6fcc">嵌入式 Linux 驱动与系统调试</a>。</p>
       </section>
 
       <section>
@@ -193,11 +193,11 @@ static const struct file_operations mydev_fops = {
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#soc-linux/driver-debug">返回对应专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#soc-linux/driver-debug">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>

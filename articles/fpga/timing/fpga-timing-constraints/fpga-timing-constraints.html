@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>FPGA 时钟与时序约束 - XYJ</title>
   <meta name="description" content="整理 FPGA 时序约束的核心概念与写法：建立与保持时间、时钟约束与生成时钟、异步时钟组、输入输出延迟、false path 与 multicycle 例外、时序报告解读，并给出一个 ADC 采集工程的完整约束示例。">
-  <script src="../../../../assets/js/theme-init.js?v=176874b30373"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=176874b30373">
+  <script src="../../../../assets/js/theme-init.js?v=56c52c2d6fcc"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=56c52c2d6fcc">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=176874b30373">← 返回首页</a>
-          <a href="../../../../index.html?v=176874b30373#fpga/timing">返回对应专题</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc">← 返回首页</a>
+          <a href="../../../../index.html?v=56c52c2d6fcc#fpga/timing">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -67,8 +67,8 @@ set_clock_groups -asynchronous -group [get_clocks sys_clk] -group [get_clocks -i
         <ul>
           <li><strong>每个时钟输入引脚都要 <code>create_clock</code></strong>，包括外部芯片送来的随路时钟（如以太网 PHY 的 RX_CLK、ADC 的数据时钟）。</li>
           <li><strong>PLL 输出时钟由工具自动推导</strong>，只要输入时钟约束正确。手写会产生重复约束。</li>
-          <li><strong>尽量不要用逻辑分频产生时钟</strong>：逻辑产生的时钟不走全局时钟网络，偏斜大、难以约束。需要低频动作时，用时钟使能代替，见 <a href="../../hdl-basic/verilog-combinational-sequential/verilog-combinational-sequential.html?v=176874b30373">组合逻辑与时序逻辑</a>。</li>
-          <li><strong>异步时钟组必须声明</strong>：否则工具会尝试分析两个无关时钟之间的路径，报出大量虚假违例，掩盖真正的问题；但声明后工具不再检查这些路径，跨时钟域必须在设计上正确处理，见 <a href="../fpga-cdc/fpga-cdc.html?v=176874b30373">跨时钟域处理</a>。</li>
+          <li><strong>尽量不要用逻辑分频产生时钟</strong>：逻辑产生的时钟不走全局时钟网络，偏斜大、难以约束。需要低频动作时，用时钟使能代替，见 <a href="../../hdl-basic/verilog-combinational-sequential/verilog-combinational-sequential.html?v=56c52c2d6fcc">组合逻辑与时序逻辑</a>。</li>
+          <li><strong>异步时钟组必须声明</strong>：否则工具会尝试分析两个无关时钟之间的路径，报出大量虚假违例，掩盖真正的问题；但声明后工具不再检查这些路径，跨时钟域必须在设计上正确处理，见 <a href="../fpga-cdc/fpga-cdc.html?v=56c52c2d6fcc">跨时钟域处理</a>。</li>
         </ul>
       </section>
 
@@ -118,7 +118,7 @@ set_multicycle_path 1 -hold  -from [get_cells mul_a_reg*] -to [get_cells mul_q_r
           </tbody>
         </table>
         <p><strong>“未约束路径”和“时钟交互报告”同样重要</strong>。Vivado 中运行 <code>report_clock_interaction</code> 可以看到每对时钟之间的路径是否被正确约束（安全、异步、未约束）；<code>check_timing</code> 会列出没有时钟的寄存器、没有输入延迟的端口等问题。时序全部通过之前，应先确保这些检查是干净的。</p>
-        <p>打开一条违例路径，重点看：起点和终点分别是哪个寄存器、经过了几级逻辑（Logic Levels）、逻辑延迟和布线延迟各占多少、扇出有多大。这些信息决定了如何优化，见 <a href="../fpga-timing-closure/fpga-timing-closure.html?v=176874b30373">时序收敛方法</a>。</p>
+        <p>打开一条违例路径，重点看：起点和终点分别是哪个寄存器、经过了几级逻辑（Logic Levels）、逻辑延迟和布线延迟各占多少、扇出有多大。这些信息决定了如何优化，见 <a href="../fpga-timing-closure/fpga-timing-closure.html?v=56c52c2d6fcc">时序收敛方法</a>。</p>
       </section>
 
       <section>
@@ -161,11 +161,11 @@ set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports clk_50m]</cod
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=176874b30373#fpga/timing">返回对应专题</a>
+        <a href="../../../../index.html?v=56c52c2d6fcc#fpga/timing">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=176874b30373"></script>
+  <script src="../../../../assets/js/main.js?v=56c52c2d6fcc"></script>
 </body>
 </html>
