@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FPGA 高速 ADC 采集与数据缓存 - XYJ</title>
+  <meta name="description" content="整理 FPGA 高速 ADC 采集的工程方法：ADC 接口类型、SPI 型 ADC 时序控制、并行与随路时钟对齐、LVDS 与 DDR 采样、测试图样验证、触发滤波抽取与缓存，并以 4 通道 65MSPS 采集卡为例。">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>FPGA 高速 ADC 采集与数据缓存</h1>
+      <p class="article-summary">整理 FPGA 高速 ADC 采集的工程方法：ADC 接口类型、SPI 型 ADC 时序控制、并行与随路时钟对齐、LVDS 与 DDR 采样、测试图样验证、触发滤波抽取与缓存，并以 4 通道 65MSPS 采集卡为例。</p>
+
+      <section>
+        <h2>1. 为什么用 FPGA 做 ADC 采集</h2>
+        <p>MCU 内置 ADC 一般在 1~5MSPS 量级，对于振动分析、超声、软件无线电、高速数据记录等场景远远不够。外置高速 ADC 动辄几十到几百 MSPS，每秒产生几十到上百 MB 的数据，只有 FPGA 能够实时接收、预处理（滤波、抽取、触发判断）和缓存这些数据，再把结果交给处理器。</p>
+        <p>常见的 ADC 接口按速度从低到高：</p>
+        <table>
+          <thead><tr><th>接口</th><th>典型速率</th><th>典型器件</th><th>FPGA 侧要点</th></tr></thead>
+          <tbody>
+            <tr><td>SPI 串行</td><td>几十 kSPS ~ 几 MSPS</td><td>AD7606（也有并行模式）、ADS8688、AD7980</td><td>状态机控制转换和读取时序</td></tr>
+            <tr><td>并行 CMOS</td><td>几十 ~ 一百多 MSPS</td><td>AD9226、AD9280</td><td>随路时钟或 FPGA 提供时钟，注意 IO 时序</td></tr>
+            <tr><td>并行 LVDS（DDR）</td><td>一百 ~ 数百 MSPS</td><td>AD9643、ADS4149</td><td>差分输入、IDDR 双沿采样、时钟相位调整</td></tr>
+            <tr><td>JESD204B/C</td><td>数百 MSPS ~ GSPS</td><td>AD9680</td><td>高速收发器 + JESD IP，复杂度高</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>2. SPI 型 ADC：控制转换时序</h2>
+        <p>以“启动转换 → 等待完成 → 读出数据”这类典型 ADC 为例，FPGA 用状态机严格按数据手册时序操作：</p>
+        <pre><code class="language-verilog">// 状态：IDLE → CONVST（拉低转换引脚若干周期）→ WAIT_BUSY（等待 BUSY 变低）→ READ（读出 N 个通道）→ IDLE
+// 采样率由一个定时器触发 IDLE → CONVST，保证采样间隔精确
+localparam S_IDLE = 2'd0, S_CONV = 2'd1, S_WAIT = 2'd2, S_READ = 2'd3;
+
+always @(posedge clk) begin
+    if (rst) state &lt;= S_IDLE;
+    else case (state)
+        S_IDLE: if (sample_tick) begin convst_n &lt;= 1'b0; cnt &lt;= 0; state &lt;= S_CONV; end
+        S_CONV: if (cnt == T_CONV_LOW) begin convst_n &lt;= 1'b1; state &lt;= S_WAIT; end
+                else cnt &lt;= cnt + 1'b1;
+        S_WAIT: if (!busy_sync) begin ch &lt;= 0; state &lt;= S_READ; end      // BUSY 是异步输入，先同步
+        S_READ: if (spi_done) begin
+                    if (ch == CH_NUM - 1) state &lt;= S_IDLE;
+                    else ch &lt;= ch + 1'b1;
+                end
+    endcase
+end</code></pre>
+        <p>要点：转换启动脉冲宽度、BUSY 等待、读数据时钟频率都要满足手册给出的最小 / 最大值；<code>sample_tick</code> 来自独立的计数器，采样间隔不受读出过程影响；BUSY 等异步输入同样要同步后使用。</p>
+      </section>
+
+      <section>
+        <h2>3. 并行 ADC：时钟与数据对齐</h2>
+        <p>并行 ADC 每个采样周期输出一个完整样本，关键在于<strong>让 FPGA 在数据稳定的时刻采样</strong>。两种时钟方案：</p>
+        <ul>
+          <li><strong>FPGA 提供采样时钟</strong>：FPGA 输出时钟给 ADC，ADC 在若干纳秒后输出数据。FPGA 内部用同一时钟（或调整过相位的同源时钟）采样数据。往返延迟随走线和温度变化，高速时需要 PLL 调整采样相位。</li>
+          <li><strong>ADC 输出随路时钟（DCO）</strong>：ADC 把数据和一个与数据对齐的时钟一起送出，FPGA 用这个随路时钟采样数据。这是高速 ADC 的主流方式，FPGA 内部因此多出一个时钟域，数据需要通过异步 FIFO 进入系统时钟域，见 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</li>
+        </ul>
+        <pre><code class="language-verilog">// 随路时钟采集：DCO 走时钟专用引脚，经全局 / 区域时钟缓冲后驱动 IOB 寄存器
+(* IOB = "TRUE" *) reg [11:0] adc_d_iob;
+always @(posedge adc_dco_bufg)
+    adc_d_iob &lt;= adc_d;                  // 第一级寄存器放进 IOB，时序固定</code></pre>
+        <p><strong>时序约束是并行采集能否稳定工作的关键</strong>：随路时钟用 <code>create_clock</code> 约束，数据用 <code>set_input_delay</code> 描述它相对时钟的到达时间，数值来自 ADC 数据手册的输出延迟参数，写法见 <a href="../../timing/fpga-timing-constraints/fpga-timing-constraints.html?v=801833ccbdeb">时钟与时序约束</a>。时序报告满足后，还要在板上用测试模式验证。</p>
+      </section>
+
+      <section>
+        <h2>4. LVDS 与 DDR 采样</h2>
+        <p>速率超过百兆后，ADC 通常改用 LVDS 差分输出，并且在时钟的上升沿和下降沿各输出一半数据（DDR），以减少引脚数量：</p>
+        <ul>
+          <li>差分对需要在约束中设置正确的电平标准（如 <code>LVDS_25</code>），并启用片内差分终端电阻（<code>DIFF_TERM TRUE</code>），或在板上放置 100Ω 终端。</li>
+          <li>使用 IDDR 原语在双沿采样，把一路 DDR 信号拆成两路 SDR 数据。</li>
+          <li>数据与时钟之间的相位关系可能需要用 IDELAY 精细调整，常见做法是上电时扫描延迟值，找到数据窗口中心（训练过程）。</li>
+        </ul>
+        <p>这部分与器件结构强相关，Xilinx 7 系列使用 <code>IDDR</code>、<code>IDELAYE2</code>、<code>ISERDESE2</code>，其他厂商有各自的原语。设计时以厂商的高速 ADC 参考设计为起点，比从零开始可靠得多。</p>
+      </section>
+
+      <section>
+        <h2>5. 用测试模式验证数据通路</h2>
+        <p>几乎所有高速 ADC 都支持输出测试图样（test pattern）：固定值、交替的 0x555 / 0xAAA、递增序列、伪随机序列。上板调试时，<strong>先不要接真实信号，而是让 ADC 输出测试图样</strong>：</p>
+        <ol>
+          <li>输出递增序列，用在线逻辑分析仪（ILA）抓取，检查数据是否连续递增、有没有跳码。</li>
+          <li>输出 0x555 / 0xAAA 交替图样，检查每一位是否都能正确翻转，定位某根数据线的焊接或走线问题。</li>
+          <li>改变温度（热风枪 / 冷却）、长时间运行，确认不出错，验证时序余量。</li>
+        </ol>
+        <p>测试图样全部正确后，再接入真实模拟信号。这样可以把“数字接口问题”和“模拟前端问题”分开排查。</p>
+      </section>
+
+      <section>
+        <h2>6. 数据预处理与缓存</h2>
+        <p>原始采样数据通常不会直接全部传出，而是在 FPGA 内部先做处理：</p>
+        <table>
+          <thead><tr><th>处理</th><th>作用</th><th>实现</th></tr></thead>
+          <tbody>
+            <tr><td>触发</td><td>只保存触发点前后的数据（类似示波器）</td><td>环形缓存持续写入，触发后再写 N 个点停止，读出时从触发前的位置开始</td></tr>
+            <tr><td>数字滤波</td><td>去除带外噪声</td><td>FIR 滤波器（DSP 资源，或厂商 FIR IP）</td></tr>
+            <tr><td>抽取</td><td>降低数据率</td><td>滤波后每 N 个点取 1 个（CIC + FIR 组合常用于大倍数抽取）</td></tr>
+            <tr><td>平均 / 累加</td><td>提高信噪比</td><td>多次采集同一触发时刻的数据逐点累加</td></tr>
+            <tr><td>打包</td><td>适配传输接口</td><td>12 位样本打包成 16 位或多个样本拼成 32 / 64 位</td></tr>
+          </tbody>
+        </table>
+        <p>缓存容量要按“采集点数 × 样本位宽”计算：16 位 × 64K 点 = 1Mb。7 系列一块 36Kb BRAM 按 2K × 18 位配置时可存 2K 个 16 位样本，共需 32 块。超出片上资源时，需要外部 DDR 作为大容量缓存。FIFO 深度和乒乓缓存的设计方法见 <a href="../fpga-fifo-ram/fpga-fifo-ram.html?v=801833ccbdeb">FIFO 与 RAM</a>。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：一个 4 通道、65MSPS 的数据采集卡</h2>
+        <p>需求：并行 CMOS ADC（12 位、65MSPS）× 4 通道，触发后采集 16K 点，通过 USB 或以太网上传。</p>
+        <ol>
+          <li><strong>时钟</strong>：FPGA 的 PLL 产生 65MHz 送给 4 片 ADC，内部用同源时钟采集，PLL 输出一路可调相位时钟用于采样相位调整。</li>
+          <li><strong>IO</strong>：数据第一级寄存器放入 IOB，写入输入延迟约束，时序报告满足后用测试图样验证。</li>
+          <li><strong>触发</strong>：在采集时钟域做电平 / 边沿触发判断，支持预触发深度配置。</li>
+          <li><strong>缓存</strong>：每通道 16K × 16 位，四通道共 1Mb（约 32 块 36Kb BRAM），使用环形缓存；触发完成后停止写入。</li>
+          <li><strong>传输</strong>：缓存数据经异步 FIFO 进入系统时钟域，打包后交给 USB / 以太网模块，由上位机读取。</li>
+          <li><strong>调试</strong>：ILA 观察触发点和数据，寄存器接口提供采集状态、溢出标志和测试模式开关。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. ADC 采集检查清单</h2>
+        <ul>
+          <li>ADC 接口类型、采样率、数据位宽、时钟方案是否明确，FPGA 引脚和电平标准是否匹配。</li>
+          <li>SPI 型 ADC 的转换与读取时序是否满足手册最小 / 最大值，BUSY 等异步输入是否同步。</li>
+          <li>并行 / LVDS 接口的时钟与输入延迟是否正确约束，第一级寄存器是否放进 IOB。</li>
+          <li>LVDS 是否设置了正确的电平标准和终端电阻，DDR 数据是否用 IDDR 正确拆分。</li>
+          <li>上板时是否先用测试图样验证数字接口，再接入真实信号。</li>
+          <li>采集时钟域到系统时钟域是否通过异步 FIFO 传递。</li>
+          <li>缓存容量和 FIFO 深度是否计算过，是否有溢出标志。</li>
+          <li>触发、滤波、抽取等处理是否在仿真中用已知数据验证过。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+</body>
+</html>

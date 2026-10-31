@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 组合逻辑与时序逻辑 - XYJ</title>
   <meta name="description" content="整理 Verilog 组合逻辑、时序逻辑、锁存器、寄存器、复位、计数器、边沿检测、流水线和 FPGA 时序设计注意事项。">
-  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-          <a href="../../../../index.html?v=9d252b978179#fpga/hdl-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/hdl-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-      <a href="../../../../index.html?v=9d252b978179#fpga/hdl-basic">返回 Verilog专题</a>
+      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+      <a href="../../../../index.html?v=801833ccbdeb#fpga/hdl-basic">返回 Verilog专题</a>
     </div>
 
     <article class="article card">
@@ -38,7 +38,7 @@
       </p>
 
       <section>
-        <h2>一、组合逻辑</h2>
+        <h2>1. 组合逻辑</h2>
         <p>
           组合逻辑没有记忆能力，输出只取决于当前输入。常见组合逻辑包括选择器、译码器、比较器、加法器、优先级编码器等。
         </p>
@@ -55,7 +55,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>二、避免意外锁存器</h2>
+        <h2>2. 避免意外锁存器</h2>
         <p>
           如果组合逻辑中某些条件下没有给输出赋值，硬件为了保持之前的值，就可能生成 latch。大多数 FPGA 同步设计中应避免意外 latch。
         </p>
@@ -74,7 +74,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>三、时序逻辑</h2>
+        <h2>3. 时序逻辑</h2>
         <p>
           时序逻辑由时钟边沿触发，常用于寄存器、计数器、状态机、流水线和数据同步。时序逻辑的核心是“时钟边沿更新”。
         </p>
@@ -103,7 +103,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>四、同步复位与异步复位</h2>
+        <h2>4. 同步复位与异步复位</h2>
         <p>
           异步复位不依赖时钟，复位信号有效时立即复位；同步复位只在时钟边沿判断复位条件。工程中两种都常见，关键是整个项目风格要统一。
         </p>
@@ -125,7 +125,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>五、计数器</h2>
+        <h2>5. 计数器</h2>
         <p>
           计数器是最常见的时序逻辑。LED 闪烁、采样节拍、超时判断、波特率分频都可能用到计数器。</p>
         <pre><code class="language-verilog">reg [15:0] cnt;
@@ -141,7 +141,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>六、边沿检测</h2>
+        <h2>6. 边沿检测</h2>
         <p>
           边沿检测通常通过打一拍实现。把当前信号和上一拍信号比较，就能得到上升沿或下降沿脉冲。</p>
         <pre><code class="language-verilog">reg trig_d;
@@ -157,7 +157,7 @@ assign trig_rise = trig &amp; ~trig_d;</code></pre>
       </section>
 
       <section>
-        <h2>七、流水线</h2>
+        <h2>7. 流水线</h2>
         <p>
           流水线通过插入寄存器把长组合路径拆短，提高时钟频率。代价是增加延迟，也就是数据要多等几个时钟周期才输出。</p>
         <pre><code class="language-verilog">always @(posedge clk) begin
@@ -168,7 +168,122 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>八、组合与时序检查清单</h2>
+        <h2>8. 时钟使能，而不是门控时钟</h2>
+        <p>需要“每秒动作一次”“每 100 个周期采样一次”时，初学者常用计数器产生一个低频信号，再拿它当时钟驱动其他寄存器。这在 FPGA 中是要避免的：</p>
+        <ul>
+          <li>逻辑产生的“时钟”不走全局时钟网络，到达各个寄存器的时间差（偏斜）很大，时序无法保证。</li>
+          <li>两个时钟之间形成了跨时钟域，需要额外的同步处理。</li>
+          <li>用组合逻辑控制时钟（门控时钟，如 <code>assign gclk = clk &amp; en;</code>）还会产生毛刺，导致寄存器误触发。</li>
+        </ul>
+        <p>正确的做法是：<strong>所有寄存器使用同一个时钟，用使能信号控制它们什么时候更新</strong>。</p>
+        <pre><code class="language-verilog">// 推荐：1ms 节拍使能（50MHz 时钟）
+localparam integer TICK_DIV = 50_000;
+reg [15:0] tick_cnt;
+wire       tick_1ms = (tick_cnt == TICK_DIV - 1);
+
+always @(posedge clk) begin
+    tick_cnt &lt;= tick_1ms ? 16'd0 : tick_cnt + 1'b1;
+    if (tick_1ms)                      // 每 1ms 更新一次，仍然是同一个 clk 驱动
+        ms_counter &lt;= ms_counter + 1'b1;
+end</code></pre>
+        <p>FPGA 的每个触发器都有专用的时钟使能（CE）端口，使能写法会直接映射到 CE，不额外消耗逻辑。确实需要不同频率的时钟（例如外设接口要求），应使用 PLL / MMCM 产生，并按跨时钟域规则处理数据交互。</p>
+      </section>
+
+      <section>
+        <h2>9. FPGA 中的复位策略</h2>
+        <p>上一节提到“同步复位和异步复位都可以，关键是统一”，在 FPGA 工程中还可以更进一步：</p>
+        <ul>
+          <li><strong>FPGA 上电配置完成后，所有寄存器已经处于确定的初始值</strong>（代码中的初值，或默认 0）。这和 ASIC 上电后状态随机不同。</li>
+          <li>因此，<strong>数据通路寄存器（流水线数据、移位寄存器、乘法器输入输出）通常不需要复位</strong>。去掉这些复位后，综合工具可以把它们合并进 DSP、SRL（移位寄存器 LUT）或 BRAM，资源和时序都会改善。</li>
+          <li><strong>控制通路必须复位</strong>：状态机、计数器、valid / 握手信号、错误标志，要保证复位后处于确定状态。</li>
+          <li>外部复位按钮或上电复位是异步信号，进入每个时钟域前都要经过“异步复位、同步释放”的复位同步器，见 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</li>
+        </ul>
+        <p>复位对时序的影响和更多细节，见 <a href="../../timing/fpga-timing-closure/fpga-timing-closure.html?v=801833ccbdeb">时序收敛方法</a>。</p>
+      </section>
+
+      <section>
+        <h2>10. 让代码映射到正确的硬件资源</h2>
+        <p>同一个功能，写法不同，综合出的硬件资源可能完全不同。几种常见结构的推荐写法：</p>
+        <table>
+          <thead><tr><th>功能</th><th>映射目标</th><th>写法要点</th></tr></thead>
+          <tbody>
+            <tr><td>乘法、乘加</td><td>DSP 硬核</td><td>操作数位宽不超过 DSP 端口（7 系列为 25×18），输入输出各打一拍以利用 DSP 内部寄存器</td></tr>
+            <tr><td>长移位寄存器 / 延迟线</td><td>SRL（LUT 实现的移位寄存器）</td><td>不要复位，不要读取中间级，只读取末端或固定级</td></tr>
+            <tr><td>大数组</td><td>BRAM</td><td>同步读，不要整体复位，见 <a href="../../interfaces/fpga-fifo-ram/fpga-fifo-ram.html?v=801833ccbdeb">FIFO 与 RAM</a></td></tr>
+            <tr><td>小查找表</td><td>LUT / 分布式 RAM</td><td><code>case</code> 或常量数组</td></tr>
+            <tr><td>计数器、加法器</td><td>LUT + 进位链</td><td>正常写法即可，宽计数器注意时序</td></tr>
+          </tbody>
+        </table>
+        <p>综合完成后，查看资源报告中的 DSP、BRAM、SRL 使用量，确认关键结构确实映射到了预期的资源上。如果一个本该用 BRAM 的数组消耗了几千个寄存器，说明写法不符合推断规则。</p>
+      </section>
+
+      <section>
+        <h2>11. 工作场景：按键消抖与长按检测</h2>
+        <p>把同步、计数器、边沿检测组合起来，实现一个可靠的按键处理模块：</p>
+        <pre><code class="language-verilog">module key_debounce #(
+    parameter CLK_HZ  = 50_000_000,
+    parameter DEB_MS  = 20,
+    parameter LONG_MS = 1000
+) (
+    input  wire clk,
+    input  wire rst_n,
+    input  wire key_n,          // 按下为低，异步输入
+    output reg  short_press,    // 短按：松开时输出一个周期脉冲
+    output reg  long_press      // 长按：达到时长时输出一个周期脉冲
+);
+    localparam integer DEB_CNT  = CLK_HZ / 1000 * DEB_MS;
+    localparam integer LONG_CNT = CLK_HZ / 1000 * LONG_MS;
+
+    // 1. 两级同步，消除亚稳态
+    (* ASYNC_REG = "TRUE" *) reg [1:0] key_sync;
+    always @(posedge clk) key_sync &lt;= {key_sync[0], ~key_n};
+    wire key_raw = key_sync[1];                // 1 表示按下
+
+    // 2. 消抖：电平连续稳定 DEB_MS 才更新
+    reg [31:0] deb_cnt;
+    reg        key_stable, key_stable_d;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            deb_cnt &lt;= 0; key_stable &lt;= 1'b0;
+        end else if (key_raw == key_stable) begin
+            deb_cnt &lt;= 0;
+        end else if (deb_cnt == DEB_CNT - 1) begin
+            deb_cnt &lt;= 0; key_stable &lt;= key_raw;
+        end else begin
+            deb_cnt &lt;= deb_cnt + 1'b1;
+        end
+    end
+
+    // 3. 边沿检测 + 按下时长计数
+    reg [31:0] hold_cnt;
+    reg        long_fired;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            key_stable_d &lt;= 1'b0; hold_cnt &lt;= 0; long_fired &lt;= 1'b0;
+            short_press &lt;= 1'b0; long_press &lt;= 1'b0;
+        end else begin
+            key_stable_d &lt;= key_stable;
+            short_press  &lt;= 1'b0;
+            long_press   &lt;= 1'b0;
+            if (key_stable &amp;&amp; !key_stable_d) begin          // 按下沿
+                hold_cnt &lt;= 0; long_fired &lt;= 1'b0;
+            end else if (key_stable) begin
+                if (!long_fired &amp;&amp; hold_cnt == LONG_CNT - 1) begin
+                    long_press &lt;= 1'b1; long_fired &lt;= 1'b1;
+                end else if (!long_fired) begin
+                    hold_cnt &lt;= hold_cnt + 1'b1;
+                end
+            end else if (!key_stable &amp;&amp; key_stable_d) begin // 松开沿
+                if (!long_fired) short_press &lt;= 1'b1;
+            end
+        end
+    end
+endmodule</code></pre>
+        <p>这个模块体现了几条原则：异步输入先同步；所有逻辑使用同一个时钟；输出是单周期的寄存器脉冲，没有毛刺；时间参数由 <code>parameter</code> 和时钟频率计算得出，换时钟时不需要改代码。</p>
+      </section>
+
+      <section>
+        <h2>12. 组合与时序检查清单</h2>
         <ul>
           <li>组合逻辑是否所有分支都有赋值。</li>
           <li>时序逻辑是否使用非阻塞赋值。</li>
@@ -176,14 +291,18 @@ end</code></pre>
           <li>计数器最大值是否考虑位宽。</li>
           <li>边沿检测信号是否已经同步到当前时钟域。</li>
           <li>长组合路径是否需要加流水线。</li>
+          <li>是否用时钟使能代替逻辑分频时钟和门控时钟。</li>
+          <li>数据通路是否去掉了不必要的复位，控制通路复位是否经过同步释放。</li>
+          <li>乘法、移位寄存器、大数组是否按推断规则编写，综合后是否映射到 DSP、SRL、BRAM。</li>
+          <li>异步输入（按键、外部信号）是否先经过两级同步再做消抖和边沿检测。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=9d252b978179#fpga/hdl-basic">返回 Verilog专题</a>
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/hdl-basic">返回 Verilog专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
 </body>
 </html>

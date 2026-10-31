@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FPGA 实现 UART、SPI 与 I2C - XYJ</title>
+  <meta name="description" content="整理用 Verilog 实现串行接口的方法：UART 发送与中点采样接收、SPI 主机模式与时钟边沿、I2C 三态开漏与时钟拉伸、接口模块的设计规范，以及 FPGA 与 MCU 之间通信通道的选择。">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>FPGA 实现 UART、SPI 与 I2C</h1>
+      <p class="article-summary">整理用 Verilog 实现串行接口的方法：UART 发送与中点采样接收、SPI 主机模式与时钟边沿、I2C 三态开漏与时钟拉伸、接口模块的设计规范，以及 FPGA 与 MCU 之间通信通道的选择。</p>
+
+      <section>
+        <h2>1. FPGA 实现串行接口和 MCU 有什么不同</h2>
+        <p>在 MCU 上，UART、SPI、I2C 都是现成的硬件外设，配置几个寄存器就能用。在 FPGA 上，这些接口需要用 HDL 自己实现（或使用 IP），每一个时序细节都由设计者负责。好处是完全可控：可以同时实例化十几个串口、实现非标准的协议变种、精确控制每一个时钟沿；代价是每个细节都要考虑周全。</p>
+        <p>三种接口在 FPGA 中的实现都遵循相同的结构：<strong>一个分频或波特率计数器产生时序节拍 + 一个移位寄存器收发数据 + 一个状态机控制流程</strong>。FPGA 内部仍然使用一个统一的高速系统时钟，接口时钟通过计数器产生“节拍使能”，而不是生成新的时钟。</p>
+      </section>
+
+      <section>
+        <h2>2. UART 发送：波特率节拍 + 移位</h2>
+        <pre><code class="language-verilog">module uart_tx #(
+    parameter CLK_HZ = 50_000_000,
+    parameter BAUD   = 115200
+) (
+    input  wire       clk,
+    input  wire       rst,
+    input  wire [7:0] data,
+    input  wire       start,      // 单周期脉冲，busy 为低时有效
+    output reg        tx,
+    output wire       busy
+);
+    localparam integer DIV = (CLK_HZ + BAUD / 2) / BAUD;   // 四舍五入，50MHz/115200 ≈ 434
+
+    reg [15:0] cnt;
+    reg [3:0]  bit_idx;
+    reg [9:0]  shift;                 // {停止位, 数据, 起始位}
+    reg        active;
+
+    assign busy = active;
+
+    always @(posedge clk) begin
+        if (rst) begin
+            tx &lt;= 1'b1; active &lt;= 1'b0; cnt &lt;= 0; bit_idx &lt;= 0;
+        end else if (!active) begin
+            tx &lt;= 1'b1;
+            if (start) begin
+                shift   &lt;= {1'b1, data, 1'b0};
+                active  &lt;= 1'b1;
+                cnt     &lt;= 0;
+                bit_idx &lt;= 0;
+            end
+        end else if (cnt == DIV - 1) begin
+            cnt &lt;= 0;
+            tx  &lt;= shift[0];
+            shift &lt;= {1'b1, shift[9:1]};
+            if (bit_idx == 4'd9) active &lt;= 1'b0;
+            bit_idx &lt;= bit_idx + 1'b1;
+        end else begin
+            cnt &lt;= cnt + 1'b1;
+        end
+    end
+endmodule</code></pre>
+        <p>这个实现中，发送的第一位（起始位）要等一个完整的波特率周期后才输出，属于可以接受的固定延迟。波特率误差的计算方法与 MCU 相同：50MHz / 434 = 115207bps，误差约 0.006%，完全可以忽略。系统时钟较低、波特率较高时要核算误差，见 <a href="../../../mcu/peripheral/mcu-uart-spi-i2c/mcu-uart-spi-i2c.html?v=801833ccbdeb">UART、SPI 与 I2C 通信接口</a>。</p>
+      </section>
+
+      <section>
+        <h2>3. UART 接收：同步、过采样与中点采样</h2>
+        <p>接收比发送难，因为 RX 信号是<strong>异步输入</strong>，与 FPGA 时钟没有任何关系：</p>
+        <ol>
+          <li><strong>先同步</strong>：RX 引脚必须经过两级寄存器同步后才能使用，否则亚稳态会导致状态机跳到非法状态，见 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</li>
+          <li><strong>检测起始位下降沿</strong>，之后等待半个位时间，在起始位中点确认电平仍为低（过滤毛刺）。</li>
+          <li><strong>之后每隔一个位时间采样一次</strong>，正好落在每一位的中点，对时钟误差和边沿抖动的容忍度最大。</li>
+          <li><strong>检查停止位</strong>：停止位不为高时报告帧错误，并丢弃该字节。</li>
+        </ol>
+        <pre><code class="language-verilog">// 关键片段：同步 + 中点采样
+(* ASYNC_REG = "TRUE" *) reg [1:0] rx_sync;
+always @(posedge clk) rx_sync &lt;= {rx_sync[0], rx_pin};
+wire rx = rx_sync[1];
+
+localparam integer HALF = DIV / 2;
+// IDLE：检测到 rx 为低 → START，计数清零
+// START：计数到 HALF 时 rx 仍为低 → DATA，否则判为毛刺回到 IDLE
+// DATA：每计数到 DIV 采样一位，收满 8 位 → STOP
+// STOP：计数到 DIV 时采样，为高则输出 data_valid，为低则报 frame_err</code></pre>
+        <p>更稳健的做法是 16 倍过采样：每位采样 16 次，取中间 3 次多数表决，进一步抵抗噪声。</p>
+      </section>
+
+      <section>
+        <h2>4. SPI 主机：模式与时钟边沿</h2>
+        <p>SPI 主机需要产生 SCK，并按模式（CPOL/CPHA）在正确的边沿输出和采样数据。在 FPGA 内部，SCK 不作为时钟使用，而是由系统时钟分频产生的普通输出信号；“上升沿”“下降沿”实际上是计数器到达特定值时产生的使能脉冲：</p>
+        <pre><code class="language-verilog">// 系统时钟 100MHz，SCK = 100MHz / (2 × HALF_DIV)
+// 模式 0（CPOL=0, CPHA=0）：SCK 空闲为低，前沿（上升沿）采样 MISO，后沿（下降沿）更新 MOSI
+always @(posedge clk) begin
+    if (sck_div_cnt == HALF_DIV - 1) begin
+        sck_div_cnt &lt;= 0;
+        sck &lt;= ~sck;
+        if (!sck) begin                         // 即将产生上升沿：采样
+            rx_shift &lt;= {rx_shift[6:0], miso_sync};
+        end else begin                          // 即将产生下降沿：移出下一位
+            mosi &lt;= tx_shift[7];
+            tx_shift &lt;= {tx_shift[6:0], 1'b0};
+        end
+    end else begin
+        sck_div_cnt &lt;= sck_div_cnt + 1'b1;
+    end
+end</code></pre>
+        <p>要点：</p>
+        <ul>
+          <li><strong>第一位数据的建立</strong>：模式 0 下，第一个上升沿之前 MOSI 就必须已经输出最高位，所以在拉低 CS 的同时预先输出第一位。</li>
+          <li><strong>MISO 的采样时刻</strong>：高速 SPI（几十 MHz）时，从 SCK 输出到从机返回 MISO 存在往返延迟，可能需要延后半个周期采样，或者使用 IO 约束和 IDDR 精确控制。</li>
+          <li><strong>SCK 不要作为内部时钟使用</strong>：如果 FPGA 是 SPI 从机，SCK 作为异步输入，常用做法是用系统时钟（远高于 SCK 频率）同步采样 SCK 和 MOSI，检测边沿后处理。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. I2C 主机：三态与开漏</h2>
+        <p>I2C 的 SDA 是双向开漏信号，在 FPGA 中用三态缓冲实现：<strong>只输出 0 或高阻，从不主动输出 1</strong>，高电平由外部上拉电阻产生。</p>
+        <pre><code class="language-verilog">// 顶层：SDA 为 inout 端口
+assign sda = sda_oe ? 1'b0 : 1'bz;          // sda_oe = 1 时拉低，否则释放
+assign scl = scl_oe ? 1'b0 : 1'bz;          // SCL 也用开漏实现，以支持时钟拉伸
+
+// 读取 SDA / SCL 的实际电平：同样需要同步
+(* ASYNC_REG = "TRUE" *) reg [1:0] sda_sync, scl_sync;
+always @(posedge clk) begin
+    sda_sync &lt;= {sda_sync[0], sda};
+    scl_sync &lt;= {scl_sync[0], scl};
+end</code></pre>
+        <ul>
+          <li><strong>三态只能在顶层实现</strong>：大多数 FPGA 内部没有三态总线，<code>1'bz</code> 应只出现在顶层端口上，子模块通过 <code>sda_oe</code>、<code>sda_in</code> 分开的信号与顶层连接。</li>
+          <li><strong>时钟拉伸</strong>：主机释放 SCL 后，要读回 SCL 实际电平，确认它真的变高了才继续，否则从机拉住时钟时会出错。</li>
+          <li><strong>START / STOP 条件</strong>：SCL 为高期间 SDA 下降是 START、上升是 STOP；数据位只能在 SCL 为低时改变。</li>
+          <li><strong>约束引脚</strong>：在约束文件中为 SDA、SCL 开启内部上拉（<code>PULLUP true</code>）只适用于调试，板上仍应有外部上拉电阻。</li>
+        </ul>
+        <p>完整的 I2C 主机设计实例（包括 ACK 检查、读写状态机和 CRC 校验），见 <a href="../../anlogic/aht20-iic-verilog/aht20-iic-verilog.html?v=801833ccbdeb">AHT20 IIC 读取实例</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. 接口模块的设计规范</h2>
+        <p>把接口做成可复用的模块，建议统一以下约定：</p>
+        <table>
+          <thead><tr><th>约定</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>统一系统时钟</td><td>接口内部用一个系统时钟 + 使能节拍，不产生新的时钟域</td></tr>
+            <tr><td>参数化</td><td>时钟频率、波特率、SPI 分频、数据位宽用 <code>parameter</code> 传入</td></tr>
+            <tr><td>握手接口</td><td>数据输入用 valid / ready（或 start / busy），数据输出用 valid 脉冲</td></tr>
+            <tr><td>异步输入同步</td><td>所有来自引脚的输入（RX、MISO、SDA）先经过两级同步</td></tr>
+            <tr><td>错误标志</td><td>帧错误、NACK、超时等以单独的信号输出，便于上层统计</td></tr>
+            <tr><td>超时保护</td><td>等待从机响应的状态都有超时计数，防止状态机卡死</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：FPGA 与 MCU 之间的通信通道</h2>
+        <p>FPGA 采集或处理后的数据，经常需要交给 MCU 或上位机。常见方案的对比：</p>
+        <table>
+          <thead><tr><th>方案</th><th>速率</th><th>优点</th><th>注意点</th></tr></thead>
+          <tbody>
+            <tr><td>UART</td><td>1 ~ 几 Mbps</td><td>最简单，调试方便</td><td>速率有限，需要自定义帧格式和校验</td></tr>
+            <tr><td>SPI（FPGA 为从机）</td><td>10 ~ 几十 Mbps</td><td>MCU 端硬件 SPI + DMA 即可读取</td><td>FPGA 端需同步 SCK，高速时注意 MISO 返回时序</td></tr>
+            <tr><td>并行总线（FSMC / FMC）</td><td>数十 MB/s</td><td>像访问外部 SRAM 一样读写 FPGA 寄存器</td><td>引脚多，需按 MCU 总线时序设计</td></tr>
+            <tr><td>QSPI / SDIO 类</td><td>几十 MB/s</td><td>引脚少速度快</td><td>协议实现复杂度较高</td></tr>
+          </tbody>
+        </table>
+        <p>工程上常把 FPGA 内部的功能设计成一组“寄存器”：控制寄存器、状态寄存器、数据 FIFO。MCU 通过 SPI 或并行总线按地址读写这些寄存器，FPGA 端只需要实现一个“总线 → 寄存器”的译码模块。这样 MCU 一侧的驱动代码结构清晰，FPGA 一侧新增功能也只是新增寄存器。</p>
+      </section>
+
+      <section>
+        <h2>8. 串行接口检查清单</h2>
+        <ul>
+          <li>接口是否使用统一的系统时钟加节拍使能，避免产生新的时钟域。</li>
+          <li>所有异步输入（RX、MISO、SDA、SCL）是否经过两级同步后再使用。</li>
+          <li>UART 接收是否在位中点采样，起始位是否做了毛刺过滤，停止位错误是否上报。</li>
+          <li>SPI 模式是否与对端一致，第一位数据是否在首个时钟沿之前就已输出，高速时 MISO 采样时刻是否经过评估。</li>
+          <li>I2C 是否以开漏方式实现，三态是否只出现在顶层，是否支持时钟拉伸。</li>
+          <li>波特率和分频系数是否参数化，误差是否核算过。</li>
+          <li>所有等待响应的状态是否有超时，错误标志是否输出给上层。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FPGA 时序收敛方法 - XYJ</title>
+  <meta name="description" content="整理 FPGA 时序不满足时的分析与优化方法：违例路径分析、流水线减少逻辑级数、硬核资源利用、高扇出复制、复位策略、实现策略与布局约束，并以一个 150MHz 设计的收敛过程为例。">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/timing">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>FPGA 时序收敛方法</h1>
+      <p class="article-summary">整理 FPGA 时序不满足时的分析与优化方法：违例路径分析、流水线减少逻辑级数、硬核资源利用、高扇出复制、复位策略、实现策略与布局约束，并以一个 150MHz 设计的收敛过程为例。</p>
+
+      <section>
+        <h2>1. 时序不满足时，先别急着改代码</h2>
+        <p>时序报告里出现负的 WNS，很多人的第一反应是“降低时钟频率”或者“换个更快的器件”。实际上，大部分时序问题都可以通过分析路径、针对性优化解决。时序收敛的基本流程是：</p>
+        <ol>
+          <li><strong>确认约束正确</strong>：时钟周期对不对、有没有遗漏的异步时钟组、有没有错误的 IO 延迟。约束错了，后面的优化都是白费力气，见 <a href="../fpga-timing-constraints/fpga-timing-constraints.html?v=801833ccbdeb">时钟与时序约束</a>。</li>
+          <li><strong>找到最差的路径</strong>，看它是逻辑延迟大还是布线延迟大。</li>
+          <li><strong>按原因对症优化</strong>：逻辑级数多就插流水线，扇出大就复制寄存器，布线拥塞就调整布局。</li>
+          <li><strong>重新实现并复查</strong>，避免一处改好、另一处变坏。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>2. 分析一条违例路径</h2>
+        <p>打开时序报告中最差的路径，重点关注这几项：</p>
+        <table>
+          <thead><tr><th>信息</th><th>说明</th><th>判断</th></tr></thead>
+          <tbody>
+            <tr><td>起点 / 终点</td><td>路径从哪个寄存器出发、到哪个寄存器结束</td><td>对照代码定位到具体模块</td></tr>
+            <tr><td>Logic Levels</td><td>路径上经过的查找表（LUT）等逻辑单元级数</td><td>级数过多说明组合逻辑太深</td></tr>
+            <tr><td>Logic Delay 占比</td><td>逻辑单元本身的延迟</td><td>占比高：需要减少逻辑级数</td></tr>
+            <tr><td>Route Delay 占比</td><td>布线延迟</td><td>占比高（如超过 60%）：扇出、布局或拥塞问题</td></tr>
+            <tr><td>Fanout</td><td>起点信号驱动的负载数量</td><td>几百上千的高扇出信号是常见元凶</td></tr>
+            <tr><td>时钟偏斜（Clock Skew）</td><td>两端寄存器时钟到达时间差</td><td>偏斜异常大：时钟走了非全局网络</td></tr>
+          </tbody>
+        </table>
+        <p>经验值：在 7 系列 FPGA 上运行 100~200MHz 时，路径的逻辑级数一般控制在 5~8 级以内比较安全。具体数值取决于器件和频率，可以通过 <code>report_design_analysis -logic_level_distribution</code> 查看整个设计的逻辑级数分布。</p>
+      </section>
+
+      <section>
+        <h2>3. 减少逻辑级数：流水线</h2>
+        <p>逻辑太深时，最有效的办法是在路径中间插入寄存器，把一个周期的工作拆成两个或多个周期完成。代价是延迟增加了几个周期，但吞吐率不变。</p>
+        <pre><code class="language-verilog">// 优化前：一个周期内完成乘法、加法和比较，路径很长
+always @(posedge clk)
+    alarm &lt;= (a * b + c) &gt; threshold;
+
+// 优化后：拆成三级流水，每级只做一件事
+reg [31:0] mul_q, sum_q;
+reg [31:0] c_d1;
+always @(posedge clk) begin
+    mul_q &lt;= a * b;                     // 第 1 级：乘法（映射到 DSP，可利用内部寄存器）
+    c_d1  &lt;= c;                         // c 同步打一拍，与 mul_q 对齐
+    sum_q &lt;= mul_q + c_d1;              // 第 2 级：加法
+    alarm &lt;= sum_q &gt; threshold;         // 第 3 级：比较
+end</code></pre>
+        <p>插入流水线时要注意<strong>数据对齐</strong>：同一级运算的所有输入必须来自同一时刻，旁路的信号（上例中的 <code>c</code>）也要延迟相同的拍数，否则结果会错位。有效信号（valid）同样要随数据一起逐级传递。</p>
+        <p>其他减少逻辑级数的手段：</p>
+        <ul>
+          <li><strong>宽比较器、宽加法器拆分</strong>：64 位比较可以先分成两个 32 位比较，再合并结果。</li>
+          <li><strong>长的 if-else 优先级链改为并行 case</strong>：优先级编码会产生很深的串行逻辑。</li>
+          <li><strong>计数器比较改为提前计算</strong>：<code>if (cnt == MAX - 1)</code> 可以在上一拍就算好比较结果并寄存。</li>
+          <li><strong>使用硬核资源</strong>：乘法、累加交给 DSP，大的移位寄存器交给 SRL，存储交给 BRAM。DSP 和 BRAM 都有可选的内部输出寄存器，启用后能显著改善时序。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 降低布线延迟：处理高扇出</h2>
+        <p>一个寄存器驱动几百上千个负载时（常见于复位、使能、状态机的状态信号、全局配置位），它的负载会分布在芯片各处，布线延迟很大。</p>
+        <pre><code class="language-verilog">// 方法一：手动复制寄存器，每个副本驱动一部分负载
+(* max_fanout = 64 *) reg data_valid;    // 让工具自动复制，扇出超过 64 时复制
+
+// 方法二：按模块分别打一拍，减少每个寄存器的负载
+reg en_ch0, en_ch1, en_ch2, en_ch3;
+always @(posedge clk) begin
+    en_ch0 &lt;= enable;  en_ch1 &lt;= enable;
+    en_ch2 &lt;= enable;  en_ch3 &lt;= enable;
+end</code></pre>
+        <p>使用 <code>max_fanout</code> 属性或手动复制寄存器时，要防止综合工具把重复的寄存器“优化”合并回去（必要时加 <code>(* keep = "true" *)</code> 或 <code>DONT_TOUCH</code> 属性）。Vivado 的 <code>phys_opt_design</code> 阶段也会自动复制高扇出寄存器。</p>
+      </section>
+
+      <section>
+        <h2>5. 复位策略对时序的影响</h2>
+        <p>FPGA 设计中有一个常被忽视的事实：<strong>全局复位本身就是最大的高扇出信号</strong>。成千上万个寄存器都连接到同一个复位，不仅布线困难，还会占用寄存器的控制端口、阻碍工具把寄存器合并进 DSP、BRAM 或 SRL。</p>
+        <p>Xilinx 的设计建议是：</p>
+        <ul>
+          <li>FPGA 上电配置完成后，所有寄存器已经处于初始值（由代码中的初值或默认 0 决定），<strong>大部分数据通路寄存器不需要复位</strong>。</li>
+          <li>只对<strong>控制通路</strong>（状态机、计数器、valid 信号、握手信号）使用复位。</li>
+          <li>优先使用同步复位；必须使用异步复位时，采用“异步复位、同步释放”，见 <a href="../fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</li>
+        </ul>
+        <pre><code class="language-verilog">// 数据通路：不复位，便于映射到 DSP / SRL
+always @(posedge clk)
+    data_pipe &lt;= {data_pipe[DEPTH-2:0], din};
+
+// 控制通路：复位，保证上电和复位后状态确定
+always @(posedge clk)
+    if (rst) valid_pipe &lt;= 0;
+    else     valid_pipe &lt;= {valid_pipe[DEPTH-2:0], din_valid};</code></pre>
+      </section>
+
+      <section>
+        <h2>6. 实现策略与布局</h2>
+        <p>代码层面优化之后仍有少量违例时，可以尝试调整工具设置：</p>
+        <ul>
+          <li><strong>实现策略（Implementation Strategy）</strong>：Vivado 提供 <code>Performance_Explore</code>、<code>Performance_ExtraTimingOpt</code> 等预设策略，对时序紧张的设计往往能多挤出几百 ps。</li>
+          <li><strong>综合选项</strong>：<code>-retiming</code> 允许工具在组合逻辑两侧移动寄存器，自动平衡流水线各级延迟。</li>
+          <li><strong>布局约束（Pblock）</strong>：把关系紧密的模块约束在芯片某个区域，减少跨越芯片的长线。只在明确知道问题出在布局上时使用，过度约束反而会使情况更糟。</li>
+        </ul>
+        <p>这些手段只能解决“差一点”的问题。如果 WNS 是 -2ns 这样的量级，必须回到代码和架构层面。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：把一个 150MHz 的设计从 -1.2ns 修到收敛</h2>
+        <p>某信号处理工程目标 150MHz（周期 6.67ns），实现后 WNS = -1.2ns，共 300 多条违例路径。处理过程：</p>
+        <ol>
+          <li><strong>先检查约束</strong>：<code>report_clock_interaction</code> 发现一个外部时钟与系统时钟之间的路径被当作同步路径分析，补上异步时钟组后违例路径减少到 80 条。</li>
+          <li><strong>分析剩余路径</strong>：最差路径来自滤波模块，Logic Levels = 14，乘加运算在一个周期内完成。将乘法、加法、截位拆成三级流水，并启用 DSP 内部寄存器。</li>
+          <li><strong>第二类路径</strong>：一个参数寄存器扇出 1200，布线延迟占 75%。对它按通道复制寄存器后，相关路径全部满足。</li>
+          <li><strong>复位</strong>：数据通路去掉复位后，更多加法器和移位寄存器被映射进 DSP 和 SRL，LUT 使用率下降 8%，布局变得宽松。</li>
+          <li><strong>最终结果</strong>：WNS = +0.21ns，WHS 正常。保存这次的时序报告作为基线，后续修改后对比，及时发现新的退化。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. 时序收敛检查清单</h2>
+        <ul>
+          <li>修改代码前是否先确认了约束正确，<code>check_timing</code> 与时钟交互报告是否干净。</li>
+          <li>违例路径的逻辑延迟和布线延迟各占多少，逻辑级数是否过多。</li>
+          <li>逻辑过深的路径是否插入了流水线，旁路信号和 valid 是否同步延迟对齐。</li>
+          <li>乘加、移位、存储是否使用了 DSP、SRL、BRAM，是否启用了硬核的内部寄存器。</li>
+          <li>高扇出信号是否复制或分级，复制的寄存器是否被保护不被合并。</li>
+          <li>是否去掉了数据通路上不必要的复位，控制通路复位是否同步释放。</li>
+          <li>实现策略、retiming 等工具手段是否只用于解决小幅违例。</li>
+          <li>是否保存时序报告作为基线，每次修改后对比是否有退化。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/timing">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+</body>
+</html>

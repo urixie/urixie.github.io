@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog Testbench仿真与调试 - XYJ</title>
   <meta name="description" content="整理 Verilog Testbench、时钟复位激励、波形查看、$display、$dumpfile、任务 task、断言思路、仿真排错和 FPGA 调试方法。">
-  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-          <a href="../../../../index.html?v=9d252b978179#fpga/verification">返回对应专题</a>
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/verification">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-      <a href="../../../../index.html?v=9d252b978179#fpga/verification">返回 Verilog专题</a>
+      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+      <a href="../../../../index.html?v=801833ccbdeb#fpga/verification">返回 Verilog专题</a>
     </div>
 
     <article class="article card">
@@ -42,7 +42,7 @@
       </div>
 
       <section>
-        <h2>一、Testbench基本结构</h2>
+        <h2>1. Testbench 基本结构</h2>
         <p>
           Testbench 本身不综合成硬件，只用于仿真。它通常没有端口，内部例化待测模块 DUT，然后产生输入激励。</p>
         <pre><code class="language-verilog">`timescale 1ns/1ps
@@ -63,7 +63,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>二、产生时钟和复位</h2>
+        <h2>2. 产生时钟和复位</h2>
         <p>
           仿真中最常见的激励是时钟和复位。时钟用 <code>always</code> 周期翻转，复位用 <code>initial</code> 控制释放时刻。</p>
         <pre><code>initial begin
@@ -80,7 +80,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>三、输入激励</h2>
+        <h2>3. 输入激励</h2>
         <p>
           输入激励可以直接在 <code>initial</code> 中按时间推进，也可以封装成 <code>task</code>，让测试过程更清晰。</p>
         <pre><code class="language-verilog">task send_pulse;
@@ -102,7 +102,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>四、波形输出</h2>
+        <h2>4. 波形输出</h2>
         <p>
           使用 Icarus Verilog、GTKWave 等工具时，可以输出 VCD 波形文件。其它 FPGA IDE 也有自己的波形查看器。</p>
         <pre><code>initial begin
@@ -123,7 +123,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>五、$display调试</h2>
+        <h2>5. $display 调试</h2>
         <p>
           <code>$display</code> 可以在仿真控制台打印变量值，适合快速判断状态跳转、计数值和错误路径。</p>
         <pre><code class="language-verilog">always @(posedge clk) begin
@@ -134,7 +134,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>六、自检查Testbench</h2>
+        <h2>6. 自检查 Testbench</h2>
         <p>
           更好的 Testbench 不只是看波形，而是自动判断输出是否正确。这样改代码后可以快速回归验证。</p>
         <pre><code>if (cnt !== 8'd10) begin
@@ -146,7 +146,7 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>七、常见仿真问题</h2>
+        <h2>7. 常见仿真问题</h2>
         <table>
           <thead><tr><th>现象</th><th>优先排查方向</th></tr></thead>
           <tbody>
@@ -160,13 +160,131 @@ end</code></pre>
       </section>
 
       <section>
-        <h2>八、上板调试思路</h2>
+        <h2>8. 上板调试思路</h2>
         <p>
           上板调试时，可以使用 FPGA 厂商提供的逻辑分析仪工具抓内部信号，例如 SignalTap、ILA、安路或其它工具链中的在线调试功能。抓信号时要优先抓状态机状态、计数器、valid/ready、错误标志和外设接口关键线。</p>
       </section>
 
       <section>
-        <h2>九、仿真检查清单</h2>
+        <h2>9. 参考模型与自动比对</h2>
+        <p>“看波形判断对不对”只适合最初的调试。随着测试用例增加，必须让 Testbench 自动判断结果。最实用的结构是<strong>参考模型 + 比对器（scoreboard）</strong>：</p>
+        <ul>
+          <li>参考模型用行为级代码（不考虑时序和可综合性）计算出“正确答案”。</li>
+          <li>DUT 输出结果后，与参考模型的结果逐个比对，记录错误数量。</li>
+          <li>仿真结束时统一打印 PASS / FAIL，便于脚本判断。</li>
+        </ul>
+        <pre><code class="language-verilog">// 期望值队列：输入时由参考模型计算期望输出，DUT 输出时取出比对
+reg [15:0] expect_q [0:1023];
+integer    wr_idx = 0, rd_idx = 0, errors = 0;
+
+always @(posedge clk) begin
+    if (din_valid) begin
+        expect_q[wr_idx] &lt;= ref_model(din);      // 参考模型：function 实现的行为级计算
+        wr_idx &lt;= wr_idx + 1;
+    end
+    if (dout_valid) begin
+        if (dout !== expect_q[rd_idx]) begin
+            errors = errors + 1;
+            $display("ERROR @%0t: idx=%0d expect=%h got=%h", $time, rd_idx, expect_q[rd_idx], dout);
+        end
+        rd_idx &lt;= rd_idx + 1;
+    end
+end</code></pre>
+        <p>这种写法不关心 DUT 的流水线延迟是多少拍，只要输出顺序正确就能自动对齐，非常适合滤波器、协议处理、数据通路等模块。</p>
+      </section>
+
+      <section>
+        <h2>10. 用 task 封装总线：总线功能模型</h2>
+        <p>测试接口模块时，把“发送一个 UART 字节”“完成一次 SPI 传输”“写一个寄存器”封装成 task，测试用例读起来就像操作说明：</p>
+        <pre><code class="language-verilog">localparam real BIT_NS = 1_000_000_000.0 / 115200;    // UART 位时间
+
+// 模拟外部设备向 DUT 发送一个字节
+task uart_send_byte(input [7:0] data);
+    integer i;
+    begin
+        rx = 1'b0; #(BIT_NS);                          // 起始位
+        for (i = 0; i &lt; 8; i = i + 1) begin
+            rx = data[i]; #(BIT_NS);                   // 低位先发
+        end
+        rx = 1'b1; #(BIT_NS);                          // 停止位
+    end
+endtask
+
+initial begin
+    rx = 1'b1;
+    wait (rst_n);
+    uart_send_byte(8'hAA);
+    uart_send_byte(8'h55);
+    uart_send_byte(8'h03);
+end</code></pre>
+        <p>这种模拟外部器件行为的 task 集合称为总线功能模型（BFM）。BFM 中还可以故意制造异常：错误的停止位、波特率偏差 3%、字节之间插入长间隔，用来验证 DUT 的容错能力。</p>
+      </section>
+
+      <section>
+        <h2>11. 随机激励与边界测试</h2>
+        <p>手写的测试用例往往只覆盖“想到的情况”，bug 常常藏在没想到的组合里。加入随机激励可以大幅提高覆盖面：</p>
+        <pre><code class="language-verilog">integer seed = 12345;                           // 固定种子：出错时可以复现
+initial begin
+    repeat (10000) begin
+        @(posedge clk);
+        din_valid &lt;= ($random(seed) % 4) != 0;  // 75% 的概率输入有效，模拟不连续的数据流
+        din       &lt;= $random(seed);
+        m_ready   &lt;= ($random(seed) % 8) != 0;  // 下游随机反压
+    end
+end</code></pre>
+        <p>随机测试之外，边界值必须单独构造：计数器最大值与回绕、FIFO 刚好满和刚好空、最大和最小数据长度、复位发生在传输中途。<strong>固定随机种子并打印出来</strong>，出错时用同一个种子就能稳定复现。</p>
+      </section>
+
+      <section>
+        <h2>12. 文件驱动测试：与 Python / MATLAB 联合验证</h2>
+        <p>对于算法类模块（滤波、FFT、图像处理），用 Python 或 MATLAB 生成输入数据和期望结果，Testbench 读取文件进行仿真，再把 DUT 输出写回文件交给脚本比对：</p>
+        <pre><code class="language-verilog">reg [15:0] stim [0:4095];
+integer    fout, k;
+initial begin
+    $readmemh("stim_input.hex", stim);          // Python 生成的十六进制输入
+    fout = $fopen("dut_output.txt", "w");
+    for (k = 0; k &lt; 4096; k = k + 1) begin
+        @(posedge clk);
+        din &lt;= stim[k];
+        din_valid &lt;= 1'b1;
+    end
+    din_valid &lt;= 1'b0;
+end
+
+always @(posedge clk)
+    if (dout_valid) $fwrite(fout, "%0d\n", $signed(dout));</code></pre>
+        <p>脚本端可以计算误差、画频谱、与浮点参考结果比较。定点化带来的量化误差在这一步就能评估，而不是上板后才发现精度不够。</p>
+      </section>
+
+      <section>
+        <h2>13. 仿真工具与回归测试</h2>
+        <table>
+          <thead><tr><th>工具</th><th>特点</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>Icarus Verilog + GTKWave</td><td>开源、轻量、命令行友好</td><td>学习、小型模块、CI 回归</td></tr>
+            <tr><td>Verilator</td><td>把 Verilog 编译成 C++，速度极快</td><td>大规模、长时间仿真，配合 C++ / Python 测试</td></tr>
+            <tr><td>ModelSim / Questa</td><td>功能全面，支持 SystemVerilog 与覆盖率</td><td>商业项目、复杂验证</td></tr>
+            <tr><td>Vivado Simulator（xsim）</td><td>与 Vivado 集成，直接支持 Xilinx IP 仿真模型</td><td>含 Xilinx IP 的设计</td></tr>
+          </tbody>
+        </table>
+        <p>几个工程习惯：</p>
+        <ul>
+          <li><strong>每个 Testbench 都要有超时保护</strong>，防止 DUT 卡死时仿真永远不结束：</li>
+        </ul>
+        <pre><code class="language-verilog">initial begin
+    #10_000_000;                                 // 10ms 仿真时间上限
+    $display("FAIL: timeout");
+    $finish;
+end</code></pre>
+        <ul>
+          <li><strong>结果以统一格式输出</strong>（例如最后一行固定为 <code>PASS</code> 或 <code>FAIL: n errors</code>），用脚本批量运行所有 Testbench，形成回归测试。每次修改代码后跑一遍，及时发现改动带来的副作用。</li>
+          <li><strong>使用厂商 IP 的模块</strong>需要调用 IP 的仿真模型（Vivado 中生成 IP 时会同时生成），开源仿真器可能不支持加密模型，这时用厂商仿真器或把 IP 替换为行为模型。</li>
+          <li><strong>仿真通过不等于上板正确</strong>：仿真不检查时序、不模拟亚稳态。上板前还要确认 <a href="../../timing/fpga-timing-constraints/fpga-timing-constraints.html?v=801833ccbdeb">时序约束</a> 和 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>14. 仿真检查清单</h2>
         <ul>
           <li>是否产生了稳定时钟。</li>
           <li>复位时长是否足够。</li>
@@ -174,14 +292,19 @@ end</code></pre>
           <li>是否检查输出结果，而不是只看波形。</li>
           <li>Testbench 是否包含必要的超时退出。</li>
           <li>上板前是否确认时序约束和跨时钟域处理。</li>
+          <li>是否使用参考模型和自动比对代替人工看波形，结束时是否统一输出 PASS / FAIL。</li>
+          <li>接口模块是否用 task 封装总线功能模型，并构造了异常输入。</li>
+          <li>是否加入随机激励和随机反压，随机种子是否固定并打印。</li>
+          <li>算法模块是否用 Python / MATLAB 生成测试数据并比对输出。</li>
+          <li>是否建立了可批量运行的回归测试，每次修改后执行。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=9d252b978179#fpga/verification">返回 Verilog专题</a>
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/verification">返回 Verilog专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
 </body>
 </html>

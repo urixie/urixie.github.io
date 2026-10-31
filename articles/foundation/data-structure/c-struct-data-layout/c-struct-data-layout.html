@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言结构体与数据组织整理 - XYJ</title>
   <meta name="description" content="面向嵌入式工程实践整理 C 语言 struct.union.enum、位域、结构体对齐、协议帧和参数表设计。">
-  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-          <a href="../../../../index.html?v=9d252b978179#foundation/data-structure">返回对应专题</a>
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#foundation/data-structure">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-      <a href="../../../../index.html?v=9d252b978179#foundation/data-structure">返回 C语言专题</a>
+      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+      <a href="../../../../index.html?v=801833ccbdeb#foundation/data-structure">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -240,7 +240,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
           对需要长期保存的设备参数，推荐把“业务访问结构体”和“外部存储格式”分开。业务代码使用结构体字段，Flash 中则使用固定字段顺序、显式宽度、版本号、总长度和 CRC。升级固件时可以根据版本号决定是否补齐默认值，避免结构体增删字段后直接读出错误配置。
         </p>
         <figure class="article-figure">
-          <img src="images/c-struct-serialization.svg?v=9d252b978179" alt="内部结构体通过序列化函数转换为稳定外部字节格式的示意图" loading="lazy" decoding="async">
+          <img src="images/c-struct-serialization.svg?v=801833ccbdeb" alt="内部结构体通过序列化函数转换为稳定外部字节格式的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：结构体适合组织业务，序列化函数负责稳定外部格式。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stddef.h&gt;
@@ -381,7 +381,7 @@ int tlv_parse(const uint8_t *buf, size_t size, cfg_t *cfg)
         <p>设备和上位机（PC 工具、手机 App）通信时，最常见的问题是“两边对结构体的理解不一致”：对齐不同、字节序不同、某一方偷偷改了字段。几条实践经验：</p>
         <ul>
           <li><strong>协议文档化，一处定义</strong>：字段表（偏移、类型、字节序、单位、取值范围）写在协议文档中，设备端头文件和上位机解析代码都以它为准。条件允许时，用脚本从同一份描述文件生成 C 头文件和上位机代码。</li>
-          <li>**不要直接 <code>memcpy</code> 结构体到发送缓冲区**：用显式的打包 / 解包函数逐字段处理，字节序和对齐都在函数里明确表达。</li>
+          <li><strong>不要直接 <code>memcpy</code> 结构体到发送缓冲区</strong>：用显式的打包 / 解包函数逐字段处理，字节序和对齐都在函数里明确表达。</li>
           <li><strong>物理量带单位、用整数</strong>：温度用 <code>int16_t</code>，单位 0.1℃；电压用 <code>uint16_t</code>，单位 mV。避免直接传 <code>float</code>。</li>
           <li><strong>协议带版本号</strong>：上位机读到更高版本的协议时，可以提示升级工具，而不是解析出错误的数据。</li>
           <li><strong>对照测试</strong>：用固定的字节序列作为测试向量，设备端和上位机各自解析，结果必须一致。</li>
@@ -413,11 +413,11 @@ temp_x10, volt_mv, flags, uptime_s = struct.unpack_from("&lt;hHHxxQ", frame)</co
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=9d252b978179#foundation/data-structure">返回 C语言专题</a>
+        <a href="../../../../index.html?v=801833ccbdeb#foundation/data-structure">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
 </body>
 </html>

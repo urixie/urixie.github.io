@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FPGA 跨时钟域处理 - XYJ</title>
+  <meta name="description" content="整理 FPGA 跨时钟域（CDC）的原理与工程做法：亚稳态、两级同步器、脉冲翻转同步、多比特数据的格雷码与握手、异步 FIFO、复位同步、CDC 路径约束与 report_cdc 检查，并以 ADC 数据进入系统时钟域为例。">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/timing">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>FPGA 跨时钟域处理</h1>
+      <p class="article-summary">整理 FPGA 跨时钟域（CDC）的原理与工程做法：亚稳态、两级同步器、脉冲翻转同步、多比特数据的格雷码与握手、异步 FIFO、复位同步、CDC 路径约束与 report_cdc 检查，并以 ADC 数据进入系统时钟域为例。</p>
+
+      <section>
+        <h2>1. 什么是跨时钟域问题</h2>
+        <p>当一个信号由时钟 A 驱动的寄存器产生，被时钟 B 驱动的寄存器采样，而两个时钟之间没有固定的相位关系时，就构成了跨时钟域（Clock Domain Crossing，CDC）。</p>
+        <p>问题在于：B 时钟采样的时刻可能恰好落在 A 域信号变化的瞬间，违反建立或保持时间。此时寄存器可能进入<strong>亚稳态</strong>：输出既不是 0 也不是 1，而是停留在中间电平一段时间后随机落到 0 或 1。亚稳态无法完全消除，只能通过设计把它导致错误的概率降到可以忽略。</p>
+        <p>CDC 问题的特点是：仿真看不出来（仿真器里没有亚稳态），时序分析也不报（异步时钟组之间的路径被排除了），上板后偶发出错，而且和温度、电压、具体芯片相关。因此必须在设计阶段就按规则处理。</p>
+      </section>
+
+      <section>
+        <h2>2. 单比特信号：两级同步器</h2>
+        <p>最基本的 CDC 结构是两级（或三级）寄存器串联同步：</p>
+        <pre><code class="language-verilog">module sync_2ff #(
+    parameter STAGES = 2
+) (
+    input  wire clk_dst,
+    input  wire rst_n,
+    input  wire din,          // 来自其他时钟域，必须是该域寄存器的直接输出
+    output wire dout
+);
+    (* ASYNC_REG = "TRUE" *) reg [STAGES-1:0] sync;
+
+    always @(posedge clk_dst or negedge rst_n) begin
+        if (!rst_n) sync &lt;= {STAGES{1'b0}};
+        else        sync &lt;= {sync[STAGES-2:0], din};
+    end
+    assign dout = sync[STAGES-1];
+endmodule</code></pre>
+        <p>第一级寄存器可能进入亚稳态，但它有一整个时钟周期的时间恢复，第二级采到稳定值的概率极高。设计要点：</p>
+        <ul>
+          <li><strong>源信号必须来自源时钟域的寄存器输出</strong>，不能是组合逻辑。组合逻辑的毛刺会被目标域采到，变成一个“不存在”的脉冲。</li>
+          <li><strong>同步器各级之间不能有任何逻辑</strong>，并加上 <code>ASYNC_REG</code> 属性：让工具把同步寄存器放在相邻位置，缩短级间布线，增加恢复时间，同时告诉工具这是同步器。</li>
+          <li><strong>只适用于变化缓慢的电平信号</strong>：源信号的保持时间要大于目标时钟的 1.5~2 个周期，否则可能被漏采。</li>
+          <li>高频率或高可靠性场合使用 3 级同步，进一步降低出错概率。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. 脉冲信号：从快时钟到慢时钟</h2>
+        <p>快时钟域的单周期脉冲，慢时钟域很可能根本采不到。常用两种方法：</p>
+        <p><strong>电平翻转法（toggle 同步）</strong>：源域每来一个脉冲就翻转一个电平，目标域同步这个电平后做边沿检测，还原出脉冲。</p>
+        <pre><code class="language-verilog">// 源时钟域：脉冲 → 电平翻转
+reg toggle_src;
+always @(posedge clk_src or negedge rst_n)
+    if (!rst_n)        toggle_src &lt;= 1'b0;
+    else if (pulse_in) toggle_src &lt;= ~toggle_src;
+
+// 目标时钟域：同步后检测任意边沿
+(* ASYNC_REG = "TRUE" *) reg [2:0] toggle_dst;
+always @(posedge clk_dst or negedge rst_n)
+    if (!rst_n) toggle_dst &lt;= 3'b000;
+    else        toggle_dst &lt;= {toggle_dst[1:0], toggle_src};
+
+assign pulse_out = toggle_dst[2] ^ toggle_dst[1];</code></pre>
+        <p>限制：源域两个脉冲之间的间隔必须足够长（大于目标时钟的若干个周期），否则两次翻转会被合并。脉冲可能密集出现时，应改用握手或异步 FIFO。</p>
+      </section>
+
+      <section>
+        <h2>4. 多比特信号：不能逐位同步</h2>
+        <p>把一个多比特总线的每一位分别用两级同步器同步，是 CDC 中最常见的错误。各位的布线延迟不同，在数据变化的那个时刻，有的位采到新值、有的位采到旧值，目标域会得到一个从未出现过的数值。例如计数器从 <code>0111</code> 变为 <code>1000</code>，可能被采成 <code>1111</code> 或 <code>0000</code>。</p>
+        <p>多比特数据跨时钟域的正确方法：</p>
+        <table>
+          <thead><tr><th>方法</th><th>原理</th><th>适用场景</th></tr></thead>
+          <tbody>
+            <tr><td>格雷码 + 同步</td><td>相邻数值只变化一位，逐位同步后最多偏差一个计数</td><td>计数器、FIFO 读写指针</td></tr>
+            <tr><td>握手（req / ack）</td><td>数据先稳定，再用同步过的控制信号通知对方采样</td><td>低速、偶发的配置数据或命令</td></tr>
+            <tr><td>异步 FIFO</td><td>双端口 RAM + 格雷码指针</td><td>连续的数据流，最通用</td></tr>
+            <tr><td>使能同步（MUX 同步）</td><td>数据保持稳定，同步一个“数据有效”信号后再采样数据</td><td>数据在有效期间保持不变的场合</td></tr>
+          </tbody>
+        </table>
+        <p><strong>握手的核心思想</strong>：发送方先把数据放到总线上并保持不变，再拉高请求信号；接收方同步到请求后采样数据（此时数据早已稳定），然后回送应答；发送方同步到应答后才能更换下一个数据。单次传输需要若干个时钟周期，适合低频场景。</p>
+      </section>
+
+      <section>
+        <h2>5. 异步 FIFO</h2>
+        <p>连续的数据流跨时钟域，几乎都使用异步 FIFO。它的结构是：一块双端口 RAM，写端口在写时钟域，读端口在读时钟域；写指针和读指针转换为格雷码后跨时钟域同步，用于产生空、满标志。</p>
+        <pre><code class="language-verilog">// 二进制转格雷码：相邻数值只有一位不同
+function [ADDR_W:0] bin2gray(input [ADDR_W:0] b);
+    bin2gray = b ^ (b &gt;&gt; 1);
+endfunction
+
+// 满：写指针格雷码与“同步过来的读指针格雷码”相比，最高两位相反、其余位相同
+assign full  = (wptr_gray == {~rptr_gray_sync[ADDR_W:ADDR_W-1], rptr_gray_sync[ADDR_W-2:0]});
+// 空：读指针格雷码与同步过来的写指针格雷码完全相等
+assign empty = (rptr_gray == wptr_gray_sync);</code></pre>
+        <p>关键点：</p>
+        <ul>
+          <li>指针比地址多一位，用于区分“空”和“满”（与 <a href="../../../foundation/data-structure/ring-buffer/ring-buffer.html?v=801833ccbdeb">环形缓冲区</a> 的镜像位思路相同）。</li>
+          <li>同步过来的指针总是“滞后”的，所以满标志会提前、空标志会延后，这只会让 FIFO 保守一点，不会造成溢出或读空。</li>
+          <li>深度必须是 2 的幂，格雷码才能正确回绕。</li>
+          <li><strong>工程中优先使用厂商 IP</strong>（Xilinx FIFO Generator / XPM_FIFO_ASYNC、安路 FIFO IP），它们经过充分验证，并自带正确的时序约束。自己实现主要用于理解原理。</li>
+        </ul>
+        <p>FIFO 深度的计算方法见 <a href="../../interfaces/fpga-fifo-ram/fpga-fifo-ram.html?v=801833ccbdeb">FIFO 与 RAM</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. 复位的跨时钟域处理</h2>
+        <p>复位信号同样是跨时钟域信号。异步复位如果在时钟沿附近释放，部分寄存器在这个周期退出复位、部分在下个周期退出，状态机可能进入非法状态。推荐的做法是<strong>异步复位、同步释放</strong>：</p>
+        <pre><code class="language-verilog">module reset_sync (
+    input  wire clk,
+    input  wire arst_n,       // 外部异步复位，低有效
+    output wire rst_n_sync    // 本时钟域使用的复位
+);
+    (* ASYNC_REG = "TRUE" *) reg [1:0] r;
+    always @(posedge clk or negedge arst_n) begin
+        if (!arst_n) r &lt;= 2'b00;          // 复位立即生效（异步）
+        else         r &lt;= {r[0], 1'b1};   // 释放与本时钟同步
+    end
+    assign rst_n_sync = r[1];
+endmodule</code></pre>
+        <p><strong>每个时钟域都要有自己的复位同步器</strong>。使用 PLL 时，通常还要等 PLL 锁定（locked 信号）之后再释放复位。</p>
+      </section>
+
+      <section>
+        <h2>7. CDC 路径的约束</h2>
+        <p>跨时钟域路径通常被设置为异步时钟组或 false path，工具不再检查它们的时序。但这对“格雷码指针”和“握手数据”有隐患：如果某一位的布线延迟特别长，超过了一个目标时钟周期，格雷码“只变一位”的前提就被破坏了。</p>
+        <p>更严谨的约束方式是用 <code>set_max_delay -datapath_only</code> 限制这些路径的最大延迟（通常设为较快时钟的一个周期），既不做常规时序检查，又保证延迟有上限：</p>
+        <pre><code class="language-xdc">set_max_delay -datapath_only -from [get_cells wptr_gray_reg*] -to [get_cells wptr_sync_reg[0]*] 5.000</code></pre>
+        <p>Vivado 的 XPM CDC 宏和 FIFO IP 会自动添加这类约束，这也是推荐使用它们的原因之一。Vivado 还提供 <code>report_cdc</code> 命令，可以自动识别设计中所有的 CDC 路径，并标出缺少同步器、多比特逐位同步等问题，项目每次修改后都应运行一次。</p>
+      </section>
+
+      <section>
+        <h2>8. 工作场景：ADC 数据从采样时钟域进入系统时钟域</h2>
+        <p>ADC 以 80MHz 随路时钟输出 12 位数据，系统逻辑运行在 100MHz，两者异步。</p>
+        <table>
+          <thead><tr><th>信号</th><th>方向</th><th>处理方式</th></tr></thead>
+          <tbody>
+            <tr><td>ADC 采样数据（12 位，连续）</td><td>adc_clk → sys_clk</td><td>异步 FIFO（写 80MHz、读 100MHz，读快于写，FIFO 不会满）</td></tr>
+            <tr><td>采集开始 / 停止命令</td><td>sys_clk → adc_clk</td><td>电平信号，两级同步</td></tr>
+            <tr><td>采样点数配置（16 位，偶尔修改）</td><td>sys_clk → adc_clk</td><td>握手，或只在采集停止时修改并用使能同步</td></tr>
+            <tr><td>FIFO 溢出标志</td><td>adc_clk → sys_clk</td><td>粘滞位（置 1 后保持），两级同步后由软件读取并清除</td></tr>
+            <tr><td>复位</td><td>外部 → 两个域</td><td>各自的异步复位、同步释放</td></tr>
+          </tbody>
+        </table>
+        <p>完成设计后运行 <code>report_cdc</code>，确认所有跨域路径都经过了同步结构，没有“未同步”和“多比特逐位同步”的告警。</p>
+      </section>
+
+      <section>
+        <h2>9. 跨时钟域检查清单</h2>
+        <ul>
+          <li>设计中有哪些时钟域，每个跨域信号是否都列出并选择了对应的同步方式。</li>
+          <li>单比特电平信号是否经过两级以上同步器，源端是否为寄存器输出，同步寄存器是否加了 <code>ASYNC_REG</code>。</li>
+          <li>快到慢的脉冲是否使用翻转法或握手，而不是直接同步。</li>
+          <li>多比特数据是否使用格雷码、握手或异步 FIFO，有没有逐位同步的总线。</li>
+          <li>每个时钟域是否有独立的复位同步器（异步复位、同步释放），是否等待 PLL 锁定。</li>
+          <li>异步 FIFO 是否优先使用厂商 IP，深度是否经过计算。</li>
+          <li>CDC 路径是否有 <code>set_max_delay -datapath_only</code> 等约束，<code>report_cdc</code> 是否干净。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/timing">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+</body>
+</html>

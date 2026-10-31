@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>ESP32 Xtensa 架构详解 - XYJ</title>
   <meta name="description" content="详细整理 ESP32.Xtensa LX6 内核的架构特性、寄存器、指令集、内存布局、中断机制、异常处理和低功耗模式。">
-  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-      <a href="../../../../index.html?v=9d252b978179#mcu/espressif">返回 ESP32专题</a>
+      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+      <a href="../../../../index.html?v=801833ccbdeb#mcu/espressif">返回 ESP32专题</a>
     </div>
 
     <article class="article card">
@@ -446,7 +446,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
         <p><strong>ADC2 与 Wi-Fi 冲突</strong>：ESP32 的 ADC2 通道被 Wi-Fi 驱动占用，Wi-Fi 启动后无法使用 ADC2 采样。需要同时使用 Wi-Fi 和 ADC 时，只能使用 ADC1 的通道（GPIO32~39），这一点必须在硬件设计阶段确定。</p>
         <p><strong>任务看门狗（Task WDT）</strong>：ESP-IDF 默认监控 IDLE 任务。某个高优先级任务长时间不阻塞（例如死循环轮询），IDLE 任务得不到运行，就会触发 “Task watchdog got triggered”。解决方法是让任务在循环中阻塞（<code>vTaskDelay</code>、等待队列），而不是简单地关闭看门狗。</p>
         <p><strong>双核与临界区</strong>：ESP32 是双核 SMP，<code>portENTER_CRITICAL</code> 需要传入一个 <code>portMUX_TYPE</code> 自旋锁，它不仅关闭本核中断，还防止另一个核同时进入。只关中断无法保护另一个核上运行的任务。</p>
-        <p><strong>分区表与 OTA</strong>：使用 OTA 时，分区表中需要两个 app 分区（ota_0、ota_1）和一个 otadata 分区。新固件启动后调用 <code>esp_ota_mark_app_valid_cancel_rollback()</code> 确认，否则开启回滚功能时下次重启会自动回退到旧固件，原理见 <a href="../../peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=9d252b978179">Bootloader 与固件升级</a>。</p>
+        <p><strong>分区表与 OTA</strong>：使用 OTA 时，分区表中需要两个 app 分区（ota_0、ota_1）和一个 otadata 分区。新固件启动后调用 <code>esp_ota_mark_app_valid_cancel_rollback()</code> 确认，否则开启回滚功能时下次重启会自动回退到旧固件，原理见 <a href="../../peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html?v=801833ccbdeb">Bootloader 与固件升级</a>。</p>
       </section>
 
       <section>
@@ -462,10 +462,10 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=9d252b978179#mcu/espressif">返回 ESP32专题</a>
+        <a href="../../../../index.html?v=801833ccbdeb#mcu/espressif">返回 ESP32专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
 </body>
 </html>

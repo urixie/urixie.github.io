@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>8051 内核架构详解 - XYJ</title>
   <meta name="description" content="详细整理 MCS-51（8051）内核架构、存储器结构、寄存器组、指令系统、中断机制、定时器、串口和功耗模式。">
-  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+      <a href="../../../../index.html?v=801833ccbdeb#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -598,7 +598,7 @@ sbit LED = P1^0;                       /* SFR 中的位 */</code></pre>
         <p>几个容易出错的地方：</p>
         <ul>
           <li><strong>存储模式</strong>：SMALL 模式默认变量放 <code>data</code>，空间很快不够；LARGE 模式默认放 <code>xdata</code>，代码变大变慢。推荐使用 SMALL 模式，大数组显式指定 <code>xdata</code>。</li>
-          <li>**常量表要加 <code>code</code>**：否则会占用宝贵的 RAM 并在启动时初始化。</li>
+          <li><strong>常量表要加 <code>code</code></strong>：否则会占用宝贵的 RAM 并在启动时初始化。</li>
           <li><strong>函数默认不可重入</strong>：C51 为了节省栈空间，把局部变量放在固定的“编译栈”地址上，而不是真正的栈上。同一个函数同时被主程序和中断调用会互相覆盖数据。需要在两边调用的函数用 <code>reentrant</code> 声明（代价是使用模拟栈，变慢），或者避免共享。</li>
           <li><strong>中断函数与寄存器组</strong>：<code>void timer0_isr(void) interrupt 1 using 1</code> 中 <code>using 1</code> 让中断使用寄存器组 1，省去压栈；但在该中断中调用的函数也必须适应同一寄存器组，否则参数传递会出错。不确定时不要使用 <code>using</code>。</li>
           <li><strong>指针类型</strong>：通用指针占 3 字节，访问慢；指定存储类型的指针（如 <code>unsigned char xdata *p</code>）只占 1~2 字节，速度快很多。</li>
@@ -630,10 +630,10 @@ sbit LED = P1^0;                       /* SFR 中的位 */</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=801833ccbdeb#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
 </body>
 </html>

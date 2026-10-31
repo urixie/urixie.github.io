@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>MCU Bootloader 与固件升级 - XYJ</title>
   <meta name="description" content="整理 MCU 自定义 Bootloader 与远程升级的设计方法：分区方案、启动与跳转流程、升级包头与 CRC / 签名校验、防回滚、分包升级协议、掉电保护与试运行回退，并以 RS-485 批量远程升级为例。">
-  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
-          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -69,7 +69,7 @@
           <li>校验运行区 App 的完整性（CRC 或签名）。</li>
           <li>校验通过则跳转到 App；失败则停留在 Bootloader，等待重新升级。</li>
         </ol>
-        <p>跳转到 App 前要把 Bootloader 用过的中断、外设、SysTick 恢复到复位状态，设置 <code>VTOR</code> 和 MSP 后再跳转，具体代码和常见坑见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=9d252b978179">编译、链接与启动流程</a>。App 一侧需要修改链接地址和向量表偏移。</p>
+        <p>跳转到 App 前要把 Bootloader 用过的中断、外设、SysTick 恢复到复位状态，设置 <code>VTOR</code> 和 MSP 后再跳转，具体代码和常见坑见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=801833ccbdeb">编译、链接与启动流程</a>。App 一侧需要修改链接地址和向量表偏移。</p>
       </section>
 
       <section>
@@ -147,11 +147,11 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        <a href="../../../../index.html?v=801833ccbdeb#mcu/peripheral">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
 </body>
 </html>

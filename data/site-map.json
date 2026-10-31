@@ -528,7 +528,7 @@
               "Verilog",
               "基础语法"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "Verilog · 组合逻辑与时序逻辑",
@@ -538,7 +538,7 @@
               "组合逻辑",
               "时序逻辑"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "Verilog · 状态机设计方法",
@@ -548,7 +548,7 @@
               "FSM",
               "状态机"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           }
         ]
       },
@@ -565,44 +565,107 @@
               "Testbench",
               "仿真"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           }
         ]
       },
       {
         "id": "timing",
         "title": "时序与约束",
-        "desc": "时钟约束、IO 约束、跨时钟域和时序收敛相关内容后续补充。",
-        "placeholders": [
-          "时钟约束",
-          "IO约束",
-          "CDC",
-          "时序收敛"
-        ],
-        "articles": []
+        "desc": "时钟与 IO 约束、跨时钟域处理和时序收敛方法，让设计在目标频率下稳定工作。",
+        "articles": [
+          {
+            "navTitle": "FPGA · 时钟与时序约束",
+            "navDesc": "建立保持 / create_clock / 时钟组 / IO 延迟 / 时序例外 / 读懂时序报告 / 约束实例",
+            "href": "articles/fpga/timing/fpga-timing-constraints/fpga-timing-constraints.html",
+            "tags": [
+              "时序约束",
+              "XDC",
+              "SDC"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "FPGA · 跨时钟域处理",
+            "navDesc": "亚稳态 / 两级同步 / 脉冲同步 / 格雷码与握手 / 异步 FIFO / 复位同步 / CDC 约束",
+            "href": "articles/fpga/timing/fpga-cdc/fpga-cdc.html",
+            "tags": [
+              "跨时钟域",
+              "CDC",
+              "异步FIFO"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "FPGA · 时序收敛方法",
+            "navDesc": "违例路径分析 / 流水线 / DSP 与 BRAM / 高扇出复制 / 复位策略 / 实现策略",
+            "href": "articles/fpga/timing/fpga-timing-closure/fpga-timing-closure.html",
+            "tags": [
+              "时序收敛",
+              "流水线"
+            ],
+            "updated": "2026-10-31"
+          }
+        ]
       },
       {
         "id": "interfaces",
         "title": "接口与外设",
-        "desc": "ADC、SPI、IIC、UART、FIFO、RAM 和数据缓存传输相关内容后续补充。",
-        "placeholders": [
-          "ADC采集",
-          "SPI/IIC/UART",
-          "FIFO/RAM",
-          "数据缓存"
-        ],
-        "articles": []
+        "desc": "UART / SPI / I2C 的 FPGA 实现、FIFO 与 RAM、高速 ADC 采集与数据缓存。",
+        "articles": [
+          {
+            "navTitle": "FPGA · UART、SPI 与 I2C 实现",
+            "navDesc": "波特率节拍 / 中点采样 / SPI 模式 / I2C 三态开漏 / 接口规范 / FPGA 与 MCU 通信",
+            "href": "articles/fpga/interfaces/fpga-uart-spi-i2c/fpga-uart-spi-i2c.html",
+            "tags": [
+              "UART",
+              "SPI",
+              "I2C",
+              "Verilog"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "FPGA · FIFO 与 RAM",
+            "navDesc": "存储资源选择 / BRAM 推断 / 读延迟 / 同步 FIFO / FWFT / valid-ready / 深度计算 / 乒乓缓存",
+            "href": "articles/fpga/interfaces/fpga-fifo-ram/fpga-fifo-ram.html",
+            "tags": [
+              "FIFO",
+              "BRAM",
+              "数据缓存"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "FPGA · 高速 ADC 采集与数据缓存",
+            "navDesc": "接口类型 / SPI ADC 时序 / 随路时钟 / LVDS 与 IDDR / 测试图样 / 触发与缓存",
+            "href": "articles/fpga/interfaces/fpga-adc-capture/fpga-adc-capture.html",
+            "tags": [
+              "ADC采集",
+              "LVDS",
+              "数据缓存"
+            ],
+            "updated": "2026-10-31"
+          }
+        ]
       },
       {
         "id": "xilinx",
         "title": "Xilinx",
-        "desc": "Vivado、IP核、Block Design 和调试经验后续补充。",
-        "placeholders": [
-          "Vivado",
-          "IP核",
-          "Block Design"
-        ],
-        "articles": []
+        "desc": "Vivado 工程流程、IP 与 Block Design、关键警告处理、ILA / VIO 在线调试与固化。",
+        "articles": [
+          {
+            "navTitle": "Vivado · 工程流程与在线调试",
+            "navDesc": "综合实现流程 / Tcl 脚本化 / IP 与 Block Design / 关键警告 / ILA 与 VIO / 固化",
+            "href": "articles/fpga/xilinx/vivado-flow-debug/vivado-flow-debug.html",
+            "tags": [
+              "Vivado",
+              "ILA",
+              "Xilinx"
+            ],
+            "updated": "2026-10-31"
+          }
+        ]
       },
       {
         "id": "anlogic",

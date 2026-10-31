@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>Vivado 工程流程与在线调试 - XYJ</title>
+  <meta name="description" content="整理 Vivado 的设计流程与工程实践：综合实现各阶段、工程模式与 Tcl 非工程模式、IP 核与 Block Design、关键警告处理、ILA 与 VIO 在线调试、比特流下载与配置 Flash 固化，以及新工程的推进顺序。">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/xilinx">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>Vivado 工程流程与在线调试</h1>
+      <p class="article-summary">整理 Vivado 的设计流程与工程实践：综合实现各阶段、工程模式与 Tcl 非工程模式、IP 核与 Block Design、关键警告处理、ILA 与 VIO 在线调试、比特流下载与配置 Flash 固化，以及新工程的推进顺序。</p>
+
+      <section>
+        <h2>1. Vivado 设计流程概览</h2>
+        <p>Vivado 是 Xilinx（现 AMD）7 系列及之后器件的开发工具。一个工程从源码到烧录，依次经过：</p>
+        <pre><code class="language-text">RTL 源码 / IP / Block Design
+   │  综合 synth_design：RTL → 网表（LUT、FF、DSP、BRAM 等原语）
+   ▼
+   │  实现 implementation
+   │    opt_design      逻辑优化
+   │    place_design    布局
+   │    phys_opt_design 物理优化（复制高扇出、重定时等）
+   │    route_design    布线
+   ▼
+生成比特流 write_bitstream → .bit（下载到 FPGA）/ .bin、.mcs（烧写配置 Flash）</code></pre>
+        <p>每一步之后都可以打开对应的设计查看报告：综合后看资源使用和关键警告，实现后看时序和功耗。不要只看最后有没有生成 bit 文件。</p>
+      </section>
+
+      <section>
+        <h2>2. 工程模式与非工程模式</h2>
+        <table>
+          <thead><tr><th>方式</th><th>特点</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>工程模式（GUI）</td><td>图形界面管理源文件和流程，自动保存中间结果</td><td>学习、小型工程、调试分析</td></tr>
+            <tr><td>非工程模式（Tcl 脚本）</td><td>用脚本描述整个流程，所有步骤可复现</td><td>团队协作、版本管理、持续集成</td></tr>
+          </tbody>
+        </table>
+        <p>Vivado 的工程文件夹包含大量自动生成的文件，<strong>不适合直接放进 Git</strong>。推荐的做法是只提交源码、约束、IP 配置文件（.xci）和一个重建工程的 Tcl 脚本：</p>
+        <pre><code class="language-tcl"># build.tcl：从源码重建工程并完成实现（非工程模式）
+read_verilog [glob ./src/*.v]
+read_xdc ./constr/top.xdc
+read_ip ./ip/fifo_adc/fifo_adc.xci
+synth_design -top top -part xc7a35tcsg324-1
+opt_design
+place_design
+phys_opt_design
+route_design
+report_timing_summary -file ./reports/timing.rpt
+report_utilization    -file ./reports/util.rpt
+write_bitstream -force ./out/top.bit</code></pre>
+        <p>运行方式：<code>vivado -mode batch -source build.tcl</code>。在 GUI 中也可以通过 <code>File → Project → Write Tcl</code> 导出重建工程的脚本。</p>
+      </section>
+
+      <section>
+        <h2>3. IP 核与 Block Design</h2>
+        <p><strong>IP 核</strong>：时钟（Clocking Wizard / MMCM）、FIFO、BRAM、乘法器、FIR、DDR 控制器（MIG）等，都可以通过 IP Catalog 配置生成。几个工程习惯：</p>
+        <ul>
+          <li>IP 配置文件（.xci）纳入版本管理，生成的输出产品不提交，由工具重新生成。</li>
+          <li>升级 Vivado 版本后，IP 可能被锁定（locked），需要按提示升级（Upgrade IP），并重新检查配置。</li>
+          <li>优先使用 XPM 宏（<code>xpm_fifo_async</code>、<code>xpm_cdc_single</code>、<code>xpm_memory_sdpram</code>）：它们以代码形式实例化，不需要生成 IP，便于版本管理，并且自带正确的 CDC 约束。</li>
+        </ul>
+        <p><strong>Block Design</strong>：用图形化方式连接 IP，特别适合包含处理器（MicroBlaze 软核、Zynq 的 ARM 硬核）和 AXI 总线的系统。工程习惯：</p>
+        <ul>
+          <li>自定义逻辑尽量写成独立的 RTL 模块，通过 AXI 接口或模块引用（Add Module）加入 Block Design，不要把大量逻辑连线做在图里。</li>
+          <li>地址编辑器（Address Editor）中为每个 AXI 外设分配地址，软件中的寄存器地址以此为准。</li>
+          <li>Block Design 同样可以导出为 Tcl（<code>write_bd_tcl</code>），用于版本管理和重建。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 关键警告不要忽略</h2>
+        <p>综合和实现会产生大量消息，其中 <strong>Critical Warning</strong> 必须逐条处理。最常见、也最危险的几类：</p>
+        <table>
+          <thead><tr><th>警告类型</th><th>含义</th><th>后果</th></tr></thead>
+          <tbody>
+            <tr><td>约束找不到对象（<code>No ports matched</code>）</td><td>XDC 中的端口名或单元名写错</td><td>约束没有生效，时序和引脚分配可能都不对</td></tr>
+            <tr><td>引脚未分配 / IOSTANDARD 未设置</td><td>端口没有约束到具体引脚</td><td>生成比特流时报错，或引脚被随机分配</td></tr>
+            <tr><td>组合环路（combinational loop）</td><td>组合逻辑输出反馈到自己的输入</td><td>电路振荡或行为不可预测</td></tr>
+            <tr><td>推断出锁存器（latch）</td><td>组合 always 块中有分支没有赋值</td><td>时序难以分析，功能可能不符合预期</td></tr>
+            <tr><td>多驱动（multi-driven net）</td><td>一个信号在多个 always 块或 assign 中被驱动</td><td>综合失败或结果错误</td></tr>
+            <tr><td>时钟走了普通布线</td><td>时钟信号没有使用全局时钟网络</td><td>时钟偏斜大，时序难以收敛</td></tr>
+          </tbody>
+        </table>
+        <p>锁存器和多驱动问题的成因与写法规范，见 <a href="../../hdl-basic/verilog-combinational-sequential/verilog-combinational-sequential.html?v=801833ccbdeb">组合逻辑与时序逻辑</a>。</p>
+      </section>
+
+      <section>
+        <h2>5. 在线调试：ILA 与 VIO</h2>
+        <p>仿真无法覆盖所有真实情况（外部器件的实际行为、真实的数据、偶发事件），上板后需要在线观察内部信号。Vivado 提供：</p>
+        <ul>
+          <li><strong>ILA（Integrated Logic Analyzer）</strong>：把内部信号连接到片上逻辑分析仪，用 BRAM 存储波形，通过 JTAG 在 Vivado 中查看，支持复杂的触发条件。</li>
+          <li><strong>VIO（Virtual Input/Output）</strong>：在 Vivado 界面中实时读取内部信号的值，或者驱动内部信号（相当于虚拟的按键和指示灯），适合调试时手动给使能、切换模式。</li>
+        </ul>
+        <p>两种插入 ILA 的方式：</p>
+        <pre><code class="language-verilog">// 方式一：在代码中标记要观察的信号，综合后通过 Set Up Debug 向导插入 ILA
+(* mark_debug = "true" *) reg [3:0]  state;
+(* mark_debug = "true" *) reg [11:0] adc_data;
+
+// 方式二：直接实例化 ILA IP，适合需要精确控制采样时钟和探针的场景
+ila_0 u_ila (
+    .clk    (clk_100m),
+    .probe0 (state),
+    .probe1 (adc_data),
+    .probe2 (fifo_full)
+);</code></pre>
+        <p>ILA 使用技巧：</p>
+        <ul>
+          <li><strong>采样时钟要选对</strong>：ILA 的时钟应与被观察信号在同一时钟域，否则看到的波形没有意义。</li>
+          <li><strong>深度与资源</strong>：采样深度 × 探针总位宽决定 BRAM 用量，观察信号要有选择，不要一次连上几百位。</li>
+          <li><strong>用触发捕捉偶发事件</strong>：例如触发条件设为“FIFO 溢出 = 1”或“状态机进入错误状态”，并设置触发位置在中间，可以同时看到事件前后的波形。</li>
+          <li><strong>mark_debug 会阻止优化</strong>：被标记的信号不会被综合优化掉，可能影响时序和资源，调试完成后应移除。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 下载与固化</h2>
+        <ul>
+          <li><strong>下载 .bit 到 FPGA</strong>：通过 JTAG 直接配置，掉电后丢失，用于调试。</li>
+          <li><strong>烧写配置 Flash</strong>：生成 .bin 或 .mcs 文件，通过 Hardware Manager 添加配置存储器（选择板上 Flash 的具体型号）后烧写，FPGA 上电时自动从 Flash 加载。</li>
+          <li><strong>加快上电加载</strong>：在约束中设置配置速率和 SPI 位宽（如 <code>BITSTREAM.CONFIG.SPI_BUSWIDTH 4</code>、<code>BITSTREAM.CONFIG.CONFIGRATE 33</code>），可以显著缩短上电后的配置时间，前提是板上 Flash 支持对应模式。</li>
+          <li><strong>压缩比特流</strong>：<code>BITSTREAM.GENERAL.COMPRESS TRUE</code> 可以减小比特流体积、缩短加载时间。</li>
+        </ul>
+        <pre><code class="language-xdc">set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
+set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
+set_property CONFIG_VOLTAGE 3.3 [current_design]
+set_property CFGBVS VCCO [current_design]</code></pre>
+        <p><code>CONFIG_VOLTAGE</code> 和 <code>CFGBVS</code> 描述配置 Bank 的电压，没有设置时会产生警告，并且可能影响配置引脚的电平检查。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：一个新工程的检查顺序</h2>
+        <p>拿到一块新板子、建立一个新工程时，推荐的推进顺序：</p>
+        <ol>
+          <li><strong>最小工程</strong>：时钟输入 → MMCM → 计数器驱动 LED 闪烁。确认时钟引脚、电平标准、MMCM 锁定都正常，这一步就能发现大部分板级问题。</li>
+          <li><strong>约束与报告</strong>：引脚、时钟约束齐全，<code>check_timing</code> 和关键警告清零，时序报告满足。</li>
+          <li><strong>逐个加入接口</strong>：UART 回环 → 外部 ADC / DAC → 存储器。每加入一个模块，先仿真，再上板用 ILA 验证。</li>
+          <li><strong>脚本化</strong>：工程稳定后导出 Tcl 构建脚本，纳入版本管理，团队成员和 CI 都用同一个脚本构建。</li>
+          <li><strong>固化</strong>：烧写配置 Flash，测试上电自动加载，确认配置时间满足系统上电时序要求。</li>
+          <li><strong>记录</strong>：每次发布保存比特流、时序报告和资源报告，标注对应的代码版本。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. Vivado 工程检查清单</h2>
+        <ul>
+          <li>工程是否可以通过 Tcl 脚本从源码重建，版本管理中是否只包含源码、约束和 IP 配置。</li>
+          <li>所有 Critical Warning 是否逐条处理，特别是约束找不到对象、锁存器、组合环路、多驱动。</li>
+          <li>引脚和电平标准是否完整约束，配置 Bank 电压（<code>CONFIG_VOLTAGE</code>、<code>CFGBVS</code>）是否设置。</li>
+          <li>时钟是否使用全局时钟资源，跨时钟域是否使用 XPM CDC 宏或异步 FIFO。</li>
+          <li>ILA 的采样时钟是否正确，调试结束后是否移除了不必要的 mark_debug。</li>
+          <li>配置 Flash 的型号、位宽、速率设置是否正确，上电加载时间是否满足要求。</li>
+          <li>每次发布是否保存了比特流、时序报告和资源报告，并对应到代码版本。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/xilinx">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+</body>
+</html>

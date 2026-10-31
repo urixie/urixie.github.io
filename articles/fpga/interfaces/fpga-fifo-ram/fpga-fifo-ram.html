@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>FPGA FIFO 与 RAM - XYJ</title>
+  <meta name="description" content="整理 FPGA 存储资源的选择与使用：寄存器、LUTRAM 与 BRAM 的区别、BRAM 推断写法、读延迟对齐、同步 FIFO 与 FWFT 模式、valid/ready 握手、FIFO 深度计算，以及乒乓缓存和图像行缓存。">
+  <script src="../../../../assets/js/theme-init.js?v=801833ccbdeb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=801833ccbdeb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=801833ccbdeb">← 返回首页</a>
+          <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>FPGA FIFO 与 RAM</h1>
+      <p class="article-summary">整理 FPGA 存储资源的选择与使用：寄存器、LUTRAM 与 BRAM 的区别、BRAM 推断写法、读延迟对齐、同步 FIFO 与 FWFT 模式、valid/ready 握手、FIFO 深度计算，以及乒乓缓存和图像行缓存。</p>
+
+      <section>
+        <h2>1. FPGA 中的存储资源</h2>
+        <p>FPGA 里能存数据的资源有三类，选择哪种直接影响资源占用和时序：</p>
+        <table>
+          <thead><tr><th>资源</th><th>容量</th><th>读延迟</th><th>特点</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>寄存器（FF）</td><td>每个 1 位</td><td>0（组合读）/ 1 拍</td><td>数量多，但用来存大数组极其浪费</td><td>小型状态、流水线、少量查找表</td></tr>
+            <tr><td>分布式 RAM（LUTRAM）</td><td>用 LUT 实现，几十到几百位一块</td><td>异步读（组合）或 1 拍</td><td>灵活、可异步读，占用逻辑资源</td><td>小于几百字节的小型 RAM、小 FIFO</td></tr>
+            <tr><td>块 RAM（BRAM）</td><td>7 系列为 36Kb / 块（可拆成两个 18Kb）</td><td>同步读，1 拍（启用输出寄存器为 2 拍）</td><td>专用硬核，容量大、不占逻辑</td><td>数据缓存、大 FIFO、图像行缓存</td></tr>
+          </tbody>
+        </table>
+        <p>存储需求超过片上资源时，就需要外部 SDRAM / DDR，那是另一个层次的设计。</p>
+      </section>
+
+      <section>
+        <h2>2. 让综合工具推断出 BRAM</h2>
+        <p>BRAM 既可以通过 IP 核生成，也可以用符合规范的 HDL 写法让综合工具自动推断。推断的好处是代码可移植，换厂商不用重新生成 IP：</p>
+        <pre><code class="language-verilog">// 简单双口 RAM：A 口写、B 口读，同一时钟
+module sdp_ram #(
+    parameter DW = 16,
+    parameter AW = 10           // 1024 深度
+) (
+    input  wire          clk,
+    input  wire          we,
+    input  wire [AW-1:0] waddr,
+    input  wire [DW-1:0] wdata,
+    input  wire [AW-1:0] raddr,
+    output reg  [DW-1:0] rdata
+);
+    reg [DW-1:0] mem [0:(1&lt;&lt;AW)-1];
+
+    always @(posedge clk) begin
+        if (we) mem[waddr] &lt;= wdata;
+        rdata &lt;= mem[raddr];          // 同步读：地址在本拍给出，数据下一拍有效
+    end
+endmodule</code></pre>
+        <p>写法要点：</p>
+        <ul>
+          <li><strong>读必须是同步的</strong>（读地址或读数据寄存在时钟沿上），写成 <code>assign rdata = mem[raddr];</code> 这样的异步读，工具只能用分布式 RAM 或寄存器实现，深度一大就会耗尽逻辑资源。</li>
+          <li><strong>不要对存储数组整体复位</strong>：<code>for</code> 循环清零整个数组会让工具无法映射到 BRAM。需要初始值时用 <code>$readmemh</code> 在初始化时加载，或在 IP 中配置初始化文件（.coe / .mif）。</li>
+          <li><strong>读写同一地址的行为</strong>（Read-First、Write-First、No-Change）随写法和器件不同而不同，依赖这一行为的设计要查看综合报告确认，或者在逻辑上避免同时读写同一地址。</li>
+          <li>综合后查看资源报告，确认 RAM 确实被映射为 BRAM，而不是成千上万个寄存器。</li>
+        </ul>
+        <p>安路、Lattice 等厂商的推断规则与 Xilinx 相近，但支持的端口组合和初始化方式有差异；使用 IP 生成器配置 RAM 的流程见 <a href="../../anlogic/ef2-single-port-ram/ef2-single-port-ram.html?v=801833ccbdeb">EF2 单口 RAM 实验</a>。</p>
+      </section>
+
+      <section>
+        <h2>3. 读延迟：最容易错的地方</h2>
+        <p>BRAM 是同步读：<strong>这一拍给出地址，下一拍才得到数据</strong>；开启输出寄存器（改善时序）后还要再晚一拍。读延迟没有对齐，是 FPGA 存储相关 bug 的第一大来源，典型表现是“读出的数据总是错一个位置”。</p>
+        <pre><code class="language-verilog">// 读地址与有效信号同步延迟，保证 rdata 与 rvalid、对应的地址标签对齐
+always @(posedge clk) begin
+    rd_en_d1   &lt;= rd_en;           // RAM 读延迟 1 拍
+    raddr_d1   &lt;= raddr;
+end
+assign rvalid = rd_en_d1;          // 与 rdata 同一拍有效</code></pre>
+        <p>在仿真中检查读延迟最直接：给 RAM 写入地址作为数据（mem[i] = i），然后连续读出，看数据与地址是否正好错开预期的拍数。</p>
+      </section>
+
+      <section>
+        <h2>4. 同步 FIFO</h2>
+        <p>FIFO 是 FPGA 中最常用的缓冲结构，用于两个处理速率不同的模块之间。读写在同一时钟域时使用同步 FIFO：</p>
+        <pre><code class="language-verilog">module sync_fifo #(
+    parameter DW = 8,
+    parameter AW = 4                 // 深度 16
+) (
+    input  wire          clk, rst,
+    input  wire          wr_en,
+    input  wire [DW-1:0] wdata,
+    input  wire          rd_en,
+    output wire [DW-1:0] rdata,
+    output wire          full, empty
+);
+    reg [DW-1:0] mem [0:(1&lt;&lt;AW)-1];
+    reg [AW:0]   wptr, rptr;         // 多一位，用于区分空和满
+
+    assign empty = (wptr == rptr);
+    assign full  = (wptr[AW] != rptr[AW]) &amp;&amp; (wptr[AW-1:0] == rptr[AW-1:0]);
+    assign rdata = mem[rptr[AW-1:0]];          // 首字直通（FWFT）：小深度用 LUTRAM 实现
+
+    always @(posedge clk) begin
+        if (rst) begin
+            wptr &lt;= 0; rptr &lt;= 0;
+        end else begin
+            if (wr_en &amp;&amp; !full) begin
+                mem[wptr[AW-1:0]] &lt;= wdata;
+                wptr &lt;= wptr + 1'b1;
+            end
+            if (rd_en &amp;&amp; !empty) rptr &lt;= rptr + 1'b1;
+        end
+    end
+endmodule</code></pre>
+        <p>工程中更常用厂商的 FIFO IP（Xilinx FIFO Generator、XPM_FIFO_SYNC），它们提供可配置的深度、位宽转换、almost_full / almost_empty、数据计数和 ECC。使用前要搞清楚 IP 的两种读模式：</p>
+        <ul>
+          <li><strong>标准模式</strong>：<code>rd_en</code> 拉高后的下一拍数据才出现在输出端。</li>
+          <li><strong>首字直通（FWFT）模式</strong>：只要 FIFO 非空，第一个数据就已经出现在输出端，<code>rd_en</code> 相当于“我已经取走了，换下一个”。</li>
+        </ul>
+        <p>模式选错，读出的数据会整体错位一个。跨时钟域使用的异步 FIFO 原理见 <a href="../../timing/fpga-cdc/fpga-cdc.html?v=801833ccbdeb">跨时钟域处理</a>。</p>
+      </section>
+
+      <section>
+        <h2>5. 流控：valid / ready 握手</h2>
+        <p>模块之间传递数据流时，推荐统一使用 valid / ready 握手（AXI-Stream 的基本思想）：</p>
+        <ul>
+          <li>发送方拉高 <code>valid</code> 表示数据有效，接收方拉高 <code>ready</code> 表示可以接收。</li>
+          <li><strong>只有 <code>valid &amp;&amp; ready</code> 同时为高的那个时钟沿，才算完成一次传输</strong>。</li>
+          <li>发送方一旦拉高 <code>valid</code>，在传输完成前不能撤销，也不能改变数据。</li>
+          <li><code>valid</code> 不能依赖于 <code>ready</code>（否则可能形成组合环路或死锁），<code>ready</code> 可以依赖于 <code>valid</code>。</li>
+        </ul>
+        <p>FIFO 天然适配这种接口：写端 <code>ready = !full</code>，读端 <code>valid = !empty</code>。在 FIFO 前后都用这套握手，模块之间就能自动处理反压：下游处理不过来时，<code>ready</code> 拉低，上游自动等待，不会丢数据。</p>
+        <pre><code class="language-verilog">assign s_ready = !fifo_full;                    // 上游：FIFO 不满就能接收
+assign fifo_wr = s_valid &amp;&amp; s_ready;            // 握手成功时写入
+assign m_valid = !fifo_empty;                   // 下游：FIFO 非空就有数据
+assign fifo_rd = m_valid &amp;&amp; m_ready;            // 下游取走时读出（FWFT 模式）</code></pre>
+      </section>
+
+      <section>
+        <h2>6. FIFO 深度怎么算</h2>
+        <p>FIFO 太浅会溢出，太深浪费 BRAM。计算的核心是：<strong>在最坏情况的突发期间，写入比读出多出来的数据量</strong>。</p>
+        <pre><code class="language-text">深度 ≥ 突发长度 × (1 - 读速率 / 写速率)    （读速率 &lt; 写速率时）</code></pre>
+        <p>例：ADC 以 80MHz 每拍写入 1 个样本，突发采集 2048 个样本；读端在 50MHz 时钟下，每拍读出 1 个样本。</p>
+        <pre><code class="language-text">突发持续时间 = 2048 / 80MHz = 25.6us
+期间读出数量 = 25.6us × 50MHz = 1280
+需要缓存     = 2048 - 1280 = 768  → 选择深度 1024（取 2 的幂，并留余量）</code></pre>
+        <p>还要考虑读端的“空闲时间”：如果读端每读 8 个数据就要停 2 个周期（例如通过总线发送时的协议开销），读速率就要乘以 8/10 再计算。读速率持续低于写速率时，任何深度的 FIFO 最终都会溢出，这时需要降低写入速率或提高读出能力，而不是加大 FIFO。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：乒乓缓存与图像行缓存</h2>
+        <p><strong>乒乓缓存</strong>：两块 RAM 交替使用，一块写入新数据时，另一块被读出处理，写满后交换角色。适合“整块采集、整块处理”的场景，例如采集 1024 点后做 FFT。</p>
+        <pre><code class="language-verilog">reg bank;                                   // 当前写入的 bank
+always @(posedge clk)
+    if (wr_en &amp;&amp; waddr == DEPTH - 1)
+        bank &lt;= ~bank;                      // 写满一块后切换
+
+assign we_a = wr_en &amp;&amp; (bank == 1'b0);
+assign we_b = wr_en &amp;&amp; (bank == 1'b1);
+assign rdata = bank ? rdata_a : rdata_b;   // 读的是“不在写”的那一块</code></pre>
+        <p>需要保证处理一块数据的时间小于写满一块的时间，否则读端还没处理完，写端就会覆盖它。</p>
+        <p><strong>图像行缓存</strong>：3×3 卷积、Sobel 边缘检测等图像算法需要同时访问相邻三行的像素。用两块 BRAM 各缓存一行，配合当前行的像素流，就能在每个时钟周期得到一个 3×3 窗口，而不需要缓存整帧图像。这是 FPGA 做实时图像处理的基础结构。</p>
+      </section>
+
+      <section>
+        <h2>8. FIFO 与 RAM 检查清单</h2>
+        <ul>
+          <li>存储大小是否选择了合适的资源（寄存器 / LUTRAM / BRAM），综合后是否确认映射正确。</li>
+          <li>推断 BRAM 的写法是否为同步读，是否避免了对整个存储数组复位。</li>
+          <li>读延迟（1 拍或 2 拍）是否与 valid、地址标签等控制信号对齐，并在仿真中验证。</li>
+          <li>使用 FIFO IP 时，是否清楚标准模式与 FWFT 模式的区别。</li>
+          <li>模块之间是否统一使用 valid / ready 握手，传输是否只在两者同时有效时完成。</li>
+          <li>FIFO 深度是否按突发长度和读写速率计算，是否考虑了读端的空闲时间。</li>
+          <li>满、空、溢出、读空等异常是否有标志输出，并在调试时可以观察到。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=801833ccbdeb#fpga/interfaces">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=801833ccbdeb"></script>
+</body>
+</html>
