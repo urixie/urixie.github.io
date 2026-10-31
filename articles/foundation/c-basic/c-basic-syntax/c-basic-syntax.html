@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言基础语法整理 - XYJ</title>
   <meta name="description" content="面向嵌入式工程实践整理 C 语言基础语法，包括变量、类型、运算符、流程控制、函数和源文件组织方式。">
-  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-          <a href="../../../../index.html?v=c1df6198c223#foundation/c-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/c-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-      <a href="../../../../index.html?v=c1df6198c223#foundation/c-basic">返回 C语言专题</a>
+      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+      <a href="../../../../index.html?v=591c98cc2ebb#foundation/c-basic">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -173,7 +173,7 @@ app_err_t app_adc_read(uint8_t channel, uint16_t *out_value);
           假设设备通过 UART 收到一帧 <code>AA 55 CMD LEN VALUE_L VALUE_H</code>：前两个字节是帧头，第三个字节是命令，第四个字节表示后续有效载荷长度，最后两个字节是小端格式的测量值。这个例子把定长类型、位移、条件判断、指针参数和错误码串在一起，正好对应真实驱动中的最小闭环。
         </p>
         <figure class="article-figure">
-          <img src="images/c-basic-flow.svg?v=c1df6198c223" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
+          <img src="images/c-basic-flow.svg?v=591c98cc2ebb" alt="嵌入式 C 从外设输入到业务输出的数据处理流程图" loading="lazy" decoding="async">
           <figcaption>图 1：基础语法最终要服务于一条可验证的数据处理链。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stddef.h&gt;
@@ -230,7 +230,88 @@ frame_status_t parse_sensor_frame(const uint8_t *buf,
       </section>
 
       <section>
-        <h2>10. 基础语法检查清单</h2>
+        <h2>10. 表达式求值顺序与未定义行为</h2>
+        <p>C 语言只规定了少数几个“序列点”（<code>&amp;&amp;</code>、<code>||</code>、<code>?:</code>、逗号运算符、完整表达式结束、函数调用前），在序列点之间对同一个变量修改两次，或者一边修改一边读取，结果都是未定义的。</p>
+        <pre><code class="language-c">i = i++ + 1;            /* 未定义：同一表达式中修改 i 两次 */
+buf[i] = i++;           /* 未定义：读取 i 作为下标的同时修改 i */
+f(read_byte(), read_byte());   /* 未指定：两个参数谁先求值由编译器决定，协议字节可能颠倒 */
+
+/* 正确：拆成独立语句，顺序由代码明确表达 */
+uint8_t hi = read_byte();
+uint8_t lo = read_byte();
+f(hi, lo);</code></pre>
+        <p>短路求值是可以放心依赖的：<code>&amp;&amp;</code> 左边为假时右边不执行，<code>||</code> 左边为真时右边不执行。判空和越界检查经常利用这一点：</p>
+        <pre><code class="language-c">if (p != NULL &amp;&amp; p-&gt;len &gt; 0U) { }            /* p 为空时不会解引用 */
+if (idx &lt; ARRAY_SIZE(table) &amp;&amp; table[idx] == key) { }   /* 先检查下标再访问 */</code></pre>
+        <p>工作中还要警惕其他常见的未定义行为：有符号整数溢出、移位位数超过类型宽度、解引用空指针或越界指针、使用未初始化的局部变量。整数相关的细节见 <a href="../c-integer-arithmetic/c-integer-arithmetic.html?v=591c98cc2ebb">整数运算、溢出与定点数</a>。这些问题在 <code>-O0</code> 下往往“看起来正常”，开启优化后才暴露。</p>
+      </section>
+
+      <section>
+        <h2>11. switch 的工程写法</h2>
+        <p><code>switch</code> 是写状态机和命令分发的主力，几条约定能避免大部分问题：</p>
+        <pre><code class="language-c">switch (cmd) {
+case CMD_READ:
+    handle_read(frame);
+    break;
+
+case CMD_WRITE:
+case CMD_WRITE_NO_ACK:           /* 多个 case 共用处理，紧挨着写，不需要注释 */
+    handle_write(frame, cmd == CMD_WRITE);
+    break;
+
+case CMD_RESET:
+    prepare_reset();
+    /* fall through */           /* 有意穿透必须注释，GCC 7+ 可配合 -Wimplicit-fallthrough */
+case CMD_REBOOT:
+    reboot_later();
+    break;
+
+default:
+    LOGW(TAG, "unknown cmd 0x%02X", cmd);      /* 非法输入一定要处理，不能静默忽略 */
+    break;
+}</code></pre>
+        <ul>
+          <li>每个 <code>case</code> 结束都写 <code>break</code>，有意穿透时写注释（或 C23 / GCC 的 <code>__attribute__((fallthrough))</code>）。</li>
+          <li>对枚举类型做 <code>switch</code> 时，开启 <code>-Wswitch</code>：新增枚举值后忘了处理，编译器会给出告警。如果同时写了 <code>default</code>，则需要 <code>-Wswitch-enum</code> 才会提示。</li>
+          <li><code>case</code> 中需要定义局部变量时，加一对大括号限定作用域，否则跳过初始化会引发编译错误或隐患。</li>
+          <li><code>default</code> 不是可有可无：协议命令、状态值都可能因为干扰或版本不一致出现非法值。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>12. 宏与内联函数的取舍</h2>
+        <p>宏在预处理阶段做文本替换，不做类型检查，最常见的坑有三个：缺括号、参数被多次求值、多语句宏和 <code>if</code> 搭配出错。</p>
+        <pre><code class="language-c">#define SQUARE(x)   x * x              /* SQUARE(a + 1) 展开为 a + 1 * a + 1 */
+#define SQUARE2(x)  ((x) * (x))        /* 加括号后正确，但 SQUARE2(i++) 中 i 被加两次 */
+
+/* 多语句宏用 do { } while (0) 包裹，保证在 if/else 中行为像一条语句 */
+#define LED_BLINK(pin)  do { led_on(pin); delay_ms(50); led_off(pin); } while (0)
+
+/* 需要类型检查、参数只求值一次时，优先用 static inline 函数 */
+static inline uint32_t square_u32(uint32_t x) { return x * x; }</code></pre>
+        <p>宏仍然有不可替代的场景：条件编译、获取 <code>__FILE__</code> / <code>__LINE__</code> 的日志与断言、<code>ARRAY_SIZE</code> 这类需要作用于类型或数组本身的工具、寄存器地址常量。除此之外，能用 <code>static inline</code> 函数、<code>enum</code> 或 <code>const</code> 变量表达的，就不要用宏。</p>
+      </section>
+
+      <section>
+        <h2>13. 工作场景：代码评审中最常见的基础问题</h2>
+        <p>下面是评审嵌入式代码时出现频率最高的一类问题，几乎都和“基础语法”有关：</p>
+        <table>
+          <thead><tr><th>问题</th><th>示例</th><th>建议</th></tr></thead>
+          <tbody>
+            <tr><td>魔法数字</td><td><code>if (status &amp; 0x40)</code></td><td>定义有名字的常量：<code>STATUS_TX_EMPTY</code></td></tr>
+            <tr><td>忽略返回值</td><td><code>i2c_write(...);</code></td><td>检查并处理错误，确实不关心时写 <code>(void)</code> 明示</td></tr>
+            <tr><td>函数过长</td><td>一个函数 300 行、5 层嵌套</td><td>按步骤拆分，提前返回减少嵌套</td></tr>
+            <tr><td>全局变量满天飞</td><td>多个文件直接读写同一个全局变量</td><td>改为模块内 <code>static</code>，通过接口访问</td></tr>
+            <tr><td>隐式类型转换</td><td><code>uint8_t len = strlen(s);</code></td><td>显式转换并检查范围</td></tr>
+            <tr><td>无超时的等待</td><td><code>while (!(SR &amp; READY));</code></td><td>加超时计数或时间判断</td></tr>
+            <tr><td>注释和代码不一致</td><td>注释写 100ms，代码是 1000</td><td>注释写“为什么”，数值用常量表达</td></tr>
+          </tbody>
+        </table>
+        <p>更系统的分层与接口设计，见 <a href="../../embedded-c/c-modular-driver-layer/c-modular-driver-layer.html?v=591c98cc2ebb">模块化与驱动分层设计</a>。</p>
+      </section>
+
+      <section>
+        <h2>14. 基础语法检查清单</h2>
         <ul>
           <li>协议、寄存器、Flash 数据是否使用了固定宽度类型。</li>
           <li>有符号和无符号变量是否混合比较。</li>
@@ -239,15 +320,19 @@ frame_status_t parse_sensor_frame(const uint8_t *buf,
           <li>函数参数是否做了合法性检查。</li>
           <li>头文件是否只暴露必要接口。</li>
           <li>复杂表达式是否加括号提升可读性。</li>
+          <li>同一表达式中是否对同一变量多次修改，函数参数是否依赖求值顺序。</li>
+          <li>switch 是否每个 case 都有 break，有意穿透是否注释，是否处理了 default。</li>
+          <li>宏参数和整体是否加了括号，多语句宏是否用 do { } while (0) 包裹，能否改用 static inline 函数。</li>
+          <li>是否存在魔法数字、被忽略的返回值和无超时的等待循环。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=c1df6198c223#foundation/c-basic">返回 C语言专题</a>
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/c-basic">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
 </body>
 </html>

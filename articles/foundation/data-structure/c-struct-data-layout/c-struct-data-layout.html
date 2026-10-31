@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言结构体与数据组织整理 - XYJ</title>
   <meta name="description" content="面向嵌入式工程实践整理 C 语言 struct.union.enum、位域、结构体对齐、协议帧和参数表设计。">
-  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-          <a href="../../../../index.html?v=c1df6198c223#foundation/data-structure">返回对应专题</a>
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-      <a href="../../../../index.html?v=c1df6198c223#foundation/data-structure">返回 C语言专题</a>
+      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+      <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -240,7 +240,7 @@ reg = (reg &amp; ~REG_MODE_Msk) | (2U &lt;&lt; REG_MODE_Pos);</code></pre>
           对需要长期保存的设备参数，推荐把“业务访问结构体”和“外部存储格式”分开。业务代码使用结构体字段，Flash 中则使用固定字段顺序、显式宽度、版本号、总长度和 CRC。升级固件时可以根据版本号决定是否补齐默认值，避免结构体增删字段后直接读出错误配置。
         </p>
         <figure class="article-figure">
-          <img src="images/c-struct-serialization.svg?v=c1df6198c223" alt="内部结构体通过序列化函数转换为稳定外部字节格式的示意图" loading="lazy" decoding="async">
+          <img src="images/c-struct-serialization.svg?v=591c98cc2ebb" alt="内部结构体通过序列化函数转换为稳定外部字节格式的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：结构体适合组织业务，序列化函数负责稳定外部格式。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stddef.h&gt;
@@ -275,7 +275,125 @@ size_t config_pack(const config_blob_t *cfg,
       </section>
 
       <section>
-        <h2>13. 结构体与位域设计检查清单</h2>
+        <h2>13. 用编译期检查锁定数据布局</h2>
+        <p>结构体一旦用于协议、Flash 存储或与其他处理器共享内存，它的大小和每个字段的偏移就成了“对外接口”。任何人无意中插入一个字段、改一个类型，都会让旧数据无法解析。最便宜的保护是编译期断言：</p>
+        <pre><code class="language-c">#include &lt;stddef.h&gt;
+
+typedef struct {
+    uint32_t magic;          /* 0  */
+    uint16_t version;        /* 4  */
+    uint16_t length;         /* 6  */
+    uint32_t baudrate;       /* 8  */
+    uint8_t  addr;           /* 12 */
+    uint8_t  reserved[15];   /* 13 预留，凑整 */
+    uint32_t crc32;          /* 28 */
+} cfg_block_t;
+
+_Static_assert(sizeof(cfg_block_t) == 32, "cfg_block_t size changed");
+_Static_assert(offsetof(cfg_block_t, baudrate) == 8, "cfg_block_t layout changed");
+_Static_assert(offsetof(cfg_block_t, crc32) == 28, "crc must be the last field");</code></pre>
+        <p>断言失败时编译直接报错，而不是等到设备升级后读出一堆乱码才发现。字段顺序按“从大到小”或“自然对齐”排列，并显式写出预留字段，可以在不使用 <code>packed</code> 的情况下得到没有隐式填充的布局。</p>
+      </section>
+
+      <section>
+        <h2>14. 结构体的版本兼容与扩展</h2>
+        <p>产品迭代中，配置结构几乎一定会增加字段。如果没有提前设计，新固件读取旧配置时只能全部恢复默认值，用户的设置就丢了。常用的兼容策略：</p>
+        <ul>
+          <li><strong>头部带魔数、版本号和长度</strong>：魔数用于判断数据是否有效，版本号用于选择解析方式，长度用于判断新旧结构大小。</li>
+          <li><strong>只在末尾追加字段</strong>：已有字段的位置和含义永不改变，删除的字段保留为 <code>reserved</code>。</li>
+          <li><strong>预留空间</strong>：一开始就留出若干字节，后续新增字段优先占用预留区，结构总大小不变。</li>
+          <li><strong>迁移函数</strong>：读到旧版本时，先按旧版本解析，再把新增字段填为默认值，最后以新版本写回。</li>
+        </ul>
+        <pre><code class="language-c">#define CFG_MAGIC    0x43464721U    /* "CFG!" */
+#define CFG_VERSION  3U
+
+int cfg_load(cfg_block_t *out)
+{
+    cfg_block_t raw;
+    flash_read(CFG_ADDR, &amp;raw, sizeof(raw));
+
+    if (raw.magic != CFG_MAGIC || crc32(&amp;raw, offsetof(cfg_block_t, crc32)) != raw.crc32) {
+        cfg_set_default(out);                  /* 数据无效：首次上电或已损坏 */
+        return -ENODATA;
+    }
+    *out = raw;
+    switch (raw.version) {                     /* 逐级迁移，每一步只处理一个版本差异 */
+    case 1:
+        out-&gt;addr = 1U;                        /* v2 新增字段的默认值 */
+        /* fall through */
+    case 2:
+        /* v3 新增字段使用预留区，默认值为 0，无需处理 */
+        out-&gt;version = CFG_VERSION;
+        cfg_save(out);                         /* 以新版本写回 */
+        break;
+    case CFG_VERSION:
+        break;
+    default:
+        cfg_set_default(out);                  /* 比当前固件还新的版本：降级场景，按产品策略处理 */
+        return -EPROTO;
+    }
+    return 0;
+}</code></pre>
+        <p>Flash 写入还要考虑掉电：写到一半断电，数据就是半新半旧。常见做法是两个扇区轮流写（A/B 双备份），每份带序号和 CRC，读取时选择序号最大且 CRC 正确的一份。</p>
+      </section>
+
+      <section>
+        <h2>15. TLV：可扩展的协议与存储格式</h2>
+        <p>当字段很多、而且经常增减时，固定结构体会越来越难维护。TLV（Type-Length-Value）把每个字段编码为“类型 + 长度 + 值”，解析方遇到不认识的类型可以直接跳过，新老版本天然兼容。</p>
+        <pre><code class="language-c">/* 每个字段：type(1) + len(1) + value(len) */
+enum { TLV_BAUD = 0x01, TLV_ADDR = 0x02, TLV_NAME = 0x03 };
+
+size_t tlv_put(uint8_t *buf, size_t cap, size_t pos, uint8_t type, const void *val, uint8_t len)
+{
+    if (pos + 2U + len &gt; cap) {
+        return 0;                              /* 空间不足 */
+    }
+    buf[pos] = type;
+    buf[pos + 1U] = len;
+    memcpy(&amp;buf[pos + 2U], val, len);
+    return pos + 2U + len;
+}
+
+int tlv_parse(const uint8_t *buf, size_t size, cfg_t *cfg)
+{
+    size_t pos = 0;
+    while (pos + 2U &lt;= size) {
+        uint8_t type = buf[pos];
+        uint8_t len  = buf[pos + 1U];
+        const uint8_t *val = &amp;buf[pos + 2U];
+        if (pos + 2U + len &gt; size) {
+            return -EBADMSG;                   /* 长度越界：数据被截断或损坏 */
+        }
+        switch (type) {
+        case TLV_BAUD: if (len == 4U) cfg-&gt;baud = get_le32(val); break;
+        case TLV_ADDR: if (len == 1U) cfg-&gt;addr = val[0];        break;
+        default: break;                        /* 不认识的类型：跳过，保证向前兼容 */
+        }
+        pos += 2U + len;
+    }
+    return 0;
+}</code></pre>
+        <p>TLV 的代价是多了类型和长度字节，解析稍慢。蓝牙广播数据、很多私有协议的扩展字段、SIM 卡数据都采用类似结构。字段很多、需要跨语言时，也可以考虑 nanopb（Protocol Buffers 的嵌入式实现）这类成熟方案。</p>
+      </section>
+
+      <section>
+        <h2>16. 工作场景：上下位机共享协议定义</h2>
+        <p>设备和上位机（PC 工具、手机 App）通信时，最常见的问题是“两边对结构体的理解不一致”：对齐不同、字节序不同、某一方偷偷改了字段。几条实践经验：</p>
+        <ul>
+          <li><strong>协议文档化，一处定义</strong>：字段表（偏移、类型、字节序、单位、取值范围）写在协议文档中，设备端头文件和上位机解析代码都以它为准。条件允许时，用脚本从同一份描述文件生成 C 头文件和上位机代码。</li>
+          <li>**不要直接 <code>memcpy</code> 结构体到发送缓冲区**：用显式的打包 / 解包函数逐字段处理，字节序和对齐都在函数里明确表达。</li>
+          <li><strong>物理量带单位、用整数</strong>：温度用 <code>int16_t</code>，单位 0.1℃；电压用 <code>uint16_t</code>，单位 mV。避免直接传 <code>float</code>。</li>
+          <li><strong>协议带版本号</strong>：上位机读到更高版本的协议时，可以提示升级工具，而不是解析出错误的数据。</li>
+          <li><strong>对照测试</strong>：用固定的字节序列作为测试向量，设备端和上位机各自解析，结果必须一致。</li>
+        </ul>
+        <pre><code class="language-python"># 上位机（Python）解析与设备端一致的 16 字节状态帧：小端，无填充
+import struct
+temp_x10, volt_mv, flags, uptime_s = struct.unpack_from("&lt;hHHxxQ", frame)</code></pre>
+        <p><code>struct</code> 格式字符串里的 <code>&lt;</code> 表示小端且不做对齐，<code>xx</code> 显式跳过 2 个预留字节。设备端改动协议时，这一行也必须同步修改，这正是“一处定义、多端生成”值得投入的原因。</p>
+      </section>
+
+      <section>
+        <h2>17. 结构体与位域设计检查清单</h2>
         <ul>
           <li>字段名是否带有单位和含义。</li>
           <li>是否显式指定了协议或存储字段的类型宽度。</li>
@@ -286,15 +404,20 @@ size_t config_pack(const config_blob_t *cfg,
           <li>是否考虑了结构体对齐和版本兼容。</li>
           <li>是否需要添加 magic.version.length.crc 等保护字段。</li>
           <li>是否把内部内存布局误当成外部协议格式。</li>
+          <li>对外结构体的大小和关键字段偏移，是否用 _Static_assert 锁定。</li>
+          <li>存储结构是否带魔数、版本号、长度和 CRC，是否只在末尾追加字段或使用预留区。</li>
+          <li>读到旧版本数据时是否有迁移逻辑，Flash 写入是否考虑掉电（A/B 双备份）。</li>
+          <li>经常扩展的字段集合是否考虑 TLV，解析时是否检查长度越界并跳过未知类型。</li>
+          <li>上下位机是否共用同一份协议定义，是否有固定字节序列作为对照测试向量。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=c1df6198c223#foundation/data-structure">返回 C语言专题</a>
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
 </body>
 </html>

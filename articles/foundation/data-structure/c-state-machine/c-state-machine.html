@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>C语言状态机与事件驱动设计 - XYJ</title>
+  <meta name="description" content="整理嵌入式中最常用的状态机写法：switch-case、状态转移表、状态函数指针与 entry/exit 动作，事件队列驱动、超时与重试，并给出按键消抖、串口协议逐字节解析和 AT 指令模组控制等工作场景实现。">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>C语言状态机与事件驱动设计</h1>
+      <p class="article-summary">整理嵌入式中最常用的状态机写法：switch-case、状态转移表、状态函数指针与 entry/exit 动作，事件队列驱动、超时与重试，并给出按键消抖、串口协议逐字节解析和 AT 指令模组控制等工作场景实现。</p>
+
+      <section>
+        <h2>1. 为什么嵌入式代码离不开状态机</h2>
+        <p>嵌入式程序大多在“等待”：等按键、等串口数据、等传感器转换完成、等网络连接成功。如果用阻塞的方式写——<code>while (!flag);</code>、<code>delay_ms(1000);</code>——CPU 在等待期间什么也做不了，多个功能之间无法同时进行。</p>
+        <p>状态机把一个过程拆成若干<strong>状态</strong>，每次只根据“当前状态 + 发生的事件”决定做什么、下一步进入哪个状态，然后立刻返回。这样多个状态机可以在主循环或任务里轮流执行，看起来像在并行工作。</p>
+        <p>典型的状态机场景：</p>
+        <ul>
+          <li>按键消抖、短按、长按、双击识别。</li>
+          <li>串口协议解析：帧头、长度、数据、校验逐字节推进。</li>
+          <li>模组控制：上电、发 AT 指令、等待应答、超时重试、联网。</li>
+          <li>设备工作模式：待机、运行、故障、升级。</li>
+          <li>充电管理：涓流、恒流、恒压、充满、异常保护。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. 状态、事件、动作与转移</h2>
+        <table>
+          <thead><tr><th>概念</th><th>含义</th><th>例子（按键）</th></tr></thead>
+          <tbody>
+            <tr><td>状态 State</td><td>系统当前所处的阶段</td><td>空闲、消抖中、已按下、长按中</td></tr>
+            <tr><td>事件 Event</td><td>驱动状态变化的输入</td><td>电平变低、电平变高、定时器到期</td></tr>
+            <tr><td>动作 Action</td><td>转移时执行的操作</td><td>记录按下时间、上报短按事件</td></tr>
+            <tr><td>转移 Transition</td><td>从一个状态到另一个状态</td><td>消抖中 + 定时到期 → 已按下</td></tr>
+          </tbody>
+        </table>
+        <p>动手写代码之前，先画状态转移图或列转移表。表格能逼你回答“这个状态下收到这个事件该怎么办”，很多遗漏在这一步就会暴露出来。</p>
+      </section>
+
+      <section>
+        <h2>3. 写法一：switch-case</h2>
+        <p>最直接的写法：外层 <code>switch</code> 当前状态，内层判断事件。适合状态不多（10 个以内）、逻辑清晰的场景。</p>
+        <pre><code class="language-c">typedef enum { BTN_IDLE, BTN_DEBOUNCE, BTN_PRESSED, BTN_LONG } btn_state_t;
+typedef enum { BTN_EVT_NONE, BTN_EVT_SHORT, BTN_EVT_LONG } btn_event_t;
+
+#define DEBOUNCE_MS   20U
+#define LONG_PRESS_MS 800U
+
+typedef struct {
+    btn_state_t state;
+    uint32_t    t0;        /* 进入当前状态的时间 */
+} button_t;
+
+/* 每 5~10ms 调用一次，pressed 为当前电平是否按下 */
+btn_event_t button_poll(button_t *b, bool pressed, uint32_t now)
+{
+    switch (b-&gt;state) {
+    case BTN_IDLE:
+        if (pressed) { b-&gt;state = BTN_DEBOUNCE; b-&gt;t0 = now; }
+        break;
+
+    case BTN_DEBOUNCE:
+        if (!pressed) {
+            b-&gt;state = BTN_IDLE;                         /* 抖动，回到空闲 */
+        } else if (now - b-&gt;t0 &gt;= DEBOUNCE_MS) {
+            b-&gt;state = BTN_PRESSED; b-&gt;t0 = now;
+        }
+        break;
+
+    case BTN_PRESSED:
+        if (!pressed) {
+            b-&gt;state = BTN_IDLE;
+            return BTN_EVT_SHORT;                        /* 松开时才判定为短按 */
+        }
+        if (now - b-&gt;t0 &gt;= LONG_PRESS_MS) {
+            b-&gt;state = BTN_LONG;
+            return BTN_EVT_LONG;                         /* 达到时长立即上报长按 */
+        }
+        break;
+
+    case BTN_LONG:
+        if (!pressed) { b-&gt;state = BTN_IDLE; }
+        break;
+
+    default:
+        b-&gt;state = BTN_IDLE;                             /* 状态被破坏时回到安全状态 */
+        break;
+    }
+    return BTN_EVT_NONE;
+}</code></pre>
+        <p>几个值得注意的细节：</p>
+        <ul>
+          <li>时间比较用 <code>now - t0 &gt;= N</code> 的无符号差值写法，计数器回绕时仍然正确。</li>
+          <li>状态机本身不读 GPIO、不调用延时，输入由调用者传入，因此可以在 PC 上用一串假的输入序列测试。</li>
+          <li><code>default</code> 分支把非法状态拉回安全状态，防止内存被意外改写后程序卡死。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 写法二：状态转移表</h2>
+        <p>状态和事件较多时，<code>switch</code> 会膨胀成几百行，难以检查是否覆盖了所有组合。转移表把“状态 × 事件 → 下一状态 + 动作”写成数据，逻辑一目了然，也方便和设计文档对照。</p>
+        <pre><code class="language-c">typedef enum { ST_IDLE, ST_CONNECTING, ST_ONLINE, ST_ERROR, ST_COUNT } net_state_t;
+typedef enum { EV_START, EV_OK, EV_FAIL, EV_TIMEOUT, EV_DISCONNECT, EV_COUNT } net_event_t;
+
+typedef void (*action_fn)(void);
+
+typedef struct {
+    bool        valid;      /* false 表示该状态下忽略此事件 */
+    net_state_t next;
+    action_fn   action;
+} transition_t;
+
+#define GO(next, action)  { true, (next), (action) }
+
+static void act_connect(void);
+static void act_online(void);
+static void act_retry(void);
+static void act_report_error(void);
+
+static const transition_t table[ST_COUNT][EV_COUNT] = {
+    [ST_IDLE] = {
+        [EV_START]      = GO(ST_CONNECTING, act_connect),
+    },
+    [ST_CONNECTING] = {
+        [EV_OK]         = GO(ST_ONLINE,     act_online),
+        [EV_FAIL]       = GO(ST_CONNECTING, act_retry),
+        [EV_TIMEOUT]    = GO(ST_ERROR,      act_report_error),
+    },
+    [ST_ONLINE] = {
+        [EV_DISCONNECT] = GO(ST_CONNECTING, act_connect),
+    },
+    [ST_ERROR] = {
+        [EV_START]      = GO(ST_CONNECTING, act_connect),
+    },
+};
+
+static net_state_t net_state = ST_IDLE;
+
+void net_dispatch(net_event_t ev)
+{
+    const transition_t *t = &amp;table[net_state][ev];
+    if (!t-&gt;valid) {
+        LOGD(TAG, "ignore event %d in state %d", ev, net_state);
+        return;
+    }
+    LOGI(TAG, "state %d --(%d)--&gt; %d", net_state, ev, t-&gt;next);
+    net_state = t-&gt;next;
+    if (t-&gt;action != NULL) {
+        t-&gt;action();
+    }
+}</code></pre>
+        <p>这里用到了 C99 的指定初始化：没有写出的表项自动清零，<code>valid</code> 为 <code>false</code>，表示“该状态下忽略此事件”，不需要把所有组合都手写一遍。转移表声明为 <code>static const</code>，整张表放在 Flash 中。</p>
+      </section>
+
+      <section>
+        <h2>5. 写法三：状态函数指针</h2>
+        <p>每个状态对应一个处理函数，当前状态用函数指针表示。每个状态的逻辑被封装在一个函数里，适合每个状态处理逻辑较复杂、又各不相同的情况。</p>
+        <pre><code class="language-c">typedef struct fsm fsm_t;
+typedef void (*state_fn)(fsm_t *m, int event);
+
+struct fsm {
+    state_fn state;
+    uint32_t t0;
+    uint8_t  retry;
+};
+
+static void st_idle(fsm_t *m, int ev);
+static void st_wait_ack(fsm_t *m, int ev);
+
+static void fsm_transition(fsm_t *m, state_fn next)
+{
+    m-&gt;state(m, EV_EXIT);       /* 让旧状态有机会清理 */
+    m-&gt;state = next;
+    m-&gt;state(m, EV_ENTRY);      /* 新状态在进入时做初始化，例如启动定时器 */
+}</code></pre>
+        <p>增加 <code>EV_ENTRY</code> / <code>EV_EXIT</code> 两个伪事件，可以把“进入状态时启动超时定时器、离开时停止”这类代码集中写在状态函数里，避免散落在各个转移分支中。这正是 UML 状态图中 entry / exit 动作的思路。</p>
+      </section>
+
+      <section>
+        <h2>6. 事件驱动：状态机和事件队列</h2>
+        <p>状态机通常和事件队列配合使用：中断、定时器、其他模块只负责往队列里放事件，一个任务循环取出事件并分发给状态机。这样有三个好处：</p>
+        <ul>
+          <li>状态机只在一个上下文中运行，状态变量不需要加锁。</li>
+          <li>事件按顺序处理，不会因为两个中断几乎同时到来而出现“半个转移”。</li>
+          <li>记录事件日志很方便，排查问题时可以回放事件序列。</li>
+        </ul>
+        <pre><code class="language-c">typedef struct {
+    uint8_t  type;
+    uint8_t  len;
+    uint16_t param;
+} event_t;
+
+void app_task(void *arg)
+{
+    event_t ev;
+    for (;;) {
+        if (xQueueReceive(app_queue, &amp;ev, pdMS_TO_TICKS(100)) == pdTRUE) {
+            app_fsm_dispatch(&amp;ev);
+        } else {
+            app_fsm_dispatch(&amp;(event_t){ .type = EV_TICK });   /* 无事件时产生周期 tick，驱动超时判断 */
+        }
+    }
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>7. 超时与重试</h2>
+        <p>状态机里的“等待”都应该有超时，否则一次丢包就会让设备永远卡在等待状态。常见模式：</p>
+        <pre><code class="language-c">case ST_WAIT_ACK:
+    if (ev-&gt;type == EV_ACK) {
+        m-&gt;retry = 0;
+        fsm_go(m, ST_READY);
+    } else if (ev-&gt;type == EV_TICK &amp;&amp; now - m-&gt;t0 &gt;= ACK_TIMEOUT_MS) {
+        if (++m-&gt;retry &gt; MAX_RETRY) {
+            fsm_go(m, ST_ERROR);                 /* 重试耗尽，进入故障并上报 */
+        } else {
+            send_command(m-&gt;last_cmd);           /* 重发并重新计时 */
+            m-&gt;t0 = now;
+        }
+    }
+    break;</code></pre>
+        <p>工作中常见的做法还包括：重试间隔指数退避（1s、2s、4s…，设上限）；进入故障状态后定期尝试恢复，而不是永久停在故障态；超时、重试次数这些参数集中定义，方便现场调整。</p>
+      </section>
+
+      <section>
+        <h2>8. 工作场景一：串口协议逐字节解析</h2>
+        <p>协议帧格式：<code>AA 55 | LEN | CMD | DATA[LEN] | CRC8</code>。数据从中断或 DMA 进来，可能一次只到一两个字节，也可能一次到好几帧。用状态机逐字节解析，天然支持“数据分段到达”和“帧错位后重新同步”。</p>
+        <pre><code class="language-c">typedef enum { P_HEAD1, P_HEAD2, P_LEN, P_CMD, P_DATA, P_CRC } parse_state_t;
+
+typedef struct {
+    parse_state_t st;
+    uint8_t len, cmd, idx, crc;
+    uint8_t data[64];
+    uint32_t t_last;               /* 收到上一个字节的时间，用于字节间超时 */
+} parser_t;
+
+/* 返回 true 表示解析出一帧完整数据 */
+bool parser_feed(parser_t *p, uint8_t b, uint32_t now)
+{
+    if (p-&gt;st != P_HEAD1 &amp;&amp; now - p-&gt;t_last &gt; 20U) {
+        p-&gt;st = P_HEAD1;           /* 字节间隔过长，丢弃半帧 */
+    }
+    p-&gt;t_last = now;
+
+    switch (p-&gt;st) {
+    case P_HEAD1: if (b == 0xAA) p-&gt;st = P_HEAD2; break;
+    case P_HEAD2: p-&gt;st = (b == 0x55) ? P_LEN : (b == 0xAA ? P_HEAD2 : P_HEAD1); break;
+    case P_LEN:
+        if (b &gt; sizeof(p-&gt;data)) { p-&gt;st = P_HEAD1; break; }    /* 长度非法，重新同步 */
+        p-&gt;len = b; p-&gt;crc = crc8_update(0, b); p-&gt;st = P_CMD;
+        break;
+    case P_CMD:
+        p-&gt;cmd = b; p-&gt;crc = crc8_update(p-&gt;crc, b); p-&gt;idx = 0;
+        p-&gt;st = (p-&gt;len == 0) ? P_CRC : P_DATA;
+        break;
+    case P_DATA:
+        p-&gt;data[p-&gt;idx++] = b; p-&gt;crc = crc8_update(p-&gt;crc, b);
+        if (p-&gt;idx == p-&gt;len) p-&gt;st = P_CRC;
+        break;
+    case P_CRC:
+        p-&gt;st = P_HEAD1;
+        return b == p-&gt;crc;        /* 校验失败直接丢弃，等待下一个帧头 */
+    }
+    return false;
+}</code></pre>
+        <p>设计要点：长度字段在使用前先检查上限，杜绝越界写；字节间超时让解析器能从半帧中恢复；<code>P_HEAD2</code> 收到 <code>0xAA</code> 时留在原状态，正确处理 <code>AA AA 55</code> 这类数据。</p>
+      </section>
+
+      <section>
+        <h2>9. 工作场景二：4G / Wi-Fi 模组的 AT 指令流程</h2>
+        <p>模组初始化通常是一串有顺序的指令，每一步都可能失败或超时：上电 → 等待就绪 → 关闭回显 → 查询 SIM 卡 → 等待注册网络 → 建立连接。用状态机实现时：</p>
+        <ul>
+          <li>每个状态只发一条指令，进入状态时发送、记录时间，收到期望应答进入下一状态。</li>
+          <li>所有状态共享“超时 → 重试 → 超过次数则断电重启模组”的逻辑。</li>
+          <li>收到 <code>+CME ERROR</code>、意外断线等异步事件时，无论处于哪个状态，都能统一转到恢复流程。</li>
+          <li>状态变化写日志，现场问题能看出卡在哪一步、重试了几次。</li>
+        </ul>
+        <p>这类流程如果用阻塞写法（发送后 <code>while</code> 等待应答），一个模组卡住会拖死整个系统，而状态机版本始终能响应其他事件，包括“用户要求取消联网”。</p>
+      </section>
+
+      <section>
+        <h2>10. 调试与测试状态机</h2>
+        <ul>
+          <li><strong>记录转移日志</strong>：每次转移打印“旧状态 —(事件)→ 新状态”，状态和事件用名字而不是数字（准备一个名字字符串表）。</li>
+          <li><strong>在 PC 上测试</strong>：状态机不依赖硬件时，可以写测试喂入事件序列，断言最终状态和动作。按键、协议解析这类状态机特别适合。</li>
+          <li><strong>覆盖异常路径</strong>：超时、乱序事件、重复事件、长度非法、在任意状态下断电或复位。</li>
+          <li><strong>保留状态可见性</strong>：通过调试命令或上报接口能查询当前状态，现场排查时非常有用。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>11. 状态机设计检查清单</h2>
+        <ul>
+          <li>是否先画了状态图或转移表，每个“状态 × 事件”组合是否都有明确处理（包括忽略）。</li>
+          <li>所有等待状态是否都有超时，超时后是否有重试上限和故障出口。</li>
+          <li>状态机是否只在一个上下文中运行，中断是否只投递事件、不直接修改状态。</li>
+          <li>非法状态（<code>default</code>）是否能回到安全状态。</li>
+          <li>时间比较是否使用无符号差值写法。</li>
+          <li>协议解析状态机是否在使用长度前做了上限检查，是否能从错帧中重新同步。</li>
+          <li>转移是否有日志，状态和事件是否有可读的名字。</li>
+          <li>状态机核心逻辑是否与硬件解耦，能否在 PC 上测试。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+</body>
+</html>

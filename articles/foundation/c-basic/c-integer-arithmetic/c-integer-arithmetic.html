@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>C语言整数运算、溢出与定点数 - XYJ</title>
+  <meta name="description" content="整理嵌入式 C 中最容易出错的整数问题：整数提升、有符号与无符号混用、溢出与未定义行为、移位与除法边界、计时器回绕、饱和运算、Q 格式定点数，以及 ADC 换算等工作场景写法。">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/c-basic">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>C语言整数运算、溢出与定点数</h1>
+      <p class="article-summary">整理嵌入式 C 中最容易出错的整数问题：整数提升、有符号与无符号混用、溢出与未定义行为、移位与除法边界、计时器回绕、饱和运算、Q 格式定点数，以及 ADC 换算等工作场景写法。</p>
+
+      <section>
+        <h2>1. 为什么整数问题在嵌入式里格外常见</h2>
+        <p>嵌入式代码里几乎所有数据最终都是整数：ADC 原始值、定时器计数、寄存器字段、协议长度、温度放大 10 倍后的值。很多 MCU 没有浮点单元，或者为了速度和功耗刻意避免浮点，于是物理量换算、滤波、PID 都用整数完成。</p>
+        <p>整数代码出错时通常不会崩溃，而是“值不对”：温度偶尔跳到 6553.5℃、超时判断在运行 49.7 天后失效、电压换算在某个区间突然变负。这类问题往往要在特定输入或长时间运行后才出现，测试阶段很难覆盖，所以必须在写代码时就把规则想清楚。</p>
+        <table>
+          <thead><tr><th>现象</th><th>常见根因</th></tr></thead>
+          <tbody>
+            <tr><td>运行 49.7 天后超时逻辑失效</td><td>32 位毫秒 tick 回绕，比较写法错误</td></tr>
+            <tr><td>换算结果偶尔为负或特别大</td><td>中间结果溢出、有符号与无符号混算</td></tr>
+            <tr><td>Debug 正常、优化后逻辑消失</td><td>有符号溢出是未定义行为，编译器按“不会溢出”优化</td></tr>
+            <tr><td>同一段代码在 8 位和 32 位 MCU 上结果不同</td><td><code>int</code> 宽度不同导致整数提升结果不同</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>2. 整数提升与寻常算术转换</h2>
+        <p>C 语言在做算术运算前会先做两步隐式转换，这是理解大部分整数“怪现象”的钥匙。</p>
+
+        <h3>2.1 整数提升</h3>
+        <p>比 <code>int</code> 窄的类型（<code>char</code>、<code>short</code>、<code>uint8_t</code>、<code>uint16_t</code> 等）参与运算时，会先被提升为 <code>int</code>（如果 <code>int</code> 能表示其全部取值），否则提升为 <code>unsigned int</code>。</p>
+        <pre><code class="language-c">uint8_t a = 200;
+uint8_t b = 100;
+uint16_t sum = a + b;        // a、b 先提升为 int，结果 300，正确
+uint8_t  wrap = a + b;       // 300 截断为 44，赋值时才丢失高位
+
+uint8_t mask = 0x0F;
+if ((uint8_t)~mask == 0xF0) {  // 必须强转：~mask 的结果是 int 0xFFFFFFF0
+    /* ... */
+}</code></pre>
+        <p>最后一个例子是经典陷阱：<code>~mask</code> 在提升后是 <code>int</code> 的 <code>0xFFFFFFF0</code>，直接和 <code>0xF0</code> 比较永远不相等。</p>
+
+        <h3>2.2 寻常算术转换</h3>
+        <p>两个操作数类型不同时，会转换到“更大”的公共类型。关键规则：<strong>有符号和无符号同等级时，有符号会被转换成无符号</strong>。</p>
+        <pre><code class="language-c">int32_t  t = -1;
+uint32_t u = 1;
+if (t &lt; u) {
+    /* 不会进入：-1 被转换为 0xFFFFFFFF，比 1 大 */
+}</code></pre>
+
+        <h3>2.3 int 宽度会改变结论</h3>
+        <p>同样是 <code>uint16_t * uint16_t</code>，在 32 位 MCU 上两个操作数提升为 32 位 <code>int</code>，在 16 位 <code>int</code> 的平台（如 MSP430、部分 8051 编译器）上提升为 <code>unsigned int</code>，结果宽度只有 16 位。更隐蔽的是在 32 位平台上 <code>uint16_t</code> 相乘也可能触发有符号溢出：</p>
+        <pre><code class="language-c">uint16_t x = 50000, y = 50000;
+uint32_t p1 = x * y;               // x、y 提升为 int，2500000000 超过 INT32_MAX，未定义行为
+uint32_t p2 = (uint32_t)x * y;     // 先转无符号 32 位再乘，结果正确</code></pre>
+        <div class="article-note">工程习惯：只要中间结果可能超过 16 位，就在第一个操作数上显式转换到目标宽度，例如 <code>(uint32_t)raw * 3300U</code>。这样代码的意图对读者和编译器都很清楚。</div>
+      </section>
+
+      <section>
+        <h2>3. 有符号与无符号混用</h2>
+        <p>混用最常出现在三个地方：长度比较、循环变量、差值计算。</p>
+        <pre><code class="language-c">// 1. 长度比较：len 来自协议，是 int；sizeof 是 size_t（无符号）
+int len = parse_len(frame);
+if (len &gt; sizeof(buf)) { /* len 为负时被转成巨大的无符号数，这里反而进入 */ }
+
+// 正确：先排除负数，再在同一类型下比较
+if (len &lt; 0 || (size_t)len &gt; sizeof(buf)) {
+    return ERR_LENGTH;
+}
+
+// 2. 倒序循环：无符号变量永远 &gt;= 0，死循环
+for (uint8_t i = n - 1; i &gt;= 0; i--) { }
+
+// 正确写法之一
+for (uint8_t i = n; i-- &gt; 0; ) {
+    process(buf[i]);
+}
+
+// 3. 差值：两个无符号相减得到的仍是无符号
+uint16_t now = 10, last = 20;
+int32_t delta = now - last;          // 在 32 位 int 平台上得到 -10，在 16 位平台上得到 65526
+int32_t delta2 = (int32_t)now - (int32_t)last;   // 明确的有符号差值</code></pre>
+        <p>打开 <code>-Wsign-compare</code> 和 <code>-Wsign-conversion</code> 能让编译器把大部分这类问题指出来。</p>
+      </section>
+
+      <section>
+        <h2>4. 溢出：有符号未定义，无符号回绕</h2>
+        <p>两种溢出在 C 标准里的地位完全不同：</p>
+        <ul>
+          <li><strong>无符号整数</strong>溢出是定义良好的：按 2^N 取模回绕。<code>uint8_t</code> 的 255 + 1 等于 0。</li>
+          <li><strong>有符号整数</strong>溢出是<strong>未定义行为（UB）</strong>。编译器可以假设它永远不会发生，并据此优化。</li>
+        </ul>
+        <pre><code class="language-c">// 想检测溢出，但写法本身依赖 UB，优化后整个 if 可能被删除
+int32_t add_checked(int32_t a, int32_t b)
+{
+    int32_t s = a + b;
+    if (b &gt; 0 &amp;&amp; s &lt; a) {   // 编译器认为 a + b &gt; a 恒成立（当 b &gt; 0）
+        return INT32_MAX;
+    }
+    return s;
+}
+
+// 正确：在运算前判断
+int32_t add_sat(int32_t a, int32_t b)
+{
+    if (b &gt; 0 &amp;&amp; a &gt; INT32_MAX - b) return INT32_MAX;
+    if (b &lt; 0 &amp;&amp; a &lt; INT32_MIN - b) return INT32_MIN;
+    return a + b;
+}
+
+// GCC / Clang 内建函数：结果写入 *res，溢出时返回 true
+bool overflow = __builtin_add_overflow(a, b, &amp;res);</code></pre>
+        <div class="article-warning">“Debug 版本正常，开了 -O2 后逻辑不对”的问题里，有符号溢出是高频原因之一。临时验证可以加 <code>-fwrapv</code> 让有符号溢出也按回绕处理，但正确修复是改写代码，而不是依赖这个选项。</div>
+      </section>
+
+      <section>
+        <h2>5. 移位的边界</h2>
+        <p>移位看起来简单，却有多处未定义或实现定义的行为：</p>
+        <table>
+          <thead><tr><th>写法</th><th>问题</th><th>推荐写法</th></tr></thead>
+          <tbody>
+            <tr><td><code>1 &lt;&lt; 31</code></td><td><code>1</code> 是 int，结果超出 int 范围，UB</td><td><code>1U &lt;&lt; 31</code> 或 <code>UINT32_C(1) &lt;&lt; 31</code></td></tr>
+            <tr><td><code>x &lt;&lt; 32</code>（x 为 32 位）</td><td>移位位数 &gt;= 宽度，UB</td><td>先判断位数，或分两次移位</td></tr>
+            <tr><td><code>-8 &gt;&gt; 1</code></td><td>负数右移是实现定义（GCC 为算术右移）</td><td>需要除法语义时用 <code>/</code></td></tr>
+            <tr><td><code>(uint8_t)b &lt;&lt; 8</code> 拼 16 位</td><td>提升为 int 后没问题，但若拼 32 位最高字节会溢出</td><td><code>((uint32_t)b3 &lt;&lt; 24)</code></td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-c">static inline uint32_t read_be32(const uint8_t *p)
+{
+    return ((uint32_t)p[0] &lt;&lt; 24) |
+           ((uint32_t)p[1] &lt;&lt; 16) |
+           ((uint32_t)p[2] &lt;&lt; 8)  |
+            (uint32_t)p[3];
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>6. 除法与取模</h2>
+        <ul>
+          <li>C99 起整数除法<strong>向零截断</strong>：<code>-7 / 2 == -3</code>，<code>-7 % 2 == -1</code>。取模结果的符号跟随被除数。</li>
+          <li>除以 0 是 UB，在 Cortex-M3/M4 上可配置为 UsageFault（<code>SCB-&gt;CCR</code> 的 DIV_0_TRP 位），默认整数除零返回 0，非常隐蔽。</li>
+          <li>Cortex-M0/M0+ 没有硬件除法指令，一次 32 位除法需要调用库函数，可能耗时几十到上百个周期，放在高频中断里要小心。</li>
+          <li>除以 2 的幂时，对<strong>无符号数</strong>编译器会自动优化为移位；对<strong>有符号数</strong>，<code>x / 4</code> 与 <code>x &gt;&gt; 2</code> 对负数结果不同，不要手动替换。</li>
+        </ul>
+        <pre><code class="language-c">// 环形下标：容量为 2 的幂时用位与代替取模
+#define RB_SIZE 256U
+index = (index + 1U) &amp; (RB_SIZE - 1U);
+
+// 四舍五入的整数除法（仅适用于非负数）
+static inline uint32_t div_round(uint32_t num, uint32_t den)
+{
+    return (num + den / 2U) / den;
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>7. 计时器回绕的正确写法</h2>
+        <p>几乎所有系统都有一个不断递增的 tick：毫秒计数、RTOS tick、定时器计数值。32 位毫秒计数约 49.7 天回绕一次，16 位的硬件定时器回绕更快。</p>
+        <pre><code class="language-c">// 错误：回绕后 deadline 变小，判断提前成立或永远不成立
+if (now_ms() &gt; start + timeout_ms) { /* timeout */ }
+
+// 正确：用无符号差值，回绕自动抵消，前提是间隔小于计数器周期的一半
+static inline bool timeout_elapsed(uint32_t start, uint32_t timeout)
+{
+    return (uint32_t)(now_ms() - start) &gt;= timeout;
+}
+
+// 判断“某个时间点是否已经到达”（Linux 内核 time_after 的思路）
+static inline bool time_reached(uint32_t now, uint32_t deadline)
+{
+    return (int32_t)(now - deadline) &gt;= 0;
+}</code></pre>
+        <p>16 位硬件定时器测量脉宽时同理：<code>uint16_t width = (uint16_t)(capture2 - capture1);</code> 只要两次捕获间隔不超过一个计数周期，即使中间回绕也能得到正确结果。注意要把差值强转回 16 位，否则提升到 int 后得到负数。</p>
+        <div class="article-note">测试回绕最有效的办法是让 tick 的初值从接近溢出的地方开始，例如启动时把毫秒计数器设为 <code>0xFFFFF000</code>，几秒内就能覆盖回绕路径，而不用等 49 天。</div>
+      </section>
+
+      <section>
+        <h2>8. 饱和运算与限幅</h2>
+        <p>控制类代码（PWM 占空比、PID 输出、音频采样）中，溢出回绕比“卡在最大值”危险得多：回绕会让输出从最大直接跳到最小。这类场景应使用饱和运算。</p>
+        <pre><code class="language-c">static inline int16_t sat_i16(int32_t v)
+{
+    if (v &gt; INT16_MAX) return INT16_MAX;
+    if (v &lt; INT16_MIN) return INT16_MIN;
+    return (int16_t)v;
+}
+
+static inline uint16_t clamp_u16(uint32_t v, uint16_t lo, uint16_t hi)
+{
+    return (v &lt; lo) ? lo : (v &gt; hi) ? hi : (uint16_t)v;
+}
+
+// PID 输出限幅 + 积分抗饱和（只在未饱和时累积积分）
+int32_t out = kp * err + integral;
+if (out &gt; OUT_MAX) {
+    out = OUT_MAX;
+} else if (out &lt; OUT_MIN) {
+    out = OUT_MIN;
+} else {
+    integral += ki * err;
+}</code></pre>
+        <p>Cortex-M3/M4 提供 <code>SSAT</code> / <code>USAT</code> 指令，CMSIS 中对应 <code>__SSAT(value, bits)</code> 和 <code>__USAT(value, bits)</code>，在 DSP 类代码中可以一条指令完成限幅。</p>
+      </section>
+
+      <section>
+        <h2>9. 定点数：Q 格式</h2>
+        <p>定点数用整数表示小数：约定低 N 位是小数部分。Qm.n 表示 m 位整数、n 位小数。常见格式：</p>
+        <table>
+          <thead><tr><th>格式</th><th>存储类型</th><th>范围</th><th>分辨率</th><th>典型用途</th></tr></thead>
+          <tbody>
+            <tr><td>Q15</td><td>int16_t</td><td>[-1, 1)</td><td>1/32768</td><td>音频、归一化系数、DSP</td></tr>
+            <tr><td>Q16.16</td><td>int32_t</td><td>约 ±32768</td><td>1/65536</td><td>通用物理量、坐标</td></tr>
+            <tr><td>放大 10^k 的整数</td><td>int32_t</td><td>取决于倍数</td><td>0.1、0.01 …</td><td>协议传输、显示</td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-c">typedef int32_t q16_t;                 // Q16.16
+#define Q16_ONE        (1L &lt;&lt; 16)
+#define Q16_FROM_INT(x) ((q16_t)(x) &lt;&lt; 16)
+
+static inline q16_t q16_from_float(float f) { return (q16_t)(f * 65536.0f + (f &gt;= 0 ? 0.5f : -0.5f)); }
+static inline float q16_to_float(q16_t q)   { return (float)q / 65536.0f; }
+
+// 乘法：结果是 Q32.32，需要 64 位中间量，再右移 16 位（加 0x8000 四舍五入）
+static inline q16_t q16_mul(q16_t a, q16_t b)
+{
+    int64_t p = (int64_t)a * b;
+    return (q16_t)((p + 0x8000) &gt;&gt; 16);
+}
+
+// 除法：先把被除数左移 16 位，同样需要 64 位
+static inline q16_t q16_div(q16_t a, q16_t b)
+{
+    return (q16_t)(((int64_t)a &lt;&lt; 16) / b);
+}</code></pre>
+        <p>使用定点数时要逐个运算确认“中间结果的位宽”：两个 Q16.16 相乘需要 64 位，两个 Q15 相乘结果是 Q30，用 <code>int32_t</code> 正好放下，右移 15 位回到 Q15。</p>
+      </section>
+
+      <section>
+        <h2>10. 工作场景：ADC 采样换算成电压和温度</h2>
+        <p>假设 12 位 ADC、参考电压 3.3V，测量点经过 1:2 分压。目标是得到单位为 mV 的整数电压，并对采样做简单滤波。</p>
+        <pre><code class="language-c">#define ADC_FULL_SCALE   4095U
+#define VREF_MV          3300U
+#define DIVIDER_RATIO    2U        // 实际电压 = 测量电压 × 2
+
+// raw 最大 4095，4095 × 3300 × 2 = 27,027,000，32 位无符号足够
+static inline uint32_t adc_to_mv(uint16_t raw)
+{
+    uint32_t mv = (uint32_t)raw * VREF_MV * DIVIDER_RATIO;
+    return (mv + ADC_FULL_SCALE / 2U) / ADC_FULL_SCALE;    // 四舍五入
+}
+
+// 滑动平均：取 2 的幂个样本，用移位代替除法
+#define AVG_SHIFT 4U                     // 16 个样本
+static uint32_t avg_sum;
+static uint16_t avg_buf[1U &lt;&lt; AVG_SHIFT];
+static uint8_t  avg_idx;
+
+uint16_t adc_filter_push(uint16_t raw)
+{
+    avg_sum -= avg_buf[avg_idx];
+    avg_buf[avg_idx] = raw;
+    avg_sum += raw;
+    avg_idx = (uint8_t)((avg_idx + 1U) &amp; ((1U &lt;&lt; AVG_SHIFT) - 1U));
+    return (uint16_t)(avg_sum &gt;&gt; AVG_SHIFT);
+}
+
+// 一阶低通（指数平均）：y += (x - y) / 8，用 Q8 保存小数部分避免精度损失
+// 差值可能为负，这里用除法而不是 &gt;&gt; 3，避免依赖负数右移的实现定义行为
+static int32_t ema_q8;
+uint16_t adc_ema_push(uint16_t raw)
+{
+    ema_q8 += (((int32_t)raw &lt;&lt; 8) - ema_q8) / 8;
+    return (uint16_t)((ema_q8 + 128) &gt;&gt; 8);
+}</code></pre>
+        <p>这段代码的检查点：</p>
+        <ul>
+          <li>每个乘法前都确认了最大中间值，必要时提前转换到 32 位。</li>
+          <li>除法放在最后一步，并做了四舍五入，避免先除后乘丢精度。</li>
+          <li>温度等物理量建议以“放大 10 倍或 100 倍的整数”在系统内流转，只在显示或上报时格式化成小数。</li>
+          <li>NTC 等非线性传感器通常用“查表 + 线性插值”代替 <code>log</code> 运算，表格用 <code>const</code> 放在 Flash 中。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>11. 什么时候可以放心用浮点</h2>
+        <p>带 FPU 的 Cortex-M4F/M7 上，单精度浮点运算很快，物理量换算、滤波器设计用 <code>float</code> 反而更清晰。需要注意：</p>
+        <ul>
+          <li>浮点字面量默认是 <code>double</code>。<code>x * 0.5</code> 会把 <code>x</code> 提升为双精度，在只有单精度 FPU 的芯片上走软件模拟，速度慢一个数量级。写成 <code>0.5f</code>，并打开 <code>-Wdouble-promotion</code> 让编译器提示。</li>
+          <li><code>math.h</code> 函数也要用单精度版本：<code>sqrtf</code>、<code>sinf</code>、<code>fabsf</code>。</li>
+          <li>newlib-nano 默认不支持 <code>printf("%f")</code>，需要链接选项 <code>-u _printf_float</code>，代价是增加数 KB 代码。</li>
+          <li>浮点不能精确表示 0.1 这类十进制小数，判等要用误差范围；协议传输时优先用放大后的整数或明确字节序的 IEEE 754 位模式。</li>
+          <li>中断里使用浮点会增加上下文保存开销（Cortex-M4F 的惰性压栈可以缓解），RTOS 中使用浮点的任务要确认移植层开启了 FPU 上下文保存。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>12. 整数运算检查清单</h2>
+        <ul>
+          <li>中间结果是否可能超过操作数类型的范围？乘法前是否显式转换到足够宽的类型。</li>
+          <li>是否存在有符号与无符号混合比较、混合运算？编译是否开启 <code>-Wsign-compare</code>、<code>-Wsign-conversion</code>。</li>
+          <li>溢出检查是否在运算之前完成，而不是依赖溢出后的结果。</li>
+          <li>左移的常量是否带 <code>U</code> 后缀，移位位数是否小于类型宽度。</li>
+          <li>时间比较是否使用无符号差值写法，是否测试过计数器回绕。</li>
+          <li>控制输出是否需要饱和而不是回绕；PID 是否做了积分抗饱和。</li>
+          <li>定点数乘除法的中间量是否用了更宽的类型，是否考虑四舍五入。</li>
+          <li>浮点字面量是否带 <code>f</code> 后缀，是否误用了 <code>double</code> 版数学函数。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/c-basic">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+</body>
+</html>

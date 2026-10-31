@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式 C 编译、链接与启动流程 - XYJ</title>
+  <meta name="description" content="梳理嵌入式固件从源码到烧录的全过程：编译四个阶段、目标文件中的段、链接脚本与 VMA/LMA、Cortex-M 启动流程、向量表与弱符号、map 文件与常用工具、固件瘦身、RAM 函数与 noinit 段，以及 Bootloader 与 App 的地址划分和跳转。">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/debug-engineering">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>嵌入式 C 编译、链接与启动流程</h1>
+      <p class="article-summary">梳理嵌入式固件从源码到烧录的全过程：编译四个阶段、目标文件中的段、链接脚本与 VMA/LMA、Cortex-M 启动流程、向量表与弱符号、map 文件与常用工具、固件瘦身、RAM 函数与 noinit 段，以及 Bootloader 与 App 的地址划分和跳转。</p>
+
+      <section>
+        <h2>1. 从源文件到固件</h2>
+        <p>点一下 IDE 的“编译”按钮，几秒后得到一个 <code>.hex</code> 或 <code>.bin</code>。中间经历了什么，平时可以不关心，但下面这些问题都需要理解这条链路才能解决：</p>
+        <ul>
+          <li>RAM 明明还有空间，链接却报 <code>region RAM overflowed</code>。</li>
+          <li>全局变量上电后不是 0，或者初始值不对。</li>
+          <li>函数在 Flash 擦写时执行就死机，需要放到 RAM 中运行。</li>
+          <li>Bootloader 跳转到 App 后立刻 HardFault。</li>
+          <li>固件突然大了 10KB，不知道是哪里引入的。</li>
+        </ul>
+        <p>GCC 工具链（<code>arm-none-eabi-gcc</code>）下，一个工程的构建过程可以概括为：</p>
+        <pre><code class="language-text">.c / .h  ──预处理──▶  .i  ──编译──▶  .s  ──汇编──▶  .o  ──┐
+startup.s ─────────────────────────────汇编──▶  .o  ──┼──链接（按链接脚本）──▶ .elf ──objcopy──▶ .hex / .bin
+libc / libgcc / 厂商库  ───────────────────────── .a  ──┘</code></pre>
+      </section>
+
+      <section>
+        <h2>2. 编译的四个阶段</h2>
+        <table>
+          <thead><tr><th>阶段</th><th>命令</th><th>产物</th><th>能发现的问题</th></tr></thead>
+          <tbody>
+            <tr><td>预处理</td><td><code>gcc -E main.c -o main.i</code></td><td>展开宏、头文件后的源码</td><td>宏展开错误、头文件包含了错误版本</td></tr>
+            <tr><td>编译</td><td><code>gcc -S main.c</code></td><td>汇编代码 <code>.s</code></td><td>优化后的实际指令，验证 volatile、内联是否生效</td></tr>
+            <tr><td>汇编</td><td><code>gcc -c main.c</code></td><td>目标文件 <code>.o</code></td><td>每个文件单独编译，符号尚未确定地址</td></tr>
+            <tr><td>链接</td><td><code>gcc *.o -T link.ld -o app.elf</code></td><td>可执行文件</td><td>未定义符号、重复定义、内存区域溢出</td></tr>
+          </tbody>
+        </table>
+        <p>工作中最常用的两个技巧：</p>
+        <ul>
+          <li>宏写得复杂、怀疑展开结果不对时，用 <code>-E</code> 看预处理输出，或在 IDE 里对单个文件生成 <code>.i</code>。</li>
+          <li>怀疑编译器“优化掉了”某段代码时，用 <code>-S</code> 或 <code>objdump -d</code> 看生成的指令，而不是猜。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. 目标文件里的段</h2>
+        <p>编译器把不同性质的内容放进不同的段（section），链接器再按链接脚本把它们放到 Flash 或 RAM 的不同位置。</p>
+        <table>
+          <thead><tr><th>段</th><th>内容</th><th>存放位置</th><th>运行时</th></tr></thead>
+          <tbody>
+            <tr><td><code>.text</code></td><td>函数代码</td><td>Flash</td><td>直接从 Flash 执行</td></tr>
+            <tr><td><code>.rodata</code></td><td><code>const</code> 全局变量、字符串常量、查找表</td><td>Flash</td><td>只读</td></tr>
+            <tr><td><code>.data</code></td><td>有非零初值的全局 / 静态变量</td><td>初值存 Flash，运行时在 RAM</td><td>启动代码从 Flash 拷贝到 RAM</td></tr>
+            <tr><td><code>.bss</code></td><td>无初值或初值为 0 的全局 / 静态变量</td><td>只在 RAM 中占位</td><td>启动代码清零</td></tr>
+            <tr><td>栈 / 堆</td><td>局部变量、<code>malloc</code></td><td>RAM</td><td>由链接脚本预留</td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-c">uint32_t boot_count;                 /* .bss：上电清零 */
+uint32_t baud = 115200;              /* .data：Flash 中存一份初值，启动时拷贝到 RAM */
+const uint16_t crc_table[256] = { 0x0000, 0x1021, 0x2042 /* ... */ };  /* .rodata：只在 Flash 中 */
+static uint8_t rx_buf[1024];         /* .bss：占 1KB RAM */
+
+void func(void)
+{
+    uint8_t tmp[256];                /* 栈：运行到这里时才占用 */
+    static uint8_t cache[64];        /* .bss：虽然写在函数里，但是全局生命周期 */
+}</code></pre>
+        <div class="article-note">一个常见的 RAM 浪费：大表格忘了加 <code>const</code>，例如字库、CRC 表、正弦表。没有 <code>const</code> 的表进入 <code>.data</code>，既占 Flash（存初值）又占同样大小的 RAM。加上 <code>const</code> 后只占 Flash。</div>
+      </section>
+
+      <section>
+        <h2>4. 链接脚本：MEMORY 与 SECTIONS</h2>
+        <p>链接脚本（<code>.ld</code>）告诉链接器：芯片有哪些存储区域、各个段放在哪里、导出哪些符号给启动代码使用。下面是 Cortex-M 工程中常见结构的精简版：</p>
+        <pre><code class="language-text">MEMORY
+{
+  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 512K
+  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+}
+
+_estack = ORIGIN(RAM) + LENGTH(RAM);     /* 栈顶：RAM 末尾，栈向下增长 */
+_Min_Stack_Size = 0x800;                 /* 2KB，仅用于链接时检查空间是否足够 */
+
+SECTIONS
+{
+  .isr_vector : { KEEP(*(.isr_vector)) } &gt; FLASH       /* 向量表必须在起始位置 */
+
+  .text : {
+    *(.text*)
+    *(.rodata*)
+    . = ALIGN(4);
+    _etext = .;
+  } &gt; FLASH
+
+  _sidata = LOADADDR(.data);             /* .data 初值在 Flash 中的地址 */
+  .data : {
+    _sdata = .;
+    *(.data*)
+    . = ALIGN(4);
+    _edata = .;
+  } &gt; RAM AT&gt; FLASH                      /* 运行地址在 RAM，加载地址在 Flash */
+
+  .bss (NOLOAD) : {
+    _sbss = .;
+    *(.bss*)
+    *(COMMON)
+    . = ALIGN(4);
+    _ebss = .;
+  } &gt; RAM
+
+  ._user_stack (NOLOAD) : {
+    . = . + _Min_Stack_Size;             /* 空间不够时链接报错，而不是运行时才溢出 */
+  } &gt; RAM
+}</code></pre>
+        <p>两个关键概念：</p>
+        <ul>
+          <li><strong>VMA（运行地址）与 LMA（加载地址）</strong>：<code>.data</code> 的 VMA 在 RAM，LMA 在 Flash。程序烧录在 Flash 里，上电后由启动代码把 LMA 处的初值拷贝到 VMA。<code>&gt; RAM AT&gt; FLASH</code> 正是在表达这件事。</li>
+          <li><strong>KEEP</strong>：开启 <code>--gc-sections</code> 后，链接器会删除没有被引用的段。向量表、通过段自动收集的初始化函数表没有被代码直接引用，必须用 <code>KEEP</code> 保留。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. 启动流程：从复位到 main</h2>
+        <p>Cortex-M 上电后，硬件做两件事：从地址 0（通常映射到 Flash 起始）读取初始栈指针 MSP，从地址 4 读取复位向量并跳转。之后就是启动代码的工作：</p>
+        <pre><code class="language-c">extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
+extern int main(void);
+extern void SystemInit(void);
+extern void __libc_init_array(void);
+
+void Reset_Handler(void)
+{
+    /* 1. 把 .data 的初值从 Flash 拷贝到 RAM */
+    uint32_t *src = &amp;_sidata;
+    for (uint32_t *dst = &amp;_sdata; dst &lt; &amp;_edata; ) {
+        *dst++ = *src++;
+    }
+    /* 2. 把 .bss 清零 */
+    for (uint32_t *dst = &amp;_sbss; dst &lt; &amp;_ebss; ) {
+        *dst++ = 0U;
+    }
+    /* 3. 时钟、FPU、向量表偏移等芯片级初始化（厂商提供） */
+    SystemInit();
+    /* 4. C 库初始化：调用构造函数、静态初始化代码 */
+    __libc_init_array();
+    /* 5. 进入 main，正常不会返回 */
+    main();
+    for (;;) { }
+}</code></pre>
+        <p>厂商提供的 <code>startup_xxx.s</code> 做的就是这些事，只是用汇编写成。理解这段流程后，很多现象就有了解释：</p>
+        <ul>
+          <li>“全局变量初值不对”：链接脚本中 <code>.data</code> 没有正确设置 LMA，或者启动代码被修改过。</li>
+          <li>“变量上电不是 0”：变量被放进了自定义段，而启动代码只清零 <code>.bss</code>。</li>
+          <li>“<code>SystemInit</code> 之前的代码不能用全局变量”：此时 <code>.data</code> / <code>.bss</code> 可能还没准备好（部分启动文件在拷贝之前调用 <code>SystemInit</code>）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 中断向量表与弱符号</h2>
+        <p>向量表是一个函数指针数组，第 0 项是初始栈顶，之后依次是复位、NMI、HardFault 和各个外设中断。启动文件中所有中断处理函数都被定义为<strong>弱符号</strong>，默认指向一个死循环：</p>
+        <pre><code class="language-c">void Default_Handler(void) { for (;;) { } }
+
+void USART1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
+void TIM2_IRQHandler(void)   __attribute__((weak, alias("Default_Handler")));</code></pre>
+        <p>用户在自己的代码里定义同名函数（强符号），链接时就会覆盖弱符号。这带来一个经典问题：<strong>中断函数名拼错了，编译链接都不会报错</strong>，中断触发后进入 <code>Default_Handler</code> 死循环，看起来像“程序跑飞了”。遇到“开中断就卡死”，先检查函数名是否和启动文件中完全一致。C++ 文件中的中断函数还要加 <code>extern "C"</code>，否则名字被修饰后同样无法覆盖。</p>
+      </section>
+
+      <section>
+        <h2>7. 读懂 map 文件和常用工具</h2>
+        <p>链接时加 <code>-Wl,-Map=app.map</code> 生成 map 文件。它记录了每个段、每个函数和变量的地址与大小，是分析固件体积和内存分布的第一手资料。</p>
+        <pre><code class="language-bash"># 各段总大小：text = 代码 + 只读数据，data 同时占 Flash 和 RAM，bss 只占 RAM
+arm-none-eabi-size app.elf
+#    text    data     bss     dec     hex filename
+#   48212     420   18996   67628   1082c app.elf
+
+# 按大小排序列出符号，找出最占空间的函数和变量
+arm-none-eabi-nm --size-sort --print-size --radix=d app.elf | tail -20
+
+# 反汇编，查看某个函数实际生成的指令
+arm-none-eabi-objdump -d -S app.elf &gt; app.lst
+
+# 把崩溃时的 PC 地址翻译成源文件和行号
+arm-none-eabi-addr2line -e app.elf -f -C 0x08003A5C</code></pre>
+        <p>Flash 占用 = text + data，RAM 占用 = data + bss（另加栈和堆的预留）。<code>addr2line</code> 要配合带调试信息（<code>-g</code>）的 elf 使用，发布版本也建议保留同一次构建的 elf 文件，现场崩溃时才能把地址翻译回代码。</p>
+      </section>
+
+      <section>
+        <h2>8. 减小固件体积</h2>
+        <table>
+          <thead><tr><th>手段</th><th>做法</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr><td>删除未使用的函数和数据</td><td>编译加 <code>-ffunction-sections -fdata-sections</code>，链接加 <code>-Wl,--gc-sections</code></td><td>通常能减少 10%~30%</td></tr>
+            <tr><td>优化等级</td><td><code>-Os</code> 以体积为目标；调试用 <code>-Og</code></td><td><code>-Os</code> 相比 <code>-O0</code> 显著减小</td></tr>
+            <tr><td>精简 C 库</td><td>使用 newlib-nano：<code>--specs=nano.specs</code></td><td><code>printf</code> 等函数小很多</td></tr>
+            <tr><td>避免浮点 printf</td><td>不链接 <code>-u _printf_float</code>，或自己格式化定点数</td><td>可省数 KB</td></tr>
+            <tr><td>链接时优化</td><td><code>-flto</code></td><td>跨文件内联与删除，效果明显，但调试信息变差</td></tr>
+            <tr><td>检查大常量</td><td>用 <code>nm --size-sort</code> 找出大表，确认是否必要、是否加了 <code>const</code></td><td>针对性强</td></tr>
+          </tbody>
+        </table>
+        <p>体积突然变大时，对比两次构建的 <code>nm --size-sort</code> 输出，通常能立刻定位到新增的大块内容，例如意外引入了浮点格式化、<code>sprintf</code> 或一张未压缩的图片。</p>
+      </section>
+
+      <section>
+        <h2>9. 把代码或数据放到指定位置</h2>
+
+        <h3>9.1 在 RAM 中运行的函数</h3>
+        <p>很多 MCU 在擦写内部 Flash 时，同一块 Flash 上的代码无法读取执行。Flash 编程函数需要放在 RAM 中运行：</p>
+        <pre><code class="language-c">__attribute__((section(".ramfunc"), noinline))
+void flash_program_word(uint32_t addr, uint32_t data)
+{
+    /* 擦写过程中不能调用 Flash 中的其他函数，也要避免中断从 Flash 中取指 */
+}</code></pre>
+        <p>链接脚本中需要把 <code>.ramfunc</code> 放进 <code>.data</code> 一起拷贝到 RAM（<code>*(.ramfunc*)</code> 写在 <code>.data</code> 段内）。部分厂商工程已经预定义了类似的段名，如 <code>.RamFunc</code>、<code>.ram_code</code>。</p>
+
+        <h3>9.2 复位后保留的数据：.noinit</h3>
+        <p><code>.bss</code> 在每次复位时被清零。如果希望记录“上一次是为什么复位的”“崩溃时的 PC 地址是多少”，就需要一块启动代码不会清零的 RAM：</p>
+        <pre><code class="language-c">typedef struct {
+    uint32_t magic;
+    uint32_t reset_count;
+    uint32_t last_fault_pc;
+    uint32_t last_fault_lr;
+} crash_info_t;
+
+__attribute__((section(".noinit"))) static crash_info_t crash_info;
+
+void crash_info_check(void)
+{
+    if (crash_info.magic != 0xC0DEFA11U) {          /* 冷启动：内容是随机值，初始化 */
+        memset(&amp;crash_info, 0, sizeof(crash_info));
+        crash_info.magic = 0xC0DEFA11U;
+    }
+    crash_info.reset_count++;
+}</code></pre>
+        <p>链接脚本中增加 <code>.noinit (NOLOAD) : { *(.noinit*) } &gt; RAM</code>，并放在 <code>.bss</code> 之外。HardFault 处理函数把现场写进这块区域后触发复位，重启后上报，就能拿到远程设备的崩溃信息。</p>
+
+        <h3>9.3 固定地址的版本信息</h3>
+        <pre><code class="language-c">__attribute__((section(".fw_info"), used))
+const struct {
+    uint32_t magic;
+    uint32_t version;
+    char     build[24];
+} fw_info = { 0x46574E46U, 0x00010203U, BUILD_GIT_HASH };</code></pre>
+        <p>把版本结构放在固定偏移（如向量表之后），Bootloader 或升级工具无需解析 elf 就能读取版本号。<code>used</code> 属性防止它因为没被引用而被优化掉。</p>
+      </section>
+
+      <section>
+        <h2>10. 工作场景：Bootloader 与 App 的地址划分</h2>
+        <p>一个常见的划分：Flash 前 32KB 给 Bootloader，之后给 App。</p>
+        <pre><code class="language-text">0x08000000 ┌──────────────┐
+           │  Bootloader  │  32KB
+0x08008000 ├──────────────┤
+           │     App      │  链接脚本 ORIGIN = 0x08008000
+           │              │
+           └──────────────┘</code></pre>
+        <p>App 侧需要修改两处：链接脚本中 <code>FLASH</code> 的 <code>ORIGIN</code> 和 <code>LENGTH</code>；启动后把向量表偏移寄存器 <code>SCB-&gt;VTOR</code> 设为 <code>0x08008000</code>（很多工程在 <code>SystemInit</code> 中通过宏 <code>VECT_TAB_OFFSET</code> 配置）。</p>
+        <p>Bootloader 跳转到 App 的标准步骤：</p>
+        <pre><code class="language-c">typedef void (*app_entry_t)(void);
+
+void jump_to_app(uint32_t app_addr)
+{
+    uint32_t sp    = *(volatile uint32_t *)app_addr;          /* App 向量表第 0 项：栈顶 */
+    uint32_t entry = *(volatile uint32_t *)(app_addr + 4U);   /* 第 1 项：复位入口 */
+
+    if ((sp &amp; 0x2FF00000U) != 0x20000000U) {                  /* 简单校验栈顶落在 RAM 区间 */
+        return;
+    }
+    __disable_irq();
+    SysTick-&gt;CTRL = 0;                                         /* 关闭 SysTick */
+    for (uint32_t i = 0; i &lt; 8U; i++) {                        /* 关闭并清除所有 NVIC 中断 */
+        NVIC-&gt;ICER[i] = 0xFFFFFFFFU;
+        NVIC-&gt;ICPR[i] = 0xFFFFFFFFU;
+    }
+    /* 反初始化 Bootloader 用过的外设和时钟（视情况恢复到复位状态） */
+    SCB-&gt;VTOR = app_addr;
+    __set_MSP(sp);
+    __enable_irq();
+    ((app_entry_t)entry)();
+}</code></pre>
+        <p>跳转后立刻 HardFault 或中断异常，最常见的原因是：App 链接地址没改、<code>VTOR</code> 没设置、Bootloader 开着的中断在 App 里没有处理函数、App 依赖的时钟配置与 Bootloader 留下的状态冲突。实际项目中通常还要校验 App 的 CRC，校验失败则停留在 Bootloader 等待升级。</p>
+      </section>
+
+      <section>
+        <h2>11. 编译链接检查清单</h2>
+        <ul>
+          <li>大常量表、字库是否加了 <code>const</code>，避免同时占用 Flash 和 RAM。</li>
+          <li>是否开启 <code>-ffunction-sections -fdata-sections</code> 与 <code>--gc-sections</code>，向量表等是否用 <code>KEEP</code> 保留。</li>
+          <li>链接脚本是否为栈和堆预留了空间，RAM 不足能否在链接阶段报错。</li>
+          <li>中断函数名是否与启动文件完全一致，C++ 中是否加了 <code>extern "C"</code>。</li>
+          <li>是否生成 map 文件，每次发布是否保留对应的 elf 以便 <code>addr2line</code> 定位。</li>
+          <li>需要在 RAM 中运行的函数、需要复位保留的数据，是否放进了正确的段，链接脚本是否同步修改。</li>
+          <li>Bootloader + App 方案中，App 的链接地址、<code>VTOR</code>、跳转前的外设和中断清理是否都已处理。</li>
+          <li>固件体积变化是否有记录，异常增长时能否通过 <code>nm --size-sort</code> 对比定位。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/debug-engineering">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+</body>
+</html>

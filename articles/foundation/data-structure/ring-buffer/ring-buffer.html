@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>环形缓冲区原理、Linux 与 RT-Thread 实现详解 - XYJ</title>
   <meta name="description" content="从读写指针、满空判定、回绕与两段复制出发，深入分析 Linux circ_buf/kfifo 与 RT-Thread ringbuffer，并给出并发、UART/DMA 和可移植 C 实现方法。">
-  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-          <a href="../../../../index.html?v=c1df6198c223#foundation/data-structure">返回对应专题</a>
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -40,7 +40,7 @@
        Producer             缓冲                Consumer</code></pre>
         <p>生产者只负责往“下一个可写位置”放数据，消费者只负责从“下一个可读位置”拿数据。当索引到达数组末尾时回到 0，于是有限数组可以承载持续不断的数据流。</p>
         <figure class="article-figure">
-          <img src="images/ring-buffer-model.svg?v=c1df6198c223" alt="环形缓冲区读写指针与数组回绕模型" loading="lazy" decoding="async">
+          <img src="images/ring-buffer-model.svg?v=591c98cc2ebb" alt="环形缓冲区读写指针与数组回绕模型" loading="lazy" decoding="async">
           <figcaption>图 1：物理内存仍然是一段普通数组，所谓“环形”只是索引回绕后的逻辑视图。</figcaption>
         </figure>
       </section>
@@ -70,7 +70,7 @@ tail = (tail + 1U) % size;</code></pre>
         <h2>3. 最核心的问题：head == tail 到底是空还是满</h2>
         <p>如果只有 head 和 tail 两个循环下标，那么 <code>head == tail</code> 会产生歧义：刚初始化时两者相等表示空；如果写指针绕一整圈追上读指针，两者也会相等，但此时理论上应该表示满。工程实现必须额外引入一种状态信息来消除歧义。</p>
         <figure class="article-figure">
-          <img src="images/ring-buffer-implementation-compare.svg?v=c1df6198c223" alt="Linux circ_buf、RT-Thread mirror bit 与 Linux kfifo 三种环形缓冲区判满判空方案对比" loading="lazy" decoding="async">
+          <img src="images/ring-buffer-implementation-compare.svg?v=591c98cc2ebb" alt="Linux circ_buf、RT-Thread mirror bit 与 Linux kfifo 三种环形缓冲区判满判空方案对比" loading="lazy" decoding="async">
           <figcaption>图 2：三种主流状态模型都在解决“同一组物理下标如何区分不同逻辑状态”的问题。</figcaption>
         </figure>
 
@@ -124,7 +124,7 @@ memcpy(buffer + index, source, first);
 memcpy(buffer, source + first, second);</code></pre>
         <p>如果 second 为 0，第二次复制等价于没有跨界；如果 second 大于 0，就从数组起点继续。Linux <code>kfifo_copy_in()/kfifo_copy_out()</code> 和 RT-Thread <code>rt_ringbuffer_put()/get()</code> 都采用这种“最多两段”的思想。</p>
         <figure class="article-figure">
-          <img src="images/ring-buffer-read-write-flow.svg?v=c1df6198c223" alt="环形缓冲区写入和读取时跨界拆分为两段复制的流程图" loading="lazy" decoding="async">
+          <img src="images/ring-buffer-read-write-flow.svg?v=591c98cc2ebb" alt="环形缓冲区写入和读取时跨界拆分为两段复制的流程图" loading="lazy" decoding="async">
           <figcaption>图 3：批量操作先按可用空间/数据量限长，再判断尾部连续区域是否足够。</figcaption>
         </figure>
       </section>
@@ -409,7 +409,80 @@ void protocol_task(void)
       </section>
 
       <section>
-        <h2>14. 设计和排错时最值得检查的细节</h2>
+        <h2>14. 缓冲区容量如何计算</h2>
+        <p>“缓冲区开多大”不应该拍脑袋决定。思路是：<strong>生产者最快速率 × 消费者最长不处理时间 × 安全系数</strong>。</p>
+        <p>以串口为例，8N1 格式每个字节占 10 个比特位（1 起始位 + 8 数据位 + 1 停止位）：</p>
+        <table>
+          <thead><tr><th>波特率</th><th>字节速率</th><th>消费者最长间隔</th><th>最少需要</th><th>建议容量（×2 余量，取 2 的幂）</th></tr></thead>
+          <tbody>
+            <tr><td>9600</td><td>960 B/s</td><td>50 ms</td><td>48 B</td><td>128 B</td></tr>
+            <tr><td>115200</td><td>11520 B/s</td><td>20 ms</td><td>231 B</td><td>512 B</td></tr>
+            <tr><td>115200</td><td>11520 B/s</td><td>100 ms</td><td>1152 B</td><td>4096 B</td></tr>
+            <tr><td>921600</td><td>92160 B/s</td><td>10 ms</td><td>922 B</td><td>2048 B</td></tr>
+          </tbody>
+        </table>
+        <p>“消费者最长间隔”要按最坏情况估计：任务被更高优先级任务抢占、Flash 擦写期间关中断、日志输出阻塞等都会拉长这个时间。如果数据是突发的（例如一次下发 2KB 的升级包分片），容量至少要能装下一次完整突发。</p>
+        <p>确定容量后，运行时仍然要统计溢出次数和最高水位：</p>
+        <pre><code class="language-c">typedef struct {
+    ring_t   ring;
+    uint32_t overflow;      /* 写入失败（满）的次数 */
+    uint32_t high_water;    /* 历史最高占用量 */
+} ring_stat_t;
+
+static inline void ring_stat_update(ring_stat_t *s)
+{
+    uint32_t used = ring_used(&amp;s-&gt;ring);
+    if (used &gt; s-&gt;high_water) {
+        s-&gt;high_water = used;
+    }
+}</code></pre>
+        <p>长期测试后 <code>high_water</code> 远小于容量，可以缩小以节省 RAM；接近容量或 <code>overflow</code> 不为 0，就要增大容量或缩短消费者的处理间隔。</p>
+      </section>
+
+      <section>
+        <h2>15. 从字节流中提取完整帧</h2>
+        <p>环形缓冲区里存的是字节流，业务需要的是完整的协议帧。除了逐字节的状态机解析（见 <a href="../c-state-machine/c-state-machine.html?v=591c98cc2ebb">状态机与事件驱动设计</a>），另一种常见做法是“窥视（peek）+ 确认后再消费”：先不移动读指针，检查数据是否构成完整、正确的一帧，确认无误后再一次性消费。</p>
+        <pre><code class="language-c">/* 帧格式：AA 55 LEN(1) PAYLOAD(LEN) CRC8(1) */
+int frame_extract(ring_t *r, uint8_t *out, size_t cap)
+{
+    uint8_t hdr[3];
+    while (ring_used(r) &gt;= 3U) {
+        ring_peek(r, hdr, 3U);                         /* 只看不取 */
+        if (hdr[0] != 0xAA || hdr[1] != 0x55) {
+            ring_skip(r, 1U);                          /* 帧头不对：丢一个字节，重新同步 */
+            continue;
+        }
+        size_t total = 3U + hdr[2] + 1U;
+        if (hdr[2] &gt; cap) {
+            ring_skip(r, 1U);                          /* 长度非法，说明不是真帧头 */
+            continue;
+        }
+        if (ring_used(r) &lt; total) {
+            return 0;                                  /* 数据还没收完整，下次再来 */
+        }
+        uint8_t frame[3 + 255 + 1];
+        ring_peek(r, frame, total);
+        if (crc8(frame, total - 1U) != frame[total - 1U]) {
+            ring_skip(r, 1U);                          /* 校验失败：可能是误判的帧头，只丢一个字节 */
+            continue;
+        }
+        memcpy(out, &amp;frame[3], hdr[2]);
+        ring_skip(r, total);                           /* 确认是一帧完整数据，才真正消费 */
+        return hdr[2];
+    }
+    return 0;
+}</code></pre>
+        <p>这种写法的关键点：</p>
+        <ul>
+          <li>校验失败时只丢弃 1 个字节而不是整帧，因为“帧头”可能只是数据中恰好出现的 <code>AA 55</code>，真正的帧头可能就在后面。</li>
+          <li>数据不完整时直接返回，不消费任何字节，等待更多数据到达。</li>
+          <li>需要配合<strong>超时清理</strong>：如果帧头之后长时间没有收齐数据（对端异常、线路干扰），要丢弃残留数据，否则一个错误的长度字段会让解析器一直等待。</li>
+          <li><code>ring_peek</code> 需要正确处理回绕（数据跨越缓冲区末尾），这正是前文“两次 memcpy”要解决的问题。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>16. 设计和排错时最值得检查的细节</h2>
         <ul>
           <li><strong>明确满策略：</strong>丢新数据、覆盖旧数据还是回压生产者，不能含糊。</li>
           <li><strong>确认容量语义：</strong>留一槽方案的 256 字节数组实际只能保存 255 字节。</li>
@@ -420,11 +493,13 @@ void protocol_task(void)
           <li><strong>不要无条件 reset：</strong>另一个执行上下文正在读写时清空 head/tail 可能直接破坏状态。</li>
           <li><strong>记录 overflow 计数：</strong>现场问题中“偶尔丢帧”往往需要靠溢出统计才能定位。</li>
           <li><strong>DMA 场景区分 cache 与内存屏障：</strong>有 D-Cache 的 MCU 还要额外考虑 cache clean/invalidate，不能把它和 CPU 内存顺序问题混为一谈。</li>
+          <li><strong>容量要有依据：</strong>按“最快写入速率 × 最长不处理时间 × 2”计算，并在运行时统计最高水位。</li>
+          <li><strong>按帧消费：</strong>先 peek 校验完整帧再消费，校验失败只丢一个字节重新同步，并配合超时清理残留数据。</li>
         </ul>
       </section>
 
       <section>
-        <h2>15. 推荐的理解顺序</h2>
+        <h2>17. 推荐的理解顺序</h2>
         <p>如果要真正掌握 Ring Buffer，推荐按下面顺序：</p>
         <ol>
           <li>先自己写一个“留一个槽位”的单字节版本，确认空、满、回绕。</li>
@@ -437,7 +512,7 @@ void protocol_task(void)
       </section>
 
       <section>
-        <h2>16. 参考源码与文档</h2>
+        <h2>18. 参考源码与文档</h2>
         <p>本文的 Linux/RT-Thread 实现分析以 2026-09-02 可见的上游 master 源码为参考，重点阅读以下文件：</p>
         <ul>
           <li><a href="https://github.com/torvalds/linux/blob/master/include/linux/circ_buf.h">Linux: include/linux/circ_buf.h</a> — 基础 circular buffer 计数辅助。</li>
@@ -451,11 +526,11 @@ void protocol_task(void)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=c1df6198c223#foundation/data-structure">返回数据结构与数据组织</a>
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/data-structure">返回数据结构与数据组织</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
 </body>
 </html>

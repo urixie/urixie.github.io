@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>C语言指针与内存模型整理 - XYJ</title>
   <meta name="description" content="面向嵌入式工程实践整理 C 语言指针、数组、字符串、栈、堆、指针函数、函数指针、野指针、越界访问和缓冲区设计。">
-  <script src="../../../../assets/js/theme-init.js?v=c1df6198c223"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=c1df6198c223">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-          <a href="../../../../index.html?v=c1df6198c223#foundation/pointer-memory">返回对应专题</a>
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/pointer-memory">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-      <a href="../../../../index.html?v=c1df6198c223#foundation/pointer-memory">返回 C语言专题</a>
+      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+      <a href="../../../../index.html?v=591c98cc2ebb#foundation/pointer-memory">返回 C语言专题</a>
     </div>
 
     <article class="article card">
@@ -292,7 +292,7 @@ int parse_frame(const uint8_t *data, uint16_t len, app_frame_t *out_frame)
           一个可靠的缓冲区接口至少要同时表达地址、有效长度、容量和所有权。下面的接口只借用调用者提供的内存，不负责释放；成功后返回写入字节数，失败时不修改输出长度。这样的约定适合 UART 接收、Flash 读写和协议编码等场景。
         </p>
         <figure class="article-figure">
-          <img src="images/c-pointer-ownership.svg?v=c1df6198c223" alt="指针接口需要明确地址、长度和所有权三个问题的示意图" loading="lazy" decoding="async">
+          <img src="images/c-pointer-ownership.svg?v=591c98cc2ebb" alt="指针接口需要明确地址、长度和所有权三个问题的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：指针的安全性来自完整的接口契约，而不是来自指针类型本身。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stddef.h&gt;
@@ -320,7 +320,91 @@ int append_byte(uint8_t *buffer,
       </section>
 
       <section>
-        <h2>12. 指针问题排查清单</h2>
+        <h2>12. const 与指针：接口里的承诺</h2>
+        <p><code>const</code> 放在 <code>*</code> 的左边还是右边，含义完全不同。读法技巧：从变量名开始向左读，<code>const</code> 修饰它左边紧挨着的东西（左边没有则修饰右边）。</p>
+        <table>
+          <thead><tr><th>声明</th><th>指向的数据能否修改</th><th>指针本身能否修改</th><th>典型用途</th></tr></thead>
+          <tbody>
+            <tr><td><code>const uint8_t *p</code></td><td>否</td><td>能</td><td>只读输入参数：<code>send(const uint8_t *buf, size_t len)</code></td></tr>
+            <tr><td><code>uint8_t *const p</code></td><td>能</td><td>否</td><td>固定指向某个缓冲区或寄存器的指针</td></tr>
+            <tr><td><code>const uint8_t *const p</code></td><td>否</td><td>否</td><td>指向 Flash 中常量表的固定指针</td></tr>
+            <tr><td><code>volatile uint32_t *const reg</code></td><td>能（每次真实访问）</td><td>否</td><td>固定地址的寄存器</td></tr>
+          </tbody>
+        </table>
+        <p>在函数接口里，<code>const</code> 是写给调用者的承诺：“我只读你的数据，不会修改它。”调用者因此可以放心传入 Flash 中的常量表、其他模块的只读数据。反过来，如果一个参数没有 <code>const</code>，调用者就要假设数据会被修改。</p>
+        <pre><code class="language-c">/* 好的接口：输入只读、输出可写、长度明确 */
+int crc16_calc(const uint8_t *data, size_t len, uint16_t *out_crc);
+
+/* 存放在 Flash 中的字符串表：表本身和每个字符串都不可修改 */
+static const char *const err_names[] = { "OK", "PARAM", "TIMEOUT", "CRC" };</code></pre>
+      </section>
+
+      <section>
+        <h2>13. 内存重叠：memcpy、memmove 与 restrict</h2>
+        <p><code>memcpy</code> 要求源和目标<strong>不重叠</strong>，重叠时行为未定义；需要在同一缓冲区内移动数据（例如把未处理完的半帧移到缓冲区开头）时，必须用 <code>memmove</code>。</p>
+        <pre><code class="language-c">/* 解析了 used 字节后，把剩余数据挪到缓冲区开头：区域重叠，必须用 memmove */
+memmove(rx_buf, rx_buf + used, rx_len - used);
+rx_len -= used;</code></pre>
+        <p>C99 的 <code>restrict</code> 关键字表示“在这个指针的生命周期内，它指向的内存只通过它访问”。编译器据此可以做更激进的优化，标准库的 <code>memcpy</code> 原型就带有 <code>restrict</code>。在 DSP 类的数组运算函数里使用 <code>restrict</code>，常常能让编译器生成更高效的循环；但如果调用时实际发生了重叠，结果就是未定义的。</p>
+        <pre><code class="language-c">void vec_add(int16_t *restrict dst, const int16_t *restrict a, const int16_t *restrict b, size_t n);</code></pre>
+      </section>
+
+      <section>
+        <h2>14. 回调函数与上下文指针</h2>
+        <p>驱动和中间件常常需要在某个事件发生时“回调”上层代码。只传一个函数指针是不够的：同一个回调函数可能服务多个实例（两个串口、三个传感器），回调里需要知道“是谁的事件”。惯用做法是同时传一个 <code>void *</code> 上下文指针：</p>
+        <pre><code class="language-c">typedef void (*uart_rx_cb_t)(void *user, const uint8_t *data, size_t len);
+
+typedef struct {
+    uart_rx_cb_t cb;
+    void        *user;          /* 注册时保存，回调时原样传回 */
+} uart_handle_t;
+
+void uart_set_rx_callback(uart_handle_t *h, uart_rx_cb_t cb, void *user)
+{
+    h-&gt;cb = cb;
+    h-&gt;user = user;
+}
+
+/* 上层：一个解析函数服务两个串口，通过 user 区分各自的解析器 */
+static void on_rx(void *user, const uint8_t *data, size_t len)
+{
+    parser_t *p = user;
+    parser_input(p, data, len);
+}
+
+uart_set_rx_callback(&amp;uart1, on_rx, &amp;parser_a);
+uart_set_rx_callback(&amp;uart2, on_rx, &amp;parser_b);</code></pre>
+        <p>使用回调时要明确三件事：回调在什么上下文中执行（中断还是任务）；回调里能否调用阻塞函数；<code>data</code> 指针在回调返回后是否仍然有效（通常无效，需要的话必须拷贝）。</p>
+      </section>
+
+      <section>
+        <h2>15. 工作场景：DMA 缓冲区的指针陷阱</h2>
+        <p>DMA 绕过 CPU 直接读写内存，很多指针相关的问题在 DMA 场景下会以更隐蔽的方式出现：</p>
+        <ul>
+          <li><strong>不要把 DMA 缓冲区放在栈上</strong>：函数返回后栈空间被复用，而 DMA 仍在往那块地址写数据，结果是随机踩坏其他局部变量。DMA 缓冲区应使用全局或静态变量。</li>
+          <li><strong>对齐</strong>：部分 DMA 控制器要求缓冲区地址按传输宽度对齐；带 Cache 的芯片还要求按 Cache 行（Cortex-M7 为 32 字节）对齐，长度也最好是 Cache 行的整数倍。</li>
+          <li><strong>Cache 一致性</strong>：Cortex-M7 等带数据 Cache 的内核上，CPU 写入的数据可能还在 Cache 中，DMA 读到的是内存里的旧数据；DMA 写入内存后，CPU 读到的可能是 Cache 中的旧数据。发送前需要清理（Clean），接收后需要失效（Invalidate），或者通过 MPU 把 DMA 缓冲区配置为不可缓存。</li>
+          <li><strong>DMA 能访问的内存区域有限</strong>：部分芯片上某些 RAM 不在 DMA 的总线矩阵覆盖范围内（例如 STM32H7 的 DTCM 不能被普通 DMA 访问），缓冲区放错位置时 DMA 会报错或静默失败。</li>
+        </ul>
+        <pre><code class="language-c">/* 32 字节对齐、长度为 32 的整数倍，放在 DMA 可访问的 RAM 段 */
+__attribute__((aligned(32), section(".dma_buffer")))
+static uint8_t spi_tx_buf[256];
+
+int spi_send_dma(const uint8_t *data, size_t len)
+{
+    if (len &gt; sizeof(spi_tx_buf)) {
+        return -EINVAL;
+    }
+    memcpy(spi_tx_buf, data, len);
+    SCB_CleanDCache_by_Addr((uint32_t *)spi_tx_buf, (int32_t)sizeof(spi_tx_buf));  /* 把 Cache 写回内存 */
+    dma_start(spi_tx_buf, len);
+    return 0;
+}</code></pre>
+        <p><code>.dma_buffer</code> 段需要在链接脚本中放到合适的 RAM 区域。没有 Cache 的 Cortex-M0/M3/M4 不需要 Cache 维护，但“不放在栈上”“地址对齐”两条依然适用。</p>
+      </section>
+
+      <section>
+        <h2>16. 指针问题排查清单</h2>
         <ul>
           <li>指针使用前是否判空。</li>
           <li>是否同时传入了缓冲区长度。</li>
@@ -331,15 +415,19 @@ int append_byte(uint8_t *buffer,
           <li>是否把二进制数据误当成字符串处理。</li>
           <li>结构体强转时是否考虑了对齐和大小端。</li>
           <li>大数组是否放在了栈上导致栈溢出。</li>
+          <li>只读的指针参数是否加了 const，常量表是否用 const 放入 Flash。</li>
+          <li>同一缓冲区内移动数据时是否用了 memmove 而不是 memcpy。</li>
+          <li>回调接口是否带 void * 上下文指针，回调的执行上下文和数据有效期是否写清楚。</li>
+          <li>DMA 缓冲区是否避免放在栈上，是否满足对齐要求，带 Cache 的芯片是否做了 Cache 维护。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=c1df6198c223#foundation/pointer-memory">返回 C语言专题</a>
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/pointer-memory">返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=c1df6198c223"></script>
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
 </body>
 </html>

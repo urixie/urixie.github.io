@@ -8,16 +8,16 @@
   <meta name='bingbot' content='noindex, nofollow, noarchive, nosnippet, noimageindex'>
   <title>嵌入式 C 关键语法与 GNU C 扩展实践 - XYJ</title>
   <meta name='description' content='整理嵌入式 C 与 GNU C 扩展语法，包括指定初始化.语句表达式.typeof.container_of.零长度数组.section.aligned.packed.format.weak.alias.inline.内建函数和可变参数宏。'>
-  <script src='../../../../assets/js/theme-init.js?v=c1df6198c223'></script>
-  <link rel='stylesheet' href='../../../../assets/css/style.css?v=c1df6198c223'>
+  <script src='../../../../assets/js/theme-init.js?v=591c98cc2ebb'></script>
+  <link rel='stylesheet' href='../../../../assets/css/style.css?v=591c98cc2ebb'>
 </head>
 <body>
   <main class='article-page-shell'>
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=c1df6198c223">← 返回首页</a>
-          <a href="../../../../index.html?v=c1df6198c223#foundation/embedded-c">返回对应专题</a>
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class='article-topbar'>
-      <a href='../../../../index.html?v=c1df6198c223'>← 返回首页</a>
-      <a href='../../../../index.html?v=c1df6198c223#foundation/embedded-c'>返回 C语言专题</a>
+      <a href='../../../../index.html?v=591c98cc2ebb'>← 返回首页</a>
+      <a href='../../../../index.html?v=591c98cc2ebb#foundation/embedded-c'>返回 C语言专题</a>
     </div>
 
     <article class='article card'>
@@ -76,6 +76,7 @@ void wait_uart_rx(void)
         <p>
           常见需要 <code>volatile</code> 的场景包括中断共享变量、硬件寄存器、DMA 状态标志和多任务共享标志。但 <code>volatile</code> 不是锁，不能解决原子性和互斥问题。
         </p>
+        <p>volatile 只解决“编译器看不到变化”的问题，并不保证原子性。中断与主循环共享数据时的竞态、临界区和内存屏障，详见 <a href="../c-interrupt-concurrency/c-interrupt-concurrency.html?v=591c98cc2ebb">中断、并发与临界区</a>；寄存器的 volatile 映射与读改写风险，详见 <a href="../c-bit-register/c-bit-register.html?v=591c98cc2ebb">位运算与寄存器访问</a>。</p>
       </section>
 
       <section>
@@ -466,7 +467,7 @@ if (__builtin_expect(error_code != 0, 0)) {
           在传感器或 UART 场景中，中断服务程序只适合快速确认硬件事件、保存少量数据并通知任务；协议解析、日志输出和复杂计算应放到主循环或 RTOS 任务中。<code>volatile</code> 只能保证编译器每次重新读取变量，不能自动提供多字节原子性和线程安全。
         </p>
         <figure class="article-figure">
-          <img src="images/c-embedded-concurrency.svg?v=c1df6198c223" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图" loading="lazy" decoding="async">
+          <img src="images/c-embedded-concurrency.svg?v=591c98cc2ebb" alt="中断服务程序通过 volatile 标志与主循环或任务交接事件的示意图" loading="lazy" decoding="async">
           <figcaption>图 1：中断与业务任务之间要有清楚的数据交接边界。</figcaption>
         </figure>
         <pre><code class="language-c">#include &lt;stdbool.h&gt;
@@ -515,7 +516,56 @@ void app_poll(void)
       </section>
 
       <section>
-        <h2>20. GNU C 扩展使用检查清单</h2>
+        <h2>20. 编译期检查：把错误挡在编译阶段</h2>
+        <p>C11 引入了 <code>_Static_assert</code>，GCC 在 C99 模式下也支持它。凡是“写代码时就能确定、一旦不满足就一定是 bug”的条件，都适合用编译期断言检查：</p>
+        <pre><code class="language-c">_Static_assert(sizeof(frame_header_t) == 8, "frame header must be 8 bytes");
+_Static_assert((RX_BUF_SIZE &amp; (RX_BUF_SIZE - 1U)) == 0, "RX_BUF_SIZE must be a power of 2");
+_Static_assert(ARRAY_SIZE(state_names) == ST_COUNT, "state_names out of sync with enum");
+_Static_assert(CONFIG_TICK_HZ &lt;= 1000, "tick rate too high");</code></pre>
+        <p>常见的 <code>ARRAY_SIZE</code> 宏有一个隐患：如果误把指针传进去，<code>sizeof(p) / sizeof(p[0])</code> 不会报错，只会得到一个错误的结果。Linux 内核利用 GCC 内建函数，在传入指针时让编译失败：</p>
+        <pre><code class="language-c">#define SAME_TYPE(a, b)     __builtin_types_compatible_p(__typeof__(a), __typeof__(b))
+#define MUST_BE_ARRAY(a)    (sizeof(struct { int : -SAME_TYPE((a), &amp;(a)[0]); }))
+#define ARRAY_SIZE(a)       (sizeof(a) / sizeof((a)[0]) + MUST_BE_ARRAY(a) * 0)</code></pre>
+        <p>数组 <code>a</code> 与 <code>&amp;a[0]</code> 的类型不同（数组与指针），<code>SAME_TYPE</code> 为 0，位域宽度为 0，编译通过；传入指针时两者类型相同，位域宽度为 -1，编译报错。这类技巧可读性一般，但放在公共头文件里一次写好，可以长期受益。</p>
+      </section>
+
+      <section>
+        <h2>21. “Debug 正常，Release 出错”的常见原因</h2>
+        <p>开启优化后出现问题，大多数情况下不是编译器的 bug，而是代码本身依赖了未定义或未保证的行为，只是在 <code>-O0</code> 下碰巧没有暴露：</p>
+        <table>
+          <thead><tr><th>原因</th><th>典型表现</th><th>解决方式</th></tr></thead>
+          <tbody>
+            <tr><td>共享变量缺少 <code>volatile</code></td><td>主循环等待中断标志，永远等不到</td><td>中断与主循环共享的变量加 <code>volatile</code></td></tr>
+            <tr><td>空循环延时被优化掉</td><td><code>for (i = 0; i &lt; 1000; i++);</code> 延时消失</td><td>使用定时器延时，或在循环体中访问 volatile 变量</td></tr>
+            <tr><td>有符号溢出、越界等未定义行为</td><td>溢出检查被删除、循环次数异常</td><td>修改代码，消除未定义行为</td></tr>
+            <tr><td>违反严格别名</td><td>指针强转读写的数据“不同步”</td><td>改用 <code>memcpy</code> 或 union</td></tr>
+            <tr><td>未初始化的局部变量</td><td><code>-O0</code> 下栈上碰巧为 0，优化后为随机值</td><td>开启 <code>-Wall -Wextra</code>，所有变量显式初始化</td></tr>
+            <tr><td>时序变化</td><td>优化后代码变快，外设还没准备好就开始访问</td><td>按手册等待状态位，而不是依赖代码执行速度</td></tr>
+            <tr><td>栈使用变化</td><td>内联展开后某个函数栈帧变大，溢出</td><td>检查 <code>-fstack-usage</code> 输出，调整栈大小</td></tr>
+          </tbody>
+        </table>
+        <p>排查时可以逐个文件或逐个函数降低优化等级（<code>__attribute__((optimize("O0")))</code>），二分定位问题代码所在的位置；定位后应修正代码，而不是长期保留局部的低优化等级。</p>
+      </section>
+
+      <section>
+        <h2>22. 调试版与发布版的构建配置</h2>
+        <p>工程里通常至少有两套构建配置，差异应当集中、明确：</p>
+        <table>
+          <thead><tr><th>项目</th><th>Debug</th><th>Release</th></tr></thead>
+          <tbody>
+            <tr><td>优化等级</td><td><code>-Og</code>（兼顾调试体验）</td><td><code>-Os</code> 或 <code>-O2</code></td></tr>
+            <tr><td>调试信息</td><td><code>-g3</code></td><td><code>-g</code>（elf 中保留，烧录的 bin 不包含）</td></tr>
+            <tr><td>断言</td><td>开启，失败时停在断点</td><td>开启轻量版或关闭（<code>-DNDEBUG</code>），失败时记录并复位</td></tr>
+            <tr><td>日志级别</td><td>DEBUG</td><td>INFO 或 WARN</td></tr>
+            <tr><td>看门狗</td><td>可在调试时暂停（很多芯片支持调试时冻结看门狗）</td><td>必须开启</td></tr>
+            <tr><td>读保护</td><td>关闭</td><td>量产时开启</td></tr>
+          </tbody>
+        </table>
+        <p>需要强调的是：<strong>测试和发布的必须是同一套配置</strong>。只在 Debug 配置下做测试，发布时换成 Release，等于发布了一个没测过的固件。很多团队的做法是开发调试用 Debug，提测和量产统一用 Release，并保留同一次构建的 elf 和 map 文件，供现场问题定位使用。</p>
+      </section>
+
+      <section>
+        <h2>23. GNU C 扩展使用检查清单</h2>
         <ul>
           <li>是否明确知道当前项目使用的是 <code>-std=c*</code> 还是 <code>-std=gnu*</code>。</li>
           <li>指定初始化是否能替代容易错位的顺序初始化。</li>
@@ -529,15 +579,18 @@ void app_poll(void)
           <li>弱符号是否有明确覆盖机制，是否会被链接优化影响。</li>
           <li><code>inline</code> 函数是否适合放在头文件中，是否需要 <code>static inline</code>。</li>
           <li>内建函数和可变参数宏是否有非 GCC 编译器替代方案。</li>
+          <li>结构体大小、2 的幂容量、表格与枚举数量是否用 _Static_assert 做了编译期检查。</li>
+          <li>优化后出现的问题，是否先排查 volatile、未定义行为、严格别名和未初始化变量。</li>
+          <li>提测和发布是否使用同一套构建配置，是否保留了对应的 elf 与 map 文件。</li>
         </ul>
       </section>
 
       <div class='article-footer'>
-        <a href='../../../../index.html?v=c1df6198c223#foundation/embedded-c'>返回 C语言专题</a>
+        <a href='../../../../index.html?v=591c98cc2ebb#foundation/embedded-c'>返回 C语言专题</a>
       </div>
     </article>
   </main>
 
-  <script src='../../../../assets/js/main.js?v=c1df6198c223'></script>
+  <script src='../../../../assets/js/main.js?v=591c98cc2ebb'></script>
 </body>
 </html>

@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式 C 中断、并发与临界区 - XYJ</title>
+  <meta name="description" content="整理裸机与 RTOS 中断并发的工程要点：ISR 编写原则、volatile 的边界、共享变量竞态与撕裂读、临界区实现、无锁设计、中断优先级、清中断标志与内存屏障、ISR 与任务通信，以及串口 DMA 不定长接收实例。">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>嵌入式 C 中断、并发与临界区</h1>
+      <p class="article-summary">整理裸机与 RTOS 中断并发的工程要点：ISR 编写原则、volatile 的边界、共享变量竞态与撕裂读、临界区实现、无锁设计、中断优先级、清中断标志与内存屏障、ISR 与任务通信，以及串口 DMA 不定长接收实例。</p>
+
+      <section>
+        <h2>1. 中断带来的并发问题</h2>
+        <p>裸机程序看起来是单线程的，但只要开了中断，就存在两个执行流：主循环和中断服务函数（ISR）。中断可以在主循环的任意两条指令之间插入，这和多线程共享数据面临的问题本质相同。引入 RTOS 后，任务之间、任务与中断之间的并发关系更加复杂。</p>
+        <p>并发 bug 的特点是“偶发、难复现、加日志就消失”。下面这些现象都可能是并发问题：</p>
+        <ul>
+          <li>计数器偶尔少计一次，统计值和实际不符。</li>
+          <li>一个 32 位或 64 位变量偶尔读出一个“前半截新、后半截旧”的值。</li>
+          <li>某个外设配置偶尔被还原，像是被别人改回去了。</li>
+          <li>串口接收在高波特率或大数据量时偶尔丢字节。</li>
+          <li>程序运行几小时后卡死在等待某个标志的循环里。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. ISR 编写原则</h2>
+        <p>ISR 的原则可以总结为一句话：<strong>快进快出，只做必须在中断里做的事</strong>。</p>
+        <ul>
+          <li><strong>短</strong>：ISR 执行期间，同级和更低优先级的中断都被延迟。耗时操作（解析协议、写 Flash、刷新屏幕）放到任务或主循环里。</li>
+          <li><strong>不阻塞</strong>：不要在 ISR 里等待外设状态、调用 <code>delay</code>、获取互斥锁。</li>
+          <li><strong>不调用不可重入函数</strong>：<code>printf</code>、<code>malloc</code>、<code>strtok</code> 等通常不是中断安全的。</li>
+          <li><strong>尽早清标志</strong>：清除中断标志后，硬件可能需要几个周期才真正撤销中断请求（见后文内存屏障部分）。</li>
+          <li><strong>把数据交出去</strong>：ISR 负责“采集和登记”，把数据放进环形缓冲区或消息队列，再通知任务处理。</li>
+        </ul>
+        <pre><code class="language-c">static volatile uint32_t rx_overflow_count;
+
+void USART1_IRQHandler(void)
+{
+    uint32_t sr = USART1-&gt;SR;
+    if (sr &amp; USART_SR_RXNE) {
+        uint8_t byte = (uint8_t)USART1-&gt;DR;      /* 读 DR 同时清除 RXNE */
+        if (!ring_put(&amp;uart_rx_ring, byte)) {
+            rx_overflow_count++;                 /* 只记录，不在中断里处理 */
+        }
+    }
+    if (sr &amp; USART_SR_ORE) {
+        (void)USART1-&gt;DR;                        /* 按手册顺序清除溢出错误 */
+    }
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>3. volatile 解决什么，不解决什么</h2>
+        <p><code>volatile</code> 告诉编译器：这个变量可能在程序看不见的地方被修改，每次访问都必须真正读写内存，不能缓存在寄存器里，也不能被优化掉。</p>
+        <pre><code class="language-c">static bool data_ready;              /* 缺少 volatile */
+
+void TIM2_IRQHandler(void) { data_ready = true; }
+
+int main(void)
+{
+    while (!data_ready) { }          /* -O2 下编译器可能只读一次，变成死循环 */
+}</code></pre>
+        <p>但 <code>volatile</code> <strong>不保证原子性，也不保证多个变量之间的顺序关系</strong>：</p>
+        <ul>
+          <li><code>volatile uint32_t cnt; cnt++;</code> 仍然是“读、加、写”三步，中间可能被中断打断。</li>
+          <li>在 8 位 MCU 上读一个 <code>volatile uint16_t</code>，需要两条指令，可能读到撕裂的值。</li>
+          <li>两个普通变量的写入顺序可能被编译器重排，即使其中一个是 <code>volatile</code>。</li>
+        </ul>
+        <div class="article-note">记住分工：<code>volatile</code> 解决“编译器优化导致看不到变化”；临界区、原子操作解决“多个执行流同时修改”；内存屏障解决“硬件或编译器重排访问顺序”。三者不能互相替代。</div>
+      </section>
+
+      <section>
+        <h2>4. 典型竞态</h2>
+
+        <h3>4.1 共享计数器</h3>
+        <pre><code class="language-c">volatile uint32_t event_count;
+
+void EXTI0_IRQHandler(void) { event_count++; }
+
+void report_task(void)
+{
+    uint32_t n = event_count;        /* 读出来 */
+    event_count = 0;                 /* 清零：若中断恰好发生在这两句之间，那次事件就丢了 */
+    send_report(n);
+}</code></pre>
+        <p>修复方式有两种：把“读出并清零”放进临界区；或者主循环不清零，只记录上一次的值求差，让计数器只有一个写者。</p>
+        <pre><code class="language-c">/* 单写者方案：ISR 只增加，任务只读，用差值计算新增事件数 */
+static uint32_t last_seen;
+void report_task(void)
+{
+    uint32_t now = event_count;      /* 32 位对齐读取在 Cortex-M 上是原子的 */
+    uint32_t delta = now - last_seen;
+    last_seen = now;
+    send_report(delta);
+}</code></pre>
+
+        <h3>4.2 多字节变量的撕裂读</h3>
+        <p>在 32 位 MCU 上，读一个 64 位的时间戳需要两次 32 位读取。如果低 32 位在两次读取之间溢出进位，就会得到一个错误值。常用的无锁读法是“读高、读低、再读高，两次高位一致才接受”：</p>
+        <pre><code class="language-c">static volatile uint32_t tick_hi;    /* 定时器溢出中断里递增 */
+
+uint64_t timestamp_us(void)
+{
+    uint32_t hi1, lo, hi2;
+    do {
+        hi1 = tick_hi;
+        lo  = TIM2-&gt;CNT;
+        hi2 = tick_hi;
+    } while (hi1 != hi2);
+    return ((uint64_t)hi1 &lt;&lt; 32) | lo;
+}</code></pre>
+        <p>这段代码还有一个边界：如果定时器刚好溢出、但溢出中断还没来得及执行（例如当前处于更高优先级中断中），<code>tick_hi</code> 尚未更新而 <code>CNT</code> 已经回到 0。严格的实现会在临界区内同时检查定时器的溢出标志。实际项目中要根据中断优先级关系判断是否需要处理这种情况。</p>
+      </section>
+
+      <section>
+        <h2>5. 临界区的实现</h2>
+        <p>临界区就是“这段代码执行期间不允许被打断”。在 Cortex-M 裸机中，最常见的做法是保存并关闭全局中断，结束后<strong>恢复到进入前的状态</strong>，而不是无条件打开：</p>
+        <pre><code class="language-c">static inline uint32_t irq_save(void)
+{
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    return primask;
+}
+
+static inline void irq_restore(uint32_t primask)
+{
+    __set_PRIMASK(primask);          /* 进入前已关中断，则保持关闭；支持嵌套调用 */
+}
+
+void report_task(void)
+{
+    uint32_t key = irq_save();
+    uint32_t n = event_count;
+    event_count = 0;
+    irq_restore(key);
+    send_report(n);
+}</code></pre>
+        <div class="article-warning">不要写成 <code>__disable_irq(); ... __enable_irq();</code>。如果调用者本来就处于关中断状态（例如在另一个临界区里调用了这个函数），<code>__enable_irq()</code> 会提前打开中断，破坏外层的临界区。</div>
+        <p>几种临界区手段的对比：</p>
+        <table>
+          <thead><tr><th>手段</th><th>屏蔽范围</th><th>适用场景</th></tr></thead>
+          <tbody>
+            <tr><td>PRIMASK（<code>__disable_irq</code>）</td><td>除 NMI、HardFault 外的所有中断</td><td>裸机通用，临界区很短时</td></tr>
+            <tr><td>BASEPRI（Cortex-M3 及以上）</td><td>优先级数值 ≥ 阈值的中断</td><td>需要让高优先级中断不受影响，FreeRTOS 即用此方式</td></tr>
+            <tr><td>关闭单个外设中断（NVIC 或外设 IER）</td><td>只屏蔽相关中断源</td><td>只和一个中断源共享数据时，影响最小</td></tr>
+            <tr><td>RTOS 临界区 / 调度锁</td><td>视实现而定</td><td>RTOS 任务间共享数据</td></tr>
+            <tr><td>互斥锁（mutex）</td><td>只阻塞争用同一资源的任务</td><td>任务间较长的资源占用，不能在 ISR 中使用</td></tr>
+          </tbody>
+        </table>
+        <p>临界区内的代码要尽可能短：只做读写共享数据这一步，耗时的处理放到临界区外。关中断 100 微秒，可能就让高速串口丢字节。</p>
+      </section>
+
+      <section>
+        <h2>6. 无锁手段</h2>
+        <p>很多场景不需要关中断，通过设计就能避免竞争：</p>
+        <ul>
+          <li><strong>单生产者 / 单消费者</strong>：一个写者、一个读者的环形缓冲区，只要读写索引各自只由一方修改、且先写数据再更新索引，就不需要锁。详见 <a href="../../data-structure/ring-buffer/ring-buffer.html?v=591c98cc2ebb">环形缓冲区</a>。</li>
+          <li><strong>双缓冲</strong>：ISR 写缓冲区 A 时，任务处理缓冲区 B，交换时只修改一个指针或索引，常用于 ADC + DMA 的半传输 / 传输完成中断。</li>
+          <li><strong>只读快照</strong>：把一组相关数据打包成结构体，ISR 填好后整体发布一个“就绪序号”，读者检查序号前后一致才使用。</li>
+          <li><strong>硬件原子指令</strong>：Cortex-M3 及以上支持 <code>LDREX</code> / <code>STREX</code>，C11 的 <code>&lt;stdatomic.h&gt;</code> 在这些内核上能生成真正的无锁原子操作。Cortex-M0/M0+ 没有这组指令，<code>atomic_fetch_add</code> 等会退化为调用库函数或关中断实现。</li>
+        </ul>
+        <pre><code class="language-c">#include &lt;stdatomic.h&gt;
+
+static atomic_uint dropped_frames;
+
+void DMA1_Stream0_IRQHandler(void)
+{
+    atomic_fetch_add_explicit(&amp;dropped_frames, 1U, memory_order_relaxed);
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>7. 中断优先级与嵌套</h2>
+        <p>Cortex-M 的 NVIC 支持中断嵌套：<strong>优先级数值越小，优先级越高</strong>，高优先级中断可以打断低优先级中断。设计优先级时要考虑：</p>
+        <ul>
+          <li>对时间最敏感的中断（电机 PWM 保护、高速通信）给最高优先级，并保持最短。</li>
+          <li>共享数据的两个中断如果优先级相同，它们之间不会互相抢占，可以省掉部分保护。</li>
+          <li>使用 FreeRTOS 时，**调用了 <code>xxxFromISR</code> API 的中断，优先级不能高于 <code>configMAX_SYSCALL_INTERRUPT_PRIORITY</code>**（数值上不能更小）。违反这条会导致内核数据结构损坏，表现为随机死机，这是 FreeRTOS 项目里最常见的配置错误之一。</li>
+          <li>STM32 HAL 默认把优先级分组设为 4 位抢占优先级，移植代码时注意分组设置一致。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. 清中断标志与内存屏障</h2>
+        <p>Cortex-M 内核与外设之间通常经过总线和写缓冲。在 ISR 末尾清除外设中断标志后，写操作可能还没真正到达外设，ISR 就已经返回；此时中断请求线仍然有效，CPU 会立即再次进入同一个中断，造成“中断执行两次”。</p>
+        <pre><code class="language-c">void TIM3_IRQHandler(void)
+{
+    TIM3-&gt;SR = ~TIM_SR_UIF;          /* 清除更新中断标志（该寄存器写 0 清除） */
+    __DSB();                         /* 确保写操作完成后再继续 */
+    do_periodic_work();
+}</code></pre>
+        <p>推荐做法：<strong>在 ISR 开头就清标志</strong>，处理逻辑放在后面；如果必须在末尾清，就在清除后加 <code>__DSB()</code>。在主频远高于外设总线频率的芯片（如 STM32F7/H7）上，这个问题更容易出现。</p>
+        <p>另一个需要屏障的场景是 DMA：CPU 填好发送缓冲区后启动 DMA，或者 DMA 写完接收缓冲区后 CPU 去读。在带数据 Cache 的 Cortex-M7 上，还需要对缓冲区做 Cache 清理（Clean）或失效（Invalidate），否则 DMA 和 CPU 看到的数据不一致。</p>
+      </section>
+
+      <section>
+        <h2>9. ISR 与任务的通信方式</h2>
+        <table>
+          <thead><tr><th>方式</th><th>适用场景</th><th>注意点</th></tr></thead>
+          <tbody>
+            <tr><td>volatile 标志</td><td>简单的“事件发生了”</td><td>多次事件可能被合并成一次</td></tr>
+            <tr><td>计数器</td><td>需要知道事件次数</td><td>读和清零要原子</td></tr>
+            <tr><td>环形缓冲区</td><td>字节流、采样数据</td><td>单生产者单消费者可无锁</td></tr>
+            <tr><td>RTOS 信号量 / 任务通知</td><td>唤醒任务处理</td><td>在 ISR 中必须用 FromISR 版本，并处理 <code>xHigherPriorityTaskWoken</code></td></tr>
+            <tr><td>RTOS 队列</td><td>传递带数据的消息</td><td>队列满时 ISR 不能等待，要定义丢弃策略</td></tr>
+          </tbody>
+        </table>
+        <pre><code class="language-c">void EXTI15_10_IRQHandler(void)
+{
+    BaseType_t woken = pdFALSE;
+    EXTI-&gt;PR = EXTI_PR_PR13;                         /* 写 1 清除挂起位 */
+    vTaskNotifyGiveFromISR(button_task_handle, &amp;woken);
+    portYIELD_FROM_ISR(woken);                       /* 唤醒的任务优先级更高时，退出中断后立即切换 */
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>10. 可重入函数</h2>
+        <p>可重入函数是指“执行到一半被打断，打断者再次调用它，两次调用都能得到正确结果”的函数。它要求函数只使用局部变量和参数，不修改静态或全局状态，不调用不可重入的函数。</p>
+        <p>常见的不可重入写法：</p>
+        <ul>
+          <li>函数内使用 <code>static</code> 缓冲区返回结果，例如 <code>strtok</code>、<code>asctime</code>、自己写的 <code>format_value()</code> 返回静态字符串。</li>
+          <li>修改全局的错误码或状态变量，例如 <code>errno</code>。</li>
+          <li>内部调用 <code>malloc</code>、<code>printf</code> 等使用全局状态的库函数。</li>
+        </ul>
+        <p>被中断和任务同时调用的工具函数，应改为由调用者提供缓冲区（如 <code>strtok_r</code>、<code>snprintf</code>），或者明确禁止在中断中调用。</p>
+      </section>
+
+      <section>
+        <h2>11. 工作场景：串口不定长帧接收</h2>
+        <p>很多传感器、模组以“一帧一包、帧间有空闲”的方式发送数据，帧长不固定。STM32 等芯片的串口提供空闲线（IDLE）检测：总线在接收后空闲一个字节时间，就产生 IDLE 中断。配合 DMA 循环模式，可以实现低 CPU 占用的不定长接收。</p>
+        <pre><code class="language-c">#define RX_DMA_SIZE 256U
+static uint8_t  rx_dma_buf[RX_DMA_SIZE];
+static uint16_t rx_last_pos;
+
+/* 在 IDLE 中断、DMA 半传输中断、DMA 传输完成中断里都调用，把新数据推入环形缓冲区 */
+static void uart_rx_check(BaseType_t *woken)
+{
+    uint16_t pos = (uint16_t)(RX_DMA_SIZE - DMA1_Stream5-&gt;NDTR);   /* DMA 当前写到的位置 */
+    if (pos == rx_last_pos) {
+        return;
+    }
+    if (pos &gt; rx_last_pos) {
+        ring_write(&amp;uart_rx_ring, &amp;rx_dma_buf[rx_last_pos], pos - rx_last_pos);
+    } else {
+        ring_write(&amp;uart_rx_ring, &amp;rx_dma_buf[rx_last_pos], RX_DMA_SIZE - rx_last_pos);
+        ring_write(&amp;uart_rx_ring, &amp;rx_dma_buf[0], pos);
+    }
+    rx_last_pos = (pos == RX_DMA_SIZE) ? 0U : pos;
+    vTaskNotifyGiveFromISR(uart_task_handle, woken);   /* 通知解析任务 */
+}
+
+void USART2_IRQHandler(void)
+{
+    BaseType_t woken = pdFALSE;
+    if (USART2-&gt;SR &amp; USART_SR_IDLE) {
+        (void)USART2-&gt;SR;
+        (void)USART2-&gt;DR;                 /* F4 系列：先读 SR 再读 DR 清除 IDLE */
+        uart_rx_check(&amp;woken);
+    }
+    portYIELD_FROM_ISR(woken);
+}</code></pre>
+        <p>这个方案中，三个中断（IDLE、DMA 半满、DMA 全满）优先级应设为相同，保证 <code>uart_rx_check()</code> 不会被自己重入；解析协议放在任务中进行，中断只做搬运。寄存器名称以 STM32F4 为例，不同系列的清除方式不同，以手册为准。</p>
+      </section>
+
+      <section>
+        <h2>12. 中断与并发检查清单</h2>
+        <ul>
+          <li>被 ISR 修改、被主循环读取的变量是否声明为 <code>volatile</code>。</li>
+          <li>多个执行流读改写的共享变量，是否有临界区、单写者设计或原子操作保护。</li>
+          <li>临界区是否使用“保存并恢复”的写法，是否足够短。</li>
+          <li>32 位 MCU 上的 64 位变量、8 位 MCU 上的 16/32 位变量，读写是否可能撕裂。</li>
+          <li>ISR 中是否调用了阻塞函数、<code>printf</code>、<code>malloc</code> 或其他不可重入函数。</li>
+          <li>中断标志是否尽早清除，末尾清除时是否加了 <code>__DSB()</code>。</li>
+          <li>使用 RTOS 时，调用 FromISR API 的中断优先级是否满足 <code>configMAX_SYSCALL_INTERRUPT_PRIORITY</code> 限制。</li>
+          <li>中断与任务之间的缓冲区满了怎么办，是否有丢弃计数和日志。</li>
+          <li>带 Cache 的芯片上，DMA 缓冲区是否做了 Cache 维护或放在非 Cache 区域。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+</body>
+</html>

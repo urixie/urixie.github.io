@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>嵌入式 C 模块化与驱动分层设计 - XYJ</title>
+  <meta name="description" content="整理嵌入式工程的模块化与分层方法：分层结构与依赖规则、头文件接口与不透明指针、函数指针操作表抽象设备、依赖注入与 PC 端测试、板级差异管理、错误码约定、初始化顺序和目录结构，并以一套业务适配两款传感器为例。">
+  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
+          <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>嵌入式 C 模块化与驱动分层设计</h1>
+      <p class="article-summary">整理嵌入式工程的模块化与分层方法：分层结构与依赖规则、头文件接口与不透明指针、函数指针操作表抽象设备、依赖注入与 PC 端测试、板级差异管理、错误码约定、初始化顺序和目录结构，并以一套业务适配两款传感器为例。</p>
+
+      <section>
+        <h2>1. 为什么需要分层</h2>
+        <p>很多嵌入式项目一开始只有一个 <code>main.c</code>：初始化外设、读传感器、算数据、刷屏幕全写在一起。功能少时没问题，一旦出现下面这些需求，代码就开始失控：</p>
+        <ul>
+          <li>传感器换型号，或者同一套产品要支持两种传感器。</li>
+          <li>主控芯片换系列，从 STM32F1 换到 GD32、从 STM32 换到 ESP32。</li>
+          <li>需要在 PC 上跑单元测试，或者在没有硬件时先开发业务逻辑。</li>
+          <li>多人协作，每个人负责不同模块，改动经常互相冲突。</li>
+        </ul>
+        <p>分层的目的不是“看起来专业”，而是<strong>把会变化的部分隔离起来</strong>：硬件变化只影响底层，业务变化只影响上层，中间用稳定的接口连接。</p>
+      </section>
+
+      <section>
+        <h2>2. 常见的分层结构</h2>
+        <table>
+          <thead><tr><th>层次</th><th>职责</th><th>示例</th><th>依赖</th></tr></thead>
+          <tbody>
+            <tr><td>应用层 App</td><td>产品业务逻辑、状态机、策略</td><td>温控策略、报警逻辑、界面流程</td><td>只依赖服务层接口</td></tr>
+            <tr><td>服务层 Service</td><td>与具体硬件无关的通用能力</td><td>参数存储、日志、协议栈、命令解析</td><td>依赖设备驱动接口</td></tr>
+            <tr><td>设备驱动层 Device</td><td>某个外部器件的驱动</td><td>SHT30 温湿度、W25Q 闪存、OLED</td><td>依赖总线接口</td></tr>
+            <tr><td>板级 / 芯片抽象层 BSP/HAL</td><td>芯片外设和板子引脚</td><td>I2C、SPI、GPIO、UART 的读写</td><td>依赖芯片厂商库或寄存器</td></tr>
+          </tbody>
+        </table>
+        <p>两条依赖规则：</p>
+        <ol>
+          <li><strong>只能向下依赖</strong>：驱动层不能调用应用层函数。需要“通知上层”时，用回调函数或事件，而不是直接 <code>#include "app.h"</code>。</li>
+          <li><strong>不跨层访问</strong>：应用层不直接操作 I2C 寄存器，也不直接调用 HAL 库函数。</li>
+        </ol>
+        <div class="article-note">分层的粒度要和项目规模匹配。几百行的小工具不必强行分四层；但“驱动不依赖业务”“接口与实现分离”这两条，在任何规模的项目里都值得坚持。</div>
+      </section>
+
+      <section>
+        <h2>3. 头文件就是接口</h2>
+        <p>模块对外暴露什么，完全由头文件决定。好的头文件只包含调用者必须知道的东西：类型、函数声明、少量常量。</p>
+
+        <h3>3.1 不透明指针隐藏内部结构</h3>
+        <pre><code class="language-c">/* sensor.h —— 调用者只知道有一个 sensor_t，看不到里面的字段 */
+typedef struct sensor sensor_t;
+
+sensor_t *sensor_create(const sensor_config_t *cfg);
+int       sensor_read(sensor_t *s, int16_t *temp_x10, uint16_t *hum_x10);
+void      sensor_destroy(sensor_t *s);
+
+/* sensor.c —— 只有实现文件知道完整定义 */
+struct sensor {
+    i2c_bus_t *bus;
+    uint8_t    addr;
+    uint32_t   last_read_ms;
+    int16_t    cached_temp;
+};</code></pre>
+        <p>这样调用者无法直接修改内部字段，实现改了结构体也不需要重新编译所有调用者。嵌入式里常常不希望动态分配，可以改为“调用者提供存储”：</p>
+        <pre><code class="language-c">/* 头文件给出足够大的不透明存储，实现中用 _Static_assert 保证真实结构体放得下 */
+typedef struct { uint32_t opaque[8]; } sensor_storage_t;
+sensor_t *sensor_init(sensor_storage_t *mem, const sensor_config_t *cfg);</code></pre>
+
+        <h3>3.2 头文件的几条规矩</h3>
+        <ul>
+          <li>每个头文件都能单独被包含并编译通过：自己需要的 <code>&lt;stdint.h&gt;</code> 等由自己包含。</li>
+          <li>只放声明，不放变量定义；需要共享的全局变量用 <code>extern</code> 声明、在一个 <code>.c</code> 中定义，并尽量用访问函数代替。</li>
+          <li>内部函数在 <code>.c</code> 中用 <code>static</code>，不要出现在头文件里。</li>
+          <li>需要被 C++ 调用的头文件加 <code>extern "C"</code> 包裹。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 用函数指针表抽象设备</h2>
+        <p>当同一类设备有多种实现（多款温度传感器、多种存储介质），可以借鉴 Linux 驱动的做法：定义一个操作表（ops），每种设备提供自己的实现，上层只通过操作表调用。</p>
+        <pre><code class="language-c">/* temp_sensor.h —— 统一接口 */
+typedef struct temp_sensor temp_sensor_t;
+
+typedef struct {
+    int (*init)(temp_sensor_t *dev);
+    int (*read)(temp_sensor_t *dev, int16_t *temp_x10);
+    int (*sleep)(temp_sensor_t *dev);
+} temp_sensor_ops_t;
+
+struct temp_sensor {
+    const temp_sensor_ops_t *ops;   /* 指向某种传感器的实现 */
+    void                    *ctx;   /* 该实例的私有数据：总线、地址、校准值 */
+    const char              *name;
+};
+
+static inline int temp_sensor_read(temp_sensor_t *dev, int16_t *t)
+{
+    return dev-&gt;ops-&gt;read(dev, t);
+}</code></pre>
+        <pre><code class="language-c">/* sht30.c —— 一种具体实现 */
+typedef struct {
+    i2c_bus_t *bus;
+    uint8_t    addr;
+} sht30_ctx_t;
+
+static int sht30_read(temp_sensor_t *dev, int16_t *temp_x10)
+{
+    sht30_ctx_t *c = dev-&gt;ctx;
+    uint8_t cmd[2] = { 0x24, 0x00 };          /* 单次测量，高重复性，不使用时钟拉伸 */
+    uint8_t rx[6];
+    if (i2c_write(c-&gt;bus, c-&gt;addr, cmd, sizeof(cmd)) != 0) return -EIO;
+    delay_ms(16);
+    if (i2c_read(c-&gt;bus, c-&gt;addr, rx, sizeof(rx)) != 0) return -EIO;
+    if (crc8_sht(rx, 2) != rx[2]) return -EBADMSG;
+    uint16_t raw = (uint16_t)((rx[0] &lt;&lt; 8) | rx[1]);
+    *temp_x10 = (int16_t)(-450 + (int32_t)1750 * raw / 65535);   /* T = -45 + 175 × raw / 65535 */
+    return 0;
+}
+
+const temp_sensor_ops_t sht30_ops = {
+    .init  = sht30_init,
+    .read  = sht30_read,
+    .sleep = sht30_sleep,
+};</code></pre>
+        <p>上层业务只依赖 <code>temp_sensor_t</code>，换传感器只需要换一个 ops 和 ctx。操作表本身定义为 <code>const</code>，会被放进 Flash，不占 RAM，也不会被意外改写。</p>
+      </section>
+
+      <section>
+        <h2>5. 依赖注入与可测试性</h2>
+        <p>驱动直接调用 <code>HAL_I2C_Master_Transmit()</code> 时，它就和 HAL 库绑死了，没有硬件就无法测试。把总线也抽象成接口，在创建驱动时“注入”进去，就能在 PC 上用假的总线测试驱动和业务逻辑。</p>
+        <pre><code class="language-c">/* i2c_bus.h */
+typedef struct i2c_bus {
+    int (*write)(struct i2c_bus *bus, uint8_t addr, const uint8_t *buf, size_t len);
+    int (*read)(struct i2c_bus *bus, uint8_t addr, uint8_t *buf, size_t len);
+    void *hw;
+} i2c_bus_t;
+
+/* 测试代码中的假总线：返回预设数据，并记录驱动发出的命令 */
+static uint8_t fake_rx[6] = { 0x66, 0x66, 0x93, 0x80, 0x00, 0xA2 };
+static int fake_read(i2c_bus_t *bus, uint8_t addr, uint8_t *buf, size_t len)
+{
+    (void)bus; (void)addr;
+    memcpy(buf, fake_rx, len);
+    return 0;
+}</code></pre>
+        <p>在 PC 上配合 Unity、CMocka 这类轻量测试框架，可以覆盖 CRC 错误、总线超时、数据边界等难以在真实硬件上构造的情况。业务逻辑越复杂，这种测试的收益越大。</p>
+      </section>
+
+      <section>
+        <h2>6. 配置与板级差异</h2>
+        <p>同一份代码适配多块板子时，常见的混乱来源是到处散落的 <code>#ifdef BOARD_V2</code>。更可维护的做法：</p>
+        <ul>
+          <li><strong>板级差异集中在一个地方</strong>：<code>board.h</code> / <code>board.c</code> 描述引脚、外设实例、器件型号，其他模块只读取板级配置。</li>
+          <li><strong>用配置表代替条件编译</strong>：引脚映射、通道参数做成 <code>const</code> 结构体数组，换板只换表。</li>
+          <li><strong>编译期选择只出现在边界</strong>：例如构建系统根据目标板选择编译 <code>board_v1.c</code> 还是 <code>board_v2.c</code>，而不是在业务代码里写 <code>#ifdef</code>。</li>
+        </ul>
+        <pre><code class="language-c">/* board_v2.c */
+const led_config_t board_leds[] = {
+    { .port = GPIOB, .pin = 0,  .active_low = false },   /* 电源灯 */
+    { .port = GPIOB, .pin = 7,  .active_low = true  },   /* 告警灯 */
+};
+const size_t board_led_count = sizeof(board_leds) / sizeof(board_leds[0]);</code></pre>
+      </section>
+
+      <section>
+        <h2>7. 跨层的错误码与日志约定</h2>
+        <ul>
+          <li><strong>统一错误码</strong>：整个项目使用一套错误码（例如负的 errno 风格：<code>-EIO</code>、<code>-ETIMEDOUT</code>、<code>-EINVAL</code>），底层返回具体原因，上层决定重试、降级还是报警。</li>
+          <li><strong>底层不吞错误</strong>：驱动不要在内部打印一行日志就返回成功，调用者会以为一切正常。</li>
+          <li><strong>日志带模块标签</strong>：每个模块定义自己的 TAG，日志级别可以按模块调整。</li>
+          <li><strong>边界处转换</strong>：对外协议的错误码和内部错误码分开，在协议层做一次映射，避免内部重构影响上位机。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. 初始化顺序与模块生命周期</h2>
+        <p>模块之间有依赖：传感器驱动依赖 I2C 总线，参数服务依赖 Flash 驱动，应用依赖参数服务。初始化顺序错了，轻则读到默认值，重则访问未初始化的外设。</p>
+        <p>建议每个模块都遵循相同的生命周期接口：<code>init</code>（准备资源，不启动）、<code>start</code>（开始工作）、<code>stop</code>、<code>deinit</code>，并在一个地方按依赖顺序集中调用：</p>
+        <pre><code class="language-c">void system_init(void)
+{
+    board_init();          /* 时钟、引脚、调试串口 */
+    log_init();            /* 越早越好，后续模块出错时能看到日志 */
+    i2c_bus_init(&amp;i2c1);
+    flash_init();
+    param_init();          /* 依赖 flash */
+    sensor_init_all();     /* 依赖 i2c 和 param 中的校准值 */
+    app_init();
+}</code></pre>
+        <p>RT-Thread 的 <code>INIT_BOARD_EXPORT</code>、<code>INIT_DEVICE_EXPORT</code> 等宏，利用链接器段把初始化函数按等级自动收集并依次调用，是这一思路的自动化版本，原理和 <a href="../c-embedded-c/c-embedded-c.html?v=591c98cc2ebb">GNU C 的 section 属性</a> 有关。</p>
+      </section>
+
+      <section>
+        <h2>9. 目录结构示例</h2>
+        <pre><code class="language-text">project/
+├── app/            # 业务逻辑：状态机、策略、界面流程
+├── service/        # 参数、日志、命令解析、协议
+├── drivers/        # 器件驱动：sht30.c、w25qxx.c、oled.c
+├── bsp/
+│   ├── board_v1/   # 引脚、时钟、外设实例
+│   └── board_v2/
+├── platform/       # 芯片抽象：i2c_bus、uart_port 的芯片相关实现
+├── third_party/    # 厂商库、RTOS、开源组件，尽量不修改
+└── test/           # PC 上运行的单元测试和假驱动</code></pre>
+        <p>第三方代码单独放置并尽量不改。确实需要修改时，记录修改点和原因，否则升级厂商库时会非常痛苦。</p>
+      </section>
+
+      <section>
+        <h2>10. 工作场景：同一套业务适配两款温湿度传感器</h2>
+        <p>需求：老板子用 SHT30（I2C），新板子换成 AHT20（同样 I2C，但命令和数据格式不同），业务逻辑完全一样。</p>
+        <ol>
+          <li>定义 <code>temp_sensor_ops_t</code> 接口，业务层只调用 <code>temp_sensor_read()</code>。</li>
+          <li>分别实现 <code>sht30_ops</code> 和 <code>aht20_ops</code>，各自处理命令、等待时间和数据换算。</li>
+          <li>在 <code>board_v1.c</code> / <code>board_v2.c</code> 中创建对应的传感器实例，并通过 <code>board_get_temp_sensor()</code> 提供给业务层。</li>
+          <li>在 PC 上为两种驱动各写一组测试：正常数据、CRC 错误、总线失败，确认换算结果都是放大 10 倍的整数温度。</li>
+        </ol>
+        <pre><code class="language-c">/* app_climate.c —— 业务层，与具体传感器无关 */
+void climate_task(void)
+{
+    temp_sensor_t *sensor = board_get_temp_sensor();
+    int16_t t_x10;
+    int err = temp_sensor_read(sensor, &amp;t_x10);
+    if (err != 0) {
+        LOGW(TAG, "%s read failed: %d", sensor-&gt;name, err);
+        climate_on_sensor_error(err);
+        return;
+    }
+    climate_update(t_x10);
+}</code></pre>
+        <p>后来又要支持第三款传感器时，改动只有“新增一个驱动文件 + 修改板级文件”，业务代码和测试用例都不需要动。这就是分层带来的实际回报。</p>
+      </section>
+
+      <section>
+        <h2>11. 模块化设计检查清单</h2>
+        <ul>
+          <li>模块之间是否只向下依赖，底层是否通过回调或事件通知上层。</li>
+          <li>头文件是否只暴露必要接口，能否单独编译通过，内部函数是否加了 <code>static</code>。</li>
+          <li>同类多实现的设备是否抽象出 ops 接口，操作表是否声明为 <code>const</code>。</li>
+          <li>驱动是否通过注入的总线接口访问硬件，是否能在 PC 上测试。</li>
+          <li>板级差异是否集中在 BSP 中，业务代码里是否还散落着 <code>#ifdef BOARD_xxx</code>。</li>
+          <li>错误码是否统一，底层是否吞掉了错误。</li>
+          <li>初始化顺序是否集中定义，是否符合模块依赖关系。</li>
+          <li>第三方代码是否与自研代码分离，修改是否有记录。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+</body>
+</html>
