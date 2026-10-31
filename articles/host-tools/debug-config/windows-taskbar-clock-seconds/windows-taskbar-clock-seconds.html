@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Windows 10 / 11 任务栏时钟显示秒：开启、验证与恢复 - XYJ</title>
   <meta name="description" content="结合 Windows 10 22H2 与 Windows 11 25H2 的实际配置记录，整理任务栏秒数开关、图形设置、远程会话刷新、验证与恢复方法。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#host-tools/debug-config">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#host-tools/debug-config">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -40,7 +40,7 @@
         <h2 id="enable">2. 使用 PowerShell 开启秒数</h2>
         <p>在需要显示秒数的那个 Windows 账号下打开 PowerShell。修改当前用户配置通常不需要管理员权限；不要为了执行命令切换到另一个管理员账号，否则修改的可能是另一个用户的配置。</p>
         <h3 id="read-original">2.1 先查看并记录原值</h3>
-        <pre><code>$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+        <pre><code class="language-bash">$clockPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $clockName = 'ShowSecondsInSystemClock'
 
 # 先确认 Explorer 配置项存在
@@ -171,11 +171,11 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v 
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#host-tools/debug-config">返回对应专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#host-tools/debug-config">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

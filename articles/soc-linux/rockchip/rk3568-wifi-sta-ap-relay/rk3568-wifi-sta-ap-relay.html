@@ -8,24 +8,24 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>RK3568 单无线网卡 STA + AP 中继：部署、NAT 兼容与断线恢复 - XYJ</title>
   <meta name="description" content="基于 Ubuntu 22.04 与 RTL8723DU 的 RK3568 无线 STA/AP 并发实战，涵盖 NetworkManager 热点共享、iptables-legacy NAT、systemd 自动恢复、SSH 安全回退及现场测试。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#soc-linux/rockchip">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/rockchip">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
       </div>
     </aside>
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#soc-linux/rockchip">返回 SOC 平台</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/rockchip">返回 SOC 平台</a>
     </div>
     <article class="article card">
       <h1>RK3568 单无线网卡 STA + AP 中继：部署、NAT 兼容与断线恢复</h1>
@@ -70,7 +70,7 @@ RK3568 / 一张无线设备（phy0）
 <h2>3. 先确认一张网卡是否支持 STA + AP</h2>
 
 <p>接口存在不代表驱动允许同时启用。先检查无线物理设备、工作模式和有效接口组合：</p>
-<pre><code>sudo apt-get install -y --no-install-recommends iw
+<pre><code class="language-bash">sudo apt-get install -y --no-install-recommends iw
 iw dev
 iw list
 nmcli -f DEVICE,TYPE,STATE,CONNECTION device
@@ -78,7 +78,7 @@ readlink -f /sys/class/net/wlan0/phy80211
 # 按 iw dev 列出的真实 AP 接口名替换：
 readlink -f /sys/class/net/wlan1/phy80211</code></pre>
 <p>本次 <code>iw list</code> 中的关键约束如下（仅摘录决定性部分）：</p>
-<pre><code>valid interface combinations:
+<pre><code class="language-c">valid interface combinations:
   * #{ managed, P2P-client } &lt;= 2, #{ AP, P2P-GO } &lt;= 1,
     total &lt;= 2, #channels &lt;= 1</code></pre>
 <p>这代表允许 managed 与 AP 并发，但<strong>最多两个接口，且必须使用同一信道</strong>。现场两个接口属于同一个 <code>phy0</code>，实测均工作在 2.4 GHz 信道 1。不能将这项结果外推到所有 RTL8723DU 固件或其他无线设备。</p>
@@ -93,7 +93,7 @@ readlink -f /sys/class/net/wlan1/phy80211</code></pre>
 <h3>4.2 关键报错与原因</h3>
 <pre><code>iptables v1.8.7 (nf_tables): Chain 'MASQUERADE' does not exist</code></pre>
 <p>现场内核提供了传统 IPv4 NAT 及 MASQUERADE 能力，但 nftables IPv4 支持不完整。NetworkManager 自动生成规则的部分命令失败；并未逐项验证所有可选扩展依赖。</p>
-<pre><code>CONFIG_NF_NAT=y
+<pre><code class="language-ini">CONFIG_NF_NAT=y
 CONFIG_NF_NAT_MASQUERADE=y
 CONFIG_NF_TABLES=y
 # CONFIG_NF_TABLES_IPV4 is not set
@@ -108,21 +108,21 @@ CONFIG_IP_NF_NAT=y</code></pre>
 <h2>5. 部署前的参数准备与防断连</h2>
 
 <p>下面给出可以迁移的<strong>示意配置</strong>。先查实际接口与现有上游连接名称，再替换所有 <code>Example-*</code> 与接口值。无线密码通过交互方式录入，文档不提供固定密码。</p>
-<pre><code>iw dev
+<pre><code class="language-bash">iw dev
 nmcli -f NAME,UUID,TYPE,DEVICE con show
 ip -br addr
 ip -4 route
 systemctl is-active NetworkManager
 iptables-legacy -t nat -S</code></pre>
 <p>将通用参数放在 <code>/etc/default/wifi-relay</code>，后续守护脚本从此读取：</p>
-<pre><code># 示例：请按实际设备修改；不要将真实密码写在这里
+<pre><code class="language-bash"># 示例：请按实际设备修改；不要将真实密码写在这里
 UPLINK_IFACE=wlan0
 AP_IFACE=wlan1
 UPLINK_PROFILE=Example-Uplink
 AP_PROFILE=relay-ap
 AP_SUBNET=192.168.77.0/24</code></pre>
 <p>远程 SSH 改网络前，应优先准备串口或物理维护入口，备份 NetworkManager 配置，并以服务器本地 systemd 定时器安排一次性回退。下文的回退脚本只是<strong>参考骨架</strong>，应根据备份的原始参数补全，验证无误后再运行：</p>
-<pre><code>sudo install -d -m 700 /root/wifi-relay-backup
+<pre><code class="language-bash">sudo install -d -m 700 /root/wifi-relay-backup
 sudo cp -a /etc/NetworkManager /root/wifi-relay-backup/NetworkManager
 # 确认 /root/wifi-relay-backup/rollback.sh 已按第 8 节部署
 sudo systemd-run --unit=wifi-relay-safety --on-active=240s \
@@ -137,21 +137,21 @@ sudo systemctl stop wifi-relay-safety.timer</code></pre>
 
 <h3>6.1 处理冲突服务和上游连接</h3>
 <p>确认该接口确由 NetworkManager 管理后，再停用与其冲突的独立 <code>hostapd</code> 服务；保留原上游 Wi‑Fi 连接，不主动改动其认证信息和 IP 地址。</p>
-<pre><code>sudo systemctl disable --now hostapd
+<pre><code class="language-bash">sudo systemctl disable --now hostapd
 sudo nmcli con mod Example-Uplink \
   connection.autoconnect yes \
   connection.autoconnect-priority 100 \
   802-11-wireless.powersave 2
 sudo iw dev wlan0 set power_save off</code></pre>
 <p>现场为降低漫游与后台扫描引发的延迟，还将上游连接绑定到指定 BSSID，但该值与现场设备绑定且已脱敏。只有确认 AP 地址后，才按需设置：</p>
-<pre><code># 可选：本机查询当前关联 BSSID，核对后再绑定
+<pre><code class="language-bash"># 可选：本机查询当前关联 BSSID，核对后再绑定
 BSSID=$(iw dev wlan0 link | awk '/Connected to/ {print $3; exit}')
 [ -n "$BSSID" ] && sudo nmcli con mod Example-Uplink 802-11-wireless.bssid "$BSSID"
 # 更换路由器时可清除此绑定
 sudo nmcli con mod Example-Uplink 802-11-wireless.bssid ''</code></pre>
 <h3>6.2 创建 AP 连接</h3>
 <p>以下使用举例热点名称和独立私有网段；<code>wlan1</code> 必须改成真实 AP 接口名。此命令只执行一次，后续变更使用 <code>con mod</code>。</p>
-<pre><code>sudo nmcli con add type wifi \
+<pre><code class="language-bash">sudo nmcli con add type wifi \
   ifname wlan1 \
   con-name relay-ap \
   ssid Example-Relay \
@@ -177,13 +177,13 @@ unset AP_PASSWORD</code></pre>
 <p>NetworkManager 连接文件中会保存热点凭据，需保持 root 可读权限，不要提交连接文件。<code>connection.autoconnect=no</code> 是有意设置：守护服务将先确认上游关联及信道，再启动热点。</p>
 <h3>6.3 厂商内核的 IPv4 NAT 兼容处理</h3>
 <p><strong>只在已经确认共享模式 NAT 自动规则失败、且兼容性原因与现场相同的设备上使用以下配置。</strong> 通常 Linux 发行版应优先使用 NetworkManager 原生共享功能。</p>
-<pre><code># /etc/NetworkManager/conf.d/90-wifi-relay.conf
+<pre><code class="language-bash"># /etc/NetworkManager/conf.d/90-wifi-relay.conf
 [main]
 firewall-backend=none
 
 # /etc/sysctl.d/90-wifi-relay.conf
 net.ipv4.ip_forward=1</code></pre>
-<pre><code>sudo sysctl -w net.ipv4.ip_forward=1
+<pre><code class="language-bash">sudo sysctl -w net.ipv4.ip_forward=1
 sudo iptables-legacy -w 5 -t nat -C POSTROUTING \
   -s 192.168.77.0/24 -o wlan0 -j MASQUERADE 2&gt;/dev/null || \
 sudo iptables-legacy -w 5 -t nat -A POSTROUTING \
@@ -196,7 +196,7 @@ sudo iptables-legacy -w 5 -t nat -A POSTROUTING \
 
 <p>公开版把原现场脚本中固化的 SSID、接口名和内网段提取成变量，保留已实测的核心机制：STA 优先、动态信道跟随、上游断线重连、热点恢复、IPv4 转发和 NAT 检查。</p>
 <h3>7.1 /usr/local/sbin/wifi-relay</h3>
-<pre><code>#!/bin/bash
+<pre><code class="language-c">#!/bin/bash
 set -u
 export LC_ALL=C
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -270,7 +270,7 @@ while :; do
   sleep 10
 done</code></pre>
 <h3>7.2 /etc/systemd/system/wifi-relay.service</h3>
-<pre><code>[Unit]
+<pre><code class="language-ini">[Unit]
 Description=Wi-Fi STA and AP relay recovery
 Wants=NetworkManager.service
 After=NetworkManager.service
@@ -287,7 +287,7 @@ UMask=0077
 [Install]
 WantedBy=multi-user.target</code></pre>
 <h3>7.3 安装与运行</h3>
-<pre><code>sudo chmod 600 /etc/default/wifi-relay
+<pre><code class="language-bash">sudo chmod 600 /etc/default/wifi-relay
 sudo chmod 755 /usr/local/sbin/wifi-relay
 sudo bash -n /usr/local/sbin/wifi-relay
 sudo systemd-analyze verify /etc/systemd/system/wifi-relay.service
@@ -303,7 +303,7 @@ sudo journalctl -u wifi-relay -n 60 --no-pager</code></pre>
 <h2>8. 安全回退与维护边界</h2>
 
 <p>原现场在首次部署、NAT 排查、NetworkManager 重启三个阶段分别设置了临时 systemd 定时器，避免远程失联后无法恢复。以下为<strong>脱敏后的参考回退骨架</strong>，不假装完全恢复整套系统镜像。</p>
-<pre><code>#!/bin/bash
+<pre><code class="language-bash">#!/bin/bash
 # /root/wifi-relay-backup/rollback.sh
 set -u
 . /etc/default/wifi-relay
@@ -354,7 +354,7 @@ iptables-legacy -w 5 -t nat -D POSTROUTING \
 <h2>10. 日常排障与维护命令</h2>
 
 <h3>10.1 总览与 NAT</h3>
-<pre><code>systemctl status wifi-relay --no-pager
+<pre><code class="language-bash">systemctl status wifi-relay --no-pager
 journalctl -u wifi-relay -n 80 --no-pager
 nmcli -f DEVICE,STATE,CONNECTION device
 iw dev
@@ -371,7 +371,7 @@ ss -luntp | grep -E ':53|:67'
 iptables-legacy -t nat -S</code></pre>
 <h3>10.3 修改网络配置</h3>
 <p>修改热点名称、密码会断开现有客户端；修改网段时，必须同步更新 NetworkManager 的 AP 网关地址、<code>AP_SUBNET</code> 和回退脚本。上游更换路由器或 BSSID 时，清除或更新此前固定的 BSSID，必要时也要同步更新 <code>UPLINK_PROFILE</code>。</p>
-<pre><code># 完全停用自动恢复和热点
+<pre><code class="language-bash"># 完全停用自动恢复和热点
 sudo systemctl disable --now wifi-relay
 sudo nmcli -w 15 con down relay-ap
 
@@ -393,9 +393,9 @@ sudo systemctl enable --now wifi-relay</code></pre>
 <p>整理日期：2026-10-28。官方文档可能与现场 NetworkManager 1.36.6 的具体行为存在版本差异，迁移时以目标设备的实际检测结果为准。</p>
 
 </section>
-      <div class="article-footer"><a href="../../../../index.html?v=eaa93cb23547#soc-linux/rockchip">返回 Rockchip 专题</a></div>
+      <div class="article-footer"><a href="../../../../index.html?v=ee009e36b0e5#soc-linux/rockchip">返回 Rockchip 专题</a></div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog Testbench仿真与调试 - XYJ</title>
   <meta name="description" content="整理 Verilog Testbench、时钟复位激励、波形查看、$display、$dumpfile、任务 task、断言思路、仿真排错和 FPGA 调试方法。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#fpga/verification">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#fpga/verification">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#fpga/verification">返回 Verilog专题</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#fpga/verification">返回 Verilog专题</a>
     </div>
 
     <article class="article card">
@@ -45,7 +45,7 @@
         <h2>一、Testbench基本结构</h2>
         <p>
           Testbench 本身不综合成硬件，只用于仿真。它通常没有端口，内部例化待测模块 DUT，然后产生输入激励。</p>
-        <pre><code>`timescale 1ns/1ps
+        <pre><code class="language-verilog">`timescale 1ns/1ps
 
 module tb_counter;
 
@@ -83,7 +83,7 @@ end</code></pre>
         <h2>三、输入激励</h2>
         <p>
           输入激励可以直接在 <code>initial</code> 中按时间推进，也可以封装成 <code>task</code>，让测试过程更清晰。</p>
-        <pre><code>task send_pulse;
+        <pre><code class="language-verilog">task send_pulse;
 begin
     trig = 1'b1;
     @(posedge clk);
@@ -126,7 +126,7 @@ end</code></pre>
         <h2>五、$display调试</h2>
         <p>
           <code>$display</code> 可以在仿真控制台打印变量值，适合快速判断状态跳转、计数值和错误路径。</p>
-        <pre><code>always @(posedge clk) begin
+        <pre><code class="language-verilog">always @(posedge clk) begin
     if (data_valid) begin
         $display("time=%0t data=%h", $time, data);
     end
@@ -178,10 +178,10 @@ end</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#fpga/verification">返回 Verilog专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#fpga/verification">返回 Verilog专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

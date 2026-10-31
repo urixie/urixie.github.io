@@ -7,17 +7,17 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>PIC16(L)F188XX 存储器编程规范整理 - XYJ</title>
-  <meta name="description" content="整理 PIC16(L)F188XX 系列 MCU 的 ICSP 编程入口.NVM 编程命令.程序闪存擦写.EEPROM 写入.代码保护和 HEX 文件处理规则。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <meta name="description" content="整理 PIC16(L)F188XX 系列 MCU 的 ICSP 编程入口、NVM 编程命令、程序闪存擦写、EEPROM 写入、代码保护和 HEX 文件处理规则。">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#mcu/microchip">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#mcu/microchip">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,15 +26,15 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回 MCU 平台</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU 平台</a>
     </div>
 
     <article class="article card">
       <h1>PIC16(L)F188XX 存储器编程规范整理</h1>
 
       <p>
-        本文整理 PIC16(L)F188XX 系列微控制器的存储器编程规范，重点关注基于 SPI 兼容接口的 ICSP 编程方法.低压与高压进入模式.程序闪存和数据 EEPROM 的擦除写入流程，以及配置字.代码保护和 HEX 文件使用规则。
+        本文整理 PIC16(L)F188XX 系列微控制器的存储器编程规范，重点关注基于 SPI 兼容接口的 ICSP 编程方法、低压与高压进入模式、程序闪存和数据 EEPROM 的擦除写入流程，以及配置字、代码保护和 HEX 文件使用规则。
       </p>
 
       <div class="article-note">
@@ -42,10 +42,10 @@
       </div>
 
       <section>
-        <h2>1.编程接口与可编程区域</h2>
+        <h2>1. 编程接口与可编程区域</h2>
 
         <p>
-          PIC16(L)F188XX 的非易失性存储器可以通过高压 ICSP 和低压 ICSP 两种方式进行编程。编程数据最终可写入程序闪存.数据闪存 EEPROM.用户 ID 区以及配置字区域。
+          PIC16(L)F188XX 的非易失性存储器可以通过高压 ICSP 和低压 ICSP 两种方式进行编程。编程数据最终可写入程序闪存、数据闪存 EEPROM、用户 ID 区以及配置字区域。
         </p>
 
         <ul>
@@ -53,27 +53,27 @@
           <li>数据闪存 EEPROM：用于存放掉电保持的数据。</li>
           <li>用户 ID 存储区：地址范围为 8000h～8003h，每个位置为 14 位。</li>
           <li>设备 ID / 版本 ID：设备 ID 位于 8006h，版本 ID 位于 8005h，均为只读。</li>
-          <li>配置字：从 8007h 开始，决定系统振荡器.复位.看门狗.低压编程和代码保护等关键行为。</li>
+          <li>配置字：从 8007h 开始，决定系统振荡器、复位、看门狗、低压编程和代码保护等关键行为。</li>
         </ul>
 
         <figure>
-          <img src="images/01-memory-map.png?v=eaa93cb23547" alt="PIC16(L)F188XX 存储器映射" loading="lazy" decoding="async">
+          <img src="images/01-memory-map.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 存储器映射" loading="lazy" decoding="async">
           <figcaption>图 1：PIC16(L)F188XX 存储器映射。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/02-deviceid-register.png?v=eaa93cb23547" alt="PIC16(L)F188XX DEVICEID 设备 ID 寄存器" loading="lazy" decoding="async">
+          <img src="images/02-deviceid-register.png?v=ee009e36b0e5" alt="PIC16(L)F188XX DEVICEID 设备 ID 寄存器" loading="lazy" decoding="async">
           <figcaption>图 2：DEVICEID 设备 ID 寄存器。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/03-revisionid-register.png?v=eaa93cb23547" alt="PIC16(L)F188XX REVISIONID 版本 ID 寄存器" loading="lazy" decoding="async">
+          <img src="images/03-revisionid-register.png?v=ee009e36b0e5" alt="PIC16(L)F188XX REVISIONID 版本 ID 寄存器" loading="lazy" decoding="async">
           <figcaption>图 3：REVISIONID 版本 ID 寄存器。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>2.高压 ICSP 与低压 ICSP 的硬件差异</h2>
+        <h2>2. 高压 ICSP 与低压 ICSP 的硬件差异</h2>
 
         <p>
           高压 ICSP 模式需要两个可控电源：一个用于 VDD，另一个用于 MCLR/VPP。进入编程模式时，需要在 MCLR/VPP 引脚施加高压 VIHH。低压 ICSP 模式只需要单一 VDD 电源，MCLR/VPP 引脚不需要特殊高压，只需按照低压进入时序保持对应电平。
@@ -99,7 +99,7 @@
       </section>
 
       <section>
-        <h2>3.进入编程 / 校验模式</h2>
+        <h2>3. 进入编程 / 校验模式</h2>
 
         <p>
           在编程 / 校验模式下，程序存储器和配置存储器可以通过串行方式访问。ICSPDAT 用于传输数据，ICSPCLK 用于提供时钟。命令和数据字均采用最高有效位优先传输，数据在 ICSPCLK 上升沿变化，并在下降沿锁存。
@@ -108,7 +108,7 @@
         <h3>3.1 高压进入模式</h3>
 
         <p>
-          高压进入方式有两种：VPP 优先进入模式和 VDD 优先进入模式。VPP 优先模式适用于需要防止器件先执行用户程序的场景，尤其是在 MCLR 被配置为普通 I/O.上电延时关闭.内部振荡器快速启动时更推荐使用。
+          高压进入方式有两种：VPP 优先进入模式和 VDD 优先进入模式。VPP 优先模式适用于需要防止器件先执行用户程序的场景，尤其是在 MCLR 被配置为普通 I/O、上电延时关闭、内部振荡器快速启动时更推荐使用。
         </p>
 
         <ul>
@@ -118,7 +118,7 @@
         </ul>
 
         <figure>
-          <img src="images/04-hvp-entry-exit-timing.png?v=eaa93cb23547" alt="PIC16(L)F188XX 高压编程进入与退出时序" loading="lazy" decoding="async">
+          <img src="images/04-hvp-entry-exit-timing.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 高压编程进入与退出时序" loading="lazy" decoding="async">
           <figcaption>图 4：高压编程 / 校验模式进入与退出时序。</figcaption>
         </figure>
 
@@ -142,42 +142,42 @@ M C H P
         </p>
 
         <figure>
-          <img src="images/05-lvp-entry-exit-timing.png?v=eaa93cb23547" alt="PIC16(L)F188XX 低压 LVP 编程进入与退出时序" loading="lazy" decoding="async">
+          <img src="images/05-lvp-entry-exit-timing.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 低压 LVP 编程进入与退出时序" loading="lazy" decoding="async">
           <figcaption>图 5：低压 LVP 编程 / 校验模式进入与退出时序。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>4.ICSP 命令与有效载荷格式</h2>
+        <h2>4. ICSP 命令与有效载荷格式</h2>
 
         <p>
-          器件进入 ICSP 编程 / 校验模式后，编程主机可以发送 8 位命令。部分命令带有 24 位有效载荷，例如加载 PC 地址.加载 NVM 数据.读取 NVM 数据等。命令和有效载荷的所有时钟均由外部编程器产生，器件不会主动驱动 ICSPCLK。
+          器件进入 ICSP 编程 / 校验模式后，编程主机可以发送 8 位命令。部分命令带有 24 位有效载荷，例如加载 PC 地址、加载 NVM 数据、读取 NVM 数据等。命令和有效载荷的所有时钟均由外部编程器产生，器件不会主动驱动 ICSPCLK。
         </p>
 
         <p>
-          对于带有效载荷的命令，主机发送 8 位命令后，还需要发送 24 个时钟完成后续数据传输。实际有效数据位长度小于 24 位，其余位置由起始位.停止位和填充位组成，以便兼容常见的 8 位 SPI 主机实现。
+          对于带有效载荷的命令，主机发送 8 位命令后，还需要发送 24 个时钟完成后续数据传输。实际有效数据位长度小于 24 位，其余位置由起始位、停止位和填充位组成，以便兼容常见的 8 位 SPI 主机实现。
         </p>
 
         <ul>
-          <li>主机到器件的载荷：起始位.停止位和填充位应驱动为 0。</li>
-          <li>器件到主机的载荷：起始位.停止位和填充位为无关位，主机应忽略。</li>
+          <li>主机到器件的载荷：起始位、停止位和填充位应驱动为 0。</li>
+          <li>器件到主机的载荷：起始位、停止位和填充位为无关位，主机应忽略。</li>
           <li>所有有效数据仍然采用最高有效位优先传输。</li>
           <li>主机和器件都在 ICSPCLK 下降沿锁存 ICSPDAT。</li>
         </ul>
 
         <figure>
-          <img src="images/06-icsp-command-data-timing.png?v=eaa93cb23547" alt="PIC16(L)F188XX ICSP 命令与数据时序" loading="lazy" decoding="async">
+          <img src="images/06-icsp-command-data-timing.png?v=ee009e36b0e5" alt="PIC16(L)F188XX ICSP 命令与数据时序" loading="lazy" decoding="async">
           <figcaption>图 6：ICSP 命令与数据时序。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>5.NVM 数据加载与读取命令</h2>
+        <h2>5. NVM 数据加载与读取命令</h2>
 
         <h3>5.1 为 NVM 加载数据</h3>
 
         <p>
-          “为 NVM 加载数据”命令用于向编程数据锁存器加载待写入内容。对于程序闪存.配置存储器和用户 ID 区，加载的是 14 位指令字；对于 EEPROM 数据存储区，加载的是 8 位数据字节。
+          “为 NVM 加载数据”命令用于向编程数据锁存器加载待写入内容。对于程序闪存、配置存储器和用户 ID 区，加载的是 14 位指令字；对于 EEPROM 数据存储区，加载的是 8 位数据字节。
         </p>
 
         <p>
@@ -185,12 +185,12 @@ M C H P
         </p>
 
         <figure>
-          <img src="images/07-load-data-pfm.png?v=eaa93cb23547" alt="PIC16(L)F188XX 为程序闪存加载数据的有效载荷格式" loading="lazy" decoding="async">
+          <img src="images/07-load-data-pfm.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 为程序闪存加载数据的有效载荷格式" loading="lazy" decoding="async">
           <figcaption>图 7：为程序闪存 PFM 加载数据。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/08-load-data-dfm.png?v=eaa93cb23547" alt="PIC16(L)F188XX 为数据闪存加载数据的有效载荷格式" loading="lazy" decoding="async">
+          <img src="images/08-load-data-dfm.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 为数据闪存加载数据的有效载荷格式" loading="lazy" decoding="async">
           <figcaption>图 8：为数据闪存 DFM / EEPROM 加载数据。</figcaption>
         </figure>
 
@@ -205,13 +205,13 @@ M C H P
         </p>
 
         <figure>
-          <img src="images/09-read-data-pfm.png?v=eaa93cb23547" alt="PIC16(L)F188XX 从程序闪存读取数据" loading="lazy" decoding="async">
+          <img src="images/09-read-data-pfm.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 从程序闪存读取数据" loading="lazy" decoding="async">
           <figcaption>图 9：从程序闪存 PFM 读取数据。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>6.地址控制：递增地址与加载 PC</h2>
+        <h2>6. 地址控制：递增地址与加载 PC</h2>
 
         <p>
           PIC16(L)F188XX 的编程访问由程序计数器 PC 指向目标存储区域。地址可以通过“递增地址”命令自动加 1，但不能递减。如果需要跳转到指定地址，必须使用“加载 PC 地址”命令重新设置 PC。
@@ -219,23 +219,23 @@ M C H P
 
         <ul>
           <li>递增地址：PC 自动加 1，适合连续读取或连续加载数据。</li>
-          <li>加载 PC 地址：直接设置 PC，用于切换到程序闪存.EEPROM.用户 ID 或配置字地址。</li>
+          <li>加载 PC 地址：直接设置 PC，用于切换到程序闪存、EEPROM、用户 ID 或配置字地址。</li>
           <li>写入行数据时，最终写入目标由启动编程时的 PC 所在物理行决定。</li>
         </ul>
 
         <figure>
-          <img src="images/10-increment-address.png?v=eaa93cb23547" alt="PIC16(L)F188XX 递增地址命令" loading="lazy" decoding="async">
+          <img src="images/10-increment-address.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 递增地址命令" loading="lazy" decoding="async">
           <figcaption>图 10：递增地址命令。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/11-load-pc-address.png?v=eaa93cb23547" alt="PIC16(L)F188XX 加载 PC 地址命令" loading="lazy" decoding="async">
+          <img src="images/11-load-pc-address.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 加载 PC 地址命令" loading="lazy" decoding="async">
           <figcaption>图 11：加载 PC 地址命令。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>7.启动编程：内部定时与外部定时</h2>
+        <h2>7. 启动编程：内部定时与外部定时</h2>
 
         <h3>7.1 启动内部定时编程</h3>
 
@@ -244,7 +244,7 @@ M C H P
         </p>
 
         <figure>
-          <img src="images/12-begin-internal-timed-programming.png?v=eaa93cb23547" alt="PIC16(L)F188XX 启动内部定时编程" loading="lazy" decoding="async">
+          <img src="images/12-begin-internal-timed-programming.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 启动内部定时编程" loading="lazy" decoding="async">
           <figcaption>图 12：启动内部定时编程。</figcaption>
         </figure>
 
@@ -255,18 +255,18 @@ M C H P
         </p>
 
         <figure>
-          <img src="images/13-begin-external-timed-programming.png?v=eaa93cb23547" alt="PIC16(L)F188XX 启动外部定时编程" loading="lazy" decoding="async">
+          <img src="images/13-begin-external-timed-programming.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 启动外部定时编程" loading="lazy" decoding="async">
           <figcaption>图 13：启动外部定时编程。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/14-end-external-timed-programming.png?v=eaa93cb23547" alt="PIC16(L)F188XX 结束外部定时编程" loading="lazy" decoding="async">
+          <img src="images/14-end-external-timed-programming.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 结束外部定时编程" loading="lazy" decoding="async">
           <figcaption>图 14：结束外部定时编程。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>8.擦除策略：批量擦除与行擦除</h2>
+        <h2>8. 擦除策略：批量擦除与行擦除</h2>
 
         <h3>8.1 批量擦除</h3>
 
@@ -279,7 +279,7 @@ M C H P
         </div>
 
         <figure>
-          <img src="images/15-bulk-erase-timing.png?v=eaa93cb23547" alt="PIC16(L)F188XX 批量擦除时序" loading="lazy" decoding="async">
+          <img src="images/15-bulk-erase-timing.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 批量擦除时序" loading="lazy" decoding="async">
           <figcaption>图 15：批量擦除时序。</figcaption>
         </figure>
 
@@ -294,13 +294,13 @@ M C H P
         </p>
 
         <figure>
-          <img src="images/16-row-erase-timing.png?v=eaa93cb23547" alt="PIC16(L)F188XX 行擦除时序" loading="lazy" decoding="async">
+          <img src="images/16-row-erase-timing.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 行擦除时序" loading="lazy" decoding="async">
           <figcaption>图 16：行擦除时序。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>9.推荐编程算法</h2>
+        <h2>9. 推荐编程算法</h2>
 
         <p>
           器件通过内部锁存器临时保存待写入的 14 位数据字。编程器通常先加载一行数据锁存器，再执行启动编程命令。写入操作不能跨越物理行边界，启动编程命令发出时的 PC 地址决定实际写入的目标行。
@@ -318,38 +318,38 @@ M C H P
         </ul>
 
         <figure>
-          <img src="images/17-programming-flow-overview.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程流程总览" loading="lazy" decoding="async">
+          <img src="images/17-programming-flow-overview.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程流程总览" loading="lazy" decoding="async">
           <figcaption>图 17：编程流程总览。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/18-user-id-config-programming-flow.png?v=eaa93cb23547" alt="PIC16(L)F188XX 用户 ID 和配置字编程流程" loading="lazy" decoding="async">
+          <img src="images/18-user-id-config-programming-flow.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 用户 ID 和配置字编程流程" loading="lazy" decoding="async">
           <figcaption>图 18：用户 ID 与配置字编程流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/19-program-flash-row-flow.png?v=eaa93cb23547" alt="PIC16(L)F188XX 程序闪存行编程流程" loading="lazy" decoding="async">
+          <img src="images/19-program-flash-row-flow.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 程序闪存行编程流程" loading="lazy" decoding="async">
           <figcaption>图 19：程序闪存行编程流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/20-eeprom-row-flow.png?v=eaa93cb23547" alt="PIC16(L)F188XX EEPROM 行编程流程" loading="lazy" decoding="async">
+          <img src="images/20-eeprom-row-flow.png?v=ee009e36b0e5" alt="PIC16(L)F188XX EEPROM 行编程流程" loading="lazy" decoding="async">
           <figcaption>图 20：EEPROM 行编程流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/21-program-flash-verify-flow.png?v=eaa93cb23547" alt="PIC16(L)F188XX 程序闪存校验流程" loading="lazy" decoding="async">
+          <img src="images/21-program-flash-verify-flow.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 程序闪存校验流程" loading="lazy" decoding="async">
           <figcaption>图 21：程序闪存校验流程。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/22-data-eeprom-verify-flow.png?v=eaa93cb23547" alt="PIC16(L)F188XX 数据 EEPROM 校验流程" loading="lazy" decoding="async">
+          <img src="images/22-data-eeprom-verify-flow.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 数据 EEPROM 校验流程" loading="lazy" decoding="async">
           <figcaption>图 22：数据 EEPROM 校验流程。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>10.代码保护规则</h2>
+        <h2>10. 代码保护规则</h2>
 
         <p>
           代码保护由 CP 位控制。使能代码保护后，外部编程器读取程序存储器 0000h～7FFFh 时会得到全 0，并且该区域的外部编程会被禁用，直到下一次批量擦除。器件运行时，用户程序仍然可以按器件规则访问程序存储器。
@@ -372,7 +372,7 @@ M C H P
       </section>
 
       <section>
-        <h2>11.HEX 文件与校验和处理</h2>
+        <h2>11. HEX 文件与校验和处理</h2>
 
         <p>
           Intel INHX32 格式的 HEX 文件中，每个程序字以 2 字节保存，并且低字节在前，高字节在后。由于每个程序字占两个字节，HEX 文件中的地址是器件程序存储器物理地址的 2 倍。
@@ -396,10 +396,10 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
       </section>
 
       <section>
-        <h2>12.电气规格与时序注意事项</h2>
+        <h2>12. 电气规格与时序注意事项</h2>
 
         <p>
-          编程 / 校验模式的交直流特性需要结合器件数据手册和编程规范共同确认。尤其是批量擦除.低压编程和 BOR 阈值相关条件，需要在编程器硬件设计阶段预留足够裕量。
+          编程 / 校验模式的交直流特性需要结合器件数据手册和编程规范共同确认。尤其是批量擦除、低压编程和 BOR 阈值相关条件，需要在编程器硬件设计阶段预留足够裕量。
         </p>
 
         <ul>
@@ -410,43 +410,43 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </ul>
 
         <figure>
-          <img src="images/23-electrical-spec-table-1.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 1" loading="lazy" decoding="async">
+          <img src="images/23-electrical-spec-table-1.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 1" loading="lazy" decoding="async">
           <figcaption>图 23：编程 / 校验模式电气规格表 1。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/24-electrical-spec-table-2.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 2" loading="lazy" decoding="async">
+          <img src="images/24-electrical-spec-table-2.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 2" loading="lazy" decoding="async">
           <figcaption>图 24：编程 / 校验模式电气规格表 2。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/25-electrical-spec-table-3.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 3" loading="lazy" decoding="async">
+          <img src="images/25-electrical-spec-table-3.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 3" loading="lazy" decoding="async">
           <figcaption>图 25：编程 / 校验模式电气规格表 3。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/26-electrical-spec-table-4.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 4" loading="lazy" decoding="async">
+          <img src="images/26-electrical-spec-table-4.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 4" loading="lazy" decoding="async">
           <figcaption>图 26：编程 / 校验模式电气规格表 4。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/27-electrical-spec-table-5.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 5" loading="lazy" decoding="async">
+          <img src="images/27-electrical-spec-table-5.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 5" loading="lazy" decoding="async">
           <figcaption>图 27：编程 / 校验模式电气规格表 5。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/28-electrical-spec-table-6.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 6" loading="lazy" decoding="async">
+          <img src="images/28-electrical-spec-table-6.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 6" loading="lazy" decoding="async">
           <figcaption>图 28：编程 / 校验模式电气规格表 6。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/29-electrical-spec-table-7.png?v=eaa93cb23547" alt="PIC16(L)F188XX 编程校验模式电气规格表 7" loading="lazy" decoding="async">
+          <img src="images/29-electrical-spec-table-7.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 编程校验模式电气规格表 7" loading="lazy" decoding="async">
           <figcaption>图 29：编程 / 校验模式电气规格表 7。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>13.配置字重点整理</h2>
+        <h2>13. 配置字重点整理</h2>
 
         <p>
           配置字决定器件复位后的基础运行状态。对编程器而言，配置字不仅影响用户程序运行，也会影响后续是否还能低压进入编程模式，因此必须谨慎处理。
@@ -455,33 +455,33 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         <h3>13.1 振荡器与时钟相关配置</h3>
 
         <p>
-          FCMEN.CSWEN.CLKOUTEN.RSTOSC 和 FEXTOSC 等配置位用于设置故障保护时钟监视.时钟切换.CLKOUT 输出.默认振荡器源以及外部振荡器模式。
+          FCMEN、CSWEN、CLKOUTEN、RSTOSC 和 FEXTOSC 等配置位用于设置故障保护时钟监视、时钟切换、CLKOUT 输出、默认振荡器源以及外部振荡器模式。
         </p>
 
         <figure>
-          <img src="images/30-config-word-1-fosc.png?v=eaa93cb23547" alt="PIC16(L)F188XX 配置字 1 振荡器相关位定义" loading="lazy" decoding="async">
+          <img src="images/30-config-word-1-fosc.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 配置字 1 振荡器相关位定义" loading="lazy" decoding="async">
           <figcaption>图 30：配置字 1，振荡器与时钟相关位定义。</figcaption>
         </figure>
 
-        <h3>13.2 调试.BOR 与 MCLR 配置</h3>
+        <h3>13.2 调试、BOR 与 MCLR 配置</h3>
 
         <p>
-          DEBUG.STVREN.PPS1WAY.ZCDDIS.BORV.BOREN.LPBOREN.PWRT 和 MCLRE 等配置位会影响调试功能.栈错误复位.PPS 锁定.过零检测.欠压复位.上电定时器和 MCLR 引脚功能。
+          DEBUG、STVREN、PPS1WAY、ZCDDIS、BORV、BOREN、LPBOREN、PWRT 和 MCLRE 等配置位会影响调试功能、栈错误复位、PPS 锁定、过零检测、欠压复位、上电定时器和 MCLR 引脚功能。
         </p>
 
         <figure>
-          <img src="images/31-config-word-2-debug-bor-mclr.png?v=eaa93cb23547" alt="PIC16(L)F188XX 配置字 2 调试 BOR MCLR 位定义" loading="lazy" decoding="async">
-          <figcaption>图 31：配置字 2，调试.BOR 与 MCLR 相关位定义。</figcaption>
+          <img src="images/31-config-word-2-debug-bor-mclr.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 配置字 2 调试 BOR MCLR 位定义" loading="lazy" decoding="async">
+          <figcaption>图 31：配置字 2，调试、BOR 与 MCLR 相关位定义。</figcaption>
         </figure>
 
         <h3>13.3 看门狗配置</h3>
 
         <p>
-          看门狗相关配置包括 WDT 时钟源.窗口选择和工作模式。WDTE 位用于决定 WDT 禁用.软件控制.仅运行态使能或始终使能等模式。
+          看门狗相关配置包括 WDT 时钟源、窗口选择和工作模式。WDTE 位用于决定 WDT 禁用、软件控制、仅运行态使能或始终使能等模式。
         </p>
 
         <figure>
-          <img src="images/32-config-word-3-wdt.png?v=eaa93cb23547" alt="PIC16(L)F188XX 看门狗配置字位定义" loading="lazy" decoding="async">
+          <img src="images/32-config-word-3-wdt.png?v=ee009e36b0e5" alt="PIC16(L)F188XX 看门狗配置字位定义" loading="lazy" decoding="async">
           <figcaption>图 32：看门狗定时器相关配置位定义。</figcaption>
         </figure>
 
@@ -496,7 +496,7 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="images/33-config-word-4-lvp-wrt.png?v=eaa93cb23547" alt="PIC16(L)F188XX LVP 与 WRT 配置字位定义" loading="lazy" decoding="async">
+          <img src="images/33-config-word-4-lvp-wrt.png?v=ee009e36b0e5" alt="PIC16(L)F188XX LVP 与 WRT 配置字位定义" loading="lazy" decoding="async">
           <figcaption>图 33：LVP 与 WRT 写保护相关配置位定义。</figcaption>
         </figure>
 
@@ -507,41 +507,41 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
         </p>
 
         <figure>
-          <img src="images/34-config-word-5-code-protection.png?v=eaa93cb23547" alt="PIC16(L)F188XX CP 与 CPD 代码保护配置字位定义" loading="lazy" decoding="async">
+          <img src="images/34-config-word-5-code-protection.png?v=ee009e36b0e5" alt="PIC16(L)F188XX CP 与 CPD 代码保护配置字位定义" loading="lazy" decoding="async">
           <figcaption>图 34：CP 与 CPD 代码保护相关配置位定义。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>14.实现编程器时的工程建议</h2>
+        <h2>14. 实现编程器时的工程建议</h2>
 
         <p>
-          如果要基于 ESP32.STM32.FPGA 或上位机工具实现 PIC16(L)F188XX 编程器，建议将底层 ICSP 时序.命令封装.NVM 行缓冲.擦除写入流程和校验逻辑分层设计。
+          如果要基于 ESP32、STM32、FPGA 或上位机工具实现 PIC16(L)F188XX 编程器，建议将底层 ICSP 时序、命令封装、NVM 行缓冲、擦除写入流程和校验逻辑分层设计。
         </p>
 
         <ul>
-          <li>底层驱动层：负责 ICSPCLK.ICSPDAT.MCLR/VPP 和 VDD 控制。</li>
-          <li>时序层：统一处理命令发送.24 位载荷发送.读取窗口和延时等待。</li>
-          <li>NVM 层：封装加载 PC.读取 NVM.加载 NVM.启动编程.行擦除和批量擦除。</li>
-          <li>HEX 层：解析 INHX32 文件，提取程序区.EEPROM.用户 ID 和配置字。</li>
-          <li>校验层：完成读回校验.设备 ID 比对和校验和计算。</li>
-          <li>保护层：在写 LVP.CP.CPD.WRT 等危险配置位前增加明确确认。</li>
+          <li>底层驱动层：负责 ICSPCLK、ICSPDAT、MCLR/VPP 和 VDD 控制。</li>
+          <li>时序层：统一处理命令发送.24 位载荷发送、读取窗口和延时等待。</li>
+          <li>NVM 层：封装加载 PC、读取 NVM、加载 NVM、启动编程、行擦除和批量擦除。</li>
+          <li>HEX 层：解析 INHX32 文件，提取程序区、EEPROM、用户 ID 和配置字。</li>
+          <li>校验层：完成读回校验、设备 ID 比对和校验和计算。</li>
+          <li>保护层：在写 LVP、CP、CPD、WRT 等危险配置位前增加明确确认。</li>
         </ul>
 
         <div class="article-warning">
-          对量产工具而言，LVP.CP.CPD 和 WRT 配置位应被视为高风险配置。建议在 UI 中单独提示，并在执行前生成即将写入的配置字摘要，避免误锁芯片或误开代码保护。
+          对量产工具而言，LVP、CP、CPD 和 WRT 配置位应被视为高风险配置。建议在 UI 中单独提示，并在执行前生成即将写入的配置字摘要，避免误锁芯片或误开代码保护。
         </div>
       </section>
 
       <section>
-        <h2>15.总结</h2>
+        <h2>15. 总结</h2>
 
         <p>
-          PIC16(L)F188XX 的编程接口虽然采用 SPI 兼容的 8 位命令形式，但实际编程流程涉及高压 / 低压进入模式.24 位有效载荷格式.PC 地址选择.行锁存器.内部 / 外部定时编程.批量擦除.代码保护和配置字约束。实现编程器时，不能只关注 SPI 收发，还必须完整处理进入时序.电压条件.擦除等待.写入行边界和读回校验。
+          PIC16(L)F188XX 的编程接口虽然采用 SPI 兼容的 8 位命令形式，但实际编程流程涉及高压 / 低压进入模式.24 位有效载荷格式、PC 地址选择、行锁存器、内部 / 外部定时编程、批量擦除、代码保护和配置字约束。实现编程器时，不能只关注 SPI 收发，还必须完整处理进入时序、电压条件、擦除等待、写入行边界和读回校验。
         </p>
 
         <p>
-          在实际工程中，建议优先实现低压 ICSP 读取设备 ID.加载 PC.读取 NVM 和行写入流程；待基础通信稳定后，再加入高压进入.批量擦除.代码保护解除.HEX 文件解析和配置字写入功能。
+          在实际工程中，建议优先实现低压 ICSP 读取设备 ID、加载 PC、读取 NVM 和行写入流程；待基础通信稳定后，再加入高压进入、批量擦除、代码保护解除、HEX 文件解析和配置字写入功能。
         </p>
       </section>
 
@@ -551,6 +551,6 @@ HEX 文件地址范围：1000Eh～1000Fh</code></pre>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

@@ -7,17 +7,17 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>8051 内核架构详解 - XYJ</title>
-  <meta name="description" content="详细整理 MCS-51（8051）内核架构.存储器结构.寄存器组.指令系统.中断机制.定时器.串口和功耗模式。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <meta name="description" content="详细整理 MCS-51（8051）内核架构、存储器结构、寄存器组、指令系统、中断机制、定时器、串口和功耗模式。">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,23 +26,23 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
       <h1>8051 内核架构详解</h1>
 
       <p>
-        8051（又称 MCS-51）是 Intel 于 1980 年推出的 8 位微控制器内核，以其简洁的架构和灵活的扩展性成为嵌入式领域的经典之作。尽管诞生至今已超过四十年，8051 仍被广泛应用于工业控制.汽车电子.消费电子等领域。Silicon Labs 的 EFM8.TI 的 MSP430 虽然架构不同，但理解 8051 有助于理解微控制器的基本工作原理。本文以 Intel MCS-51 Users Manual 为主要参考，详细整理 8051 内核的存储器结构.寄存器组织.指令系统.中断机制和各外设的工作原理。
+        8051（又称 MCS-51）是 Intel 于 1980 年推出的 8 位微控制器内核，以其简洁的架构和灵活的扩展性成为嵌入式领域的经典之作。尽管诞生至今已超过四十年，8051 仍被广泛应用于工业控制、汽车电子、消费电子等领域。Silicon Labs 的 EFM8、TI 的 MSP430 虽然架构不同，但理解 8051 有助于理解微控制器的基本工作原理。本文以 Intel MCS-51 Users Manual 为主要参考，详细整理 8051 内核的存储器结构、寄存器组织、指令系统、中断机制和各外设的工作原理。
       </p>
 
       <div class="article-note">
-        学习 8051 不要被"古老"这个词误导。8051 的架构设计直接影响了很多后续 MCU 的设计思路：Harvard 架构（程序空间和数据空间分离）. SFR（特殊功能寄存器）机制.向量中断等概念都能在 8051 中找到原型。掌握 8051，再学其他 MCU 会感觉脉络清晰很多。
+        学习 8051 不要被"古老"这个词误导。8051 的架构设计直接影响了很多后续 MCU 的设计思路：Harvard 架构（程序空间和数据空间分离）. SFR（特殊功能寄存器）机制、向量中断等概念都能在 8051 中找到原型。掌握 8051，再学其他 MCU 会感觉脉络清晰很多。
       </div>
 
       <section>
-        <h2>1.内核架构概述</h2>
+        <h2>1. 内核架构概述</h2>
         <h3>1.1 8051 家族谱系</h3>
         <p>
           MCS-51 是 Intel 推出的 8 位微控制器系列，原始 8051 采用 HMOS 工艺制造（后来的 CHMOS 工艺版本功耗更低）。随着 Intel 将 8051 架构开放，众多芯片厂商推出了大量兼容和扩展型号：
@@ -53,33 +53,33 @@
           </thead>
           <tbody>
             <tr><td>Intel（原始）</td><td>8051.8751.8031</td><td>CHMOS 工艺，低功耗</td></tr>
-            <tr><td>Atmel（现 Microchip）</td><td>AT89C51.AT89S51</td><td>Flash 程序存储器，在线编程</td></tr>
-            <tr><td>Silicon Labs</td><td>EFM8BB10.C8051F020</td><td>高速 CIP-51 内核（最多 25 MIPS）</td></tr>
-            <tr><td>TI</td><td>MSP430</td><td>虽然命名相似但架构完全不同（16 位.RISC）</td></tr>
-            <tr><td>STC（宏晶）</td><td>STC89C51.STC15F2K60S2</td><td>国产增强型 8051，6 时钟/机器周期</td></tr>
+            <tr><td>Atmel（现 Microchip）</td><td>AT89C51、AT89S51</td><td>Flash 程序存储器，在线编程</td></tr>
+            <tr><td>Silicon Labs</td><td>EFM8BB10、C8051F020</td><td>高速 CIP-51 内核（最多 25 MIPS）</td></tr>
+            <tr><td>TI</td><td>MSP430</td><td>虽然命名相似但架构完全不同（16 位、RISC）</td></tr>
+            <tr><td>STC（宏晶）</td><td>STC89C51、STC15F2K60S2</td><td>国产增强型 8051，6 时钟/机器周期</td></tr>
             <tr><td>NXP</td><td>P89V51RB2</td><td>双数据指针，SPI 增强</td></tr>
           </tbody>
         </table>
         <p>
-          不同厂商的 8051 内核在基本架构上保持兼容，但在外设数量.时钟频率.指令执行速度等方面有差异。部分增强型 8051（如 Silicon Labs CIP-51）将机器周期从标准 12 时钟缩短到 2 时钟或 1 时钟，大幅提升性能。
+          不同厂商的 8051 内核在基本架构上保持兼容，但在外设数量、时钟频率、指令执行速度等方面有差异。部分增强型 8051（如 Silicon Labs CIP-51）将机器周期从标准 12 时钟缩短到 2 时钟或 1 时钟，大幅提升性能。
         </p>
         <h3>1.2 内核基本结构</h3>
         <p>
           8051 采用 Harvard 架构，程序存储器和数据存储器相互独立。内核主要组成：
         </p>
         <ul>
-          <li><strong>8 位 ALU</strong>：算术逻辑单元，完成加减乘除.逻辑运算.位操作等。</li>
+          <li><strong>8 位 ALU</strong>：算术逻辑单元，完成加减乘除、逻辑运算、位操作等。</li>
           <li><strong>程序计数器 PC</strong>：16 位寄存器，指向当前执行的程序地址。</li>
           <li><strong>数据指针 DPTR</strong>：16 位，用于访问外部数据存储器或程序存储器的表格数据。</li>
           <li><strong>累加器 ACC</strong>：8 位，主要用于算术运算和数据传递。</li>
           <li><strong>B 寄存器</strong>：8 位，与 ACC 配合完成乘除法运算。</li>
           <li><strong>堆栈指针 SP</strong>：8 位（实际可寻址 16 位空间），指向当前堆栈顶部。</li>
-          <li><strong>程序状态字 PSW</strong>：8 位，存放运算结果标志位（进位.溢出.奇偶等）。</li>
+          <li><strong>程序状态字 PSW</strong>：8 位，存放运算结果标志位（进位、溢出、奇偶等）。</li>
         </ul>
       </section>
 
       <section>
-        <h2>2.存储器结构</h2>
+        <h2>2. 存储器结构</h2>
         <p>
           8051 的存储器分为三个独立空间，这种设计在当时是创新的，但也增加了编程复杂度：
         </p>
@@ -89,7 +89,7 @@
           </thead>
           <tbody>
             <tr><td>程序存储器（ROM/Flash）</td><td>0000H ~ FFFFH</td><td>最大 64KB</td><td>MOVC（查表）</td><td>存放程序代码和常量表，只能读取（除非通过编程模式写入）</td></tr>
-            <tr><td>内部数据存储器（RAM）</td><td>00H ~ FFH</td><td>256 字节</td><td>MOV</td><td>含工作寄存器.位寻址区.用户 RAM.特殊功能寄存器</td></tr>
+            <tr><td>内部数据存储器（RAM）</td><td>00H ~ FFH</td><td>256 字节</td><td>MOV</td><td>含工作寄存器、位寻址区、用户 RAM、特殊功能寄存器</td></tr>
             <tr><td>外部数据存储器（XDATA）</td><td>0000H ~ FFFFH</td><td>最大 64KB</td><td>MOVX</td><td>需要外部 RAM 芯片，通过 P0/P2 口访问</td></tr>
           </tbody>
         </table>
@@ -109,14 +109,14 @@
             <tr><th>地址</th><th>功能</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td>00H ~ 1FH</td><td>工作寄存器区（4 组）</td><td>每组 R0~R7，共 4 组（32 字节）。通过 PSW 中的 RS1.RS0 选择当前使用哪一组。</td></tr>
+            <tr><td>00H ~ 1FH</td><td>工作寄存器区（4 组）</td><td>每组 R0~R7，共 4 组（32 字节）。通过 PSW 中的 RS1、RS0 选择当前使用哪一组。</td></tr>
             <tr><td>20H ~ 2FH</td><td>位寻址区</td><td>16 字节，共 128 个可寻址位。可以用位操作指令直接访问每个 bit。</td></tr>
             <tr><td>30H ~ 7FH</td><td>用户数据 RAM</td><td>一般用途的堆栈和数据存储区。</td></tr>
           </tbody>
         </table>
         <h3>2.2 特殊功能寄存器（SFR）</h3>
         <p>
-          SFR（Special Function Register）是内核和外设的控制.状态.数据寄存器，共 21 个（标准 8051），地址从 80H 到 FFH：
+          SFR（Special Function Register）是内核和外设的控制、状态、数据寄存器，共 21 个（标准 8051），地址从 80H 到 FFH：
         </p>
         <table>
           <thead>
@@ -170,12 +170,12 @@
           中断向量之间只有 8 字节的空间，足够放下一个跳转指令（AJMP 占用 2 字节，LJMP 占用 3 字节），因此中断服务程序通常用 LJMP 跳转到实际处理代码所在地址。
         </p>
         <p>
-          程序存储器的最后 64KB 空间可以存放查表数据，通过 MOVC 指令读取（使用 PC 或 DPTR 作为基址）。这常用于存放字模.校准参数.字符串等常量。
+          程序存储器的最后 64KB 空间可以存放查表数据，通过 MOVC 指令读取（使用 PC 或 DPTR 作为基址）。这常用于存放字模、校准参数、字符串等常量。
         </p>
       </section>
 
       <section>
-        <h2>3.寄存器组织</h2>
+        <h2>3. 寄存器组织</h2>
         <h3>3.1 工作寄存器组</h3>
         <p>
           8051 内部 RAM 的 00H ~ 1FH 区域是 4 组工作寄存器，每组 8 个寄存器（R0 ~ R7）：
@@ -214,8 +214,8 @@
         </p>
         <ul>
           <li>加减运算的一个操作数通常隐含在 ACC 中。</li>
-          <li>所有逻辑运算指令（ANL.ORL.XRL）都以 ACC 为目标操作数。</li>
-          <li>数据传递指令（MOV.XCH）中 ACC 经常作为数据中转站。</li>
+          <li>所有逻辑运算指令（ANL、ORL、XRL）都以 ACC 为目标操作数。</li>
+          <li>数据传递指令（MOV、XCH）中 ACC 经常作为数据中转站。</li>
         </ul>
         <p>
           B 寄存器（地址 F0H）主要用于乘法和除法运算：
@@ -228,7 +228,7 @@
       </section>
 
       <section>
-        <h2>4.指令系统</h2>
+        <h2>4. 指令系统</h2>
         <h3>4.1 指令格式与分类</h3>
         <p>
           8051 指令长度有 1.2.3 字节三种，大多数指令执行时间为 1 个机器周期（12 个时钟周期），部分跳转指令需要 2 个机器周期。
@@ -237,11 +237,11 @@
           按功能分类，8051 指令分为 5 大类：
         </p>
         <ul>
-          <li><strong>算术运算指令</strong>：ADD.ADDC.SUBB.MUL.DIV.DA（十进制调整）.INC.DEC。</li>
-          <li><strong>逻辑运算指令</strong>：ANL.ORL.XRL（异或）.CLR（清零）.CPL（取反）.RL.RLC.RR.RRC（循环移位）。</li>
-          <li><strong>数据传送指令</strong>：MOV.MOVX（访问外部 RAM）.MOVC（查表）.XCH（交换）.XCHD（低半字节交换）。PUSH.POP。</li>
-          <li><strong>位操作指令</strong>：CLR.SETB（置位）.ANL.ORL.CPL（位取反）。</li>
-          <li><strong>控制转移指令</strong>：LJMP.AJMP.SJMP（相对跳转）。LCALL.ACALL（调用）。RET.RETI（中断返回）。JZ.JNZ.CJNE.DJNZ（条件跳转）。NOP。</li>
+          <li><strong>算术运算指令</strong>：ADD、ADDC、SUBB、MUL、DIV、DA（十进制调整）.INC.DEC。</li>
+          <li><strong>逻辑运算指令</strong>：ANL、ORL、XRL（异或）.CLR（清零）.CPL（取反）.RL.RLC.RR.RRC（循环移位）。</li>
+          <li><strong>数据传送指令</strong>：MOV、MOVX（访问外部 RAM）.MOVC（查表）.XCH（交换）.XCHD（低半字节交换）。PUSH、POP。</li>
+          <li><strong>位操作指令</strong>：CLR、SETB（置位）.ANL.ORL.CPL（位取反）。</li>
+          <li><strong>控制转移指令</strong>：LJMP、AJMP、SJMP（相对跳转）。LCALL、ACALL（调用）。RET、RETI（中断返回）。JZ、JNZ、CJNE、DJNZ（条件跳转）。NOP。</li>
         </ul>
         <h3>4.2 寻址方式</h3>
         <p>
@@ -254,7 +254,7 @@
           <tbody>
             <tr><td>立即寻址</td><td>操作数是常量</td><td>MOV A, #0FFH</td></tr>
             <tr><td>直接寻址</td><td>操作数是内部 RAM 或 SFR 地址</td><td>MOV A, 80H ; 读取 P0 端口</td></tr>
-            <tr><td>寄存器寻址</td><td>操作数是 R0~R7.A.B.CY 等</td><td>MOV R0, A</td></tr>
+            <tr><td>寄存器寻址</td><td>操作数是 R0~R7、A、B、CY 等</td><td>MOV R0, A</td></tr>
             <tr><td>寄存器间接寻址</td><td>用 R0 或 R1 指向数据地址</td><td>MOV A, @R0 ; R0 中存的是地址</td></tr>
             <tr><td>变址寻址</td><td>基址（PC 或 DPTR）+ 偏移量（ACC）</td><td>MOVC A, @A+DPTR ; 查表</td></tr>
           </tbody>
@@ -273,10 +273,10 @@
       </section>
 
       <section>
-        <h2>5.端口结构与对外总线</h2>
+        <h2>5. 端口结构与对外总线</h2>
         <h3>5.1 I/O 端口结构</h3>
         <p>
-          标准 8051 有 4 个 8 位双向 I/O 端口（P0.P1.P2.P3），但每个端口的内部结构不同：
+          标准 8051 有 4 个 8 位双向 I/O 端口（P0、P1、P2、P3），但每个端口的内部结构不同：
         </p>
         <ul>
           <li><strong>P0（80H）</strong>：真正的双向口，无内部上拉电阻。输出时需要外接上拉电阻（10KΩ）。作为地址/数据总线时（P0.7~P0.0 输出地址低 8 位，ALE 锁存后 P0 作为数据总线），不需要上拉。准双向口结构。</li>
@@ -314,7 +314,7 @@
       </section>
 
       <section>
-        <h2>6.定时器/计数器</h2>
+        <h2>6. 定时器/计数器</h2>
         <h3>6.1 定时器 0 和定时器 1</h3>
         <p>
           标准 8051 有 2 个 16 位定时器/计数器（T0 和 T1）。每个定时器由两个 8 位寄存器组成：
@@ -348,7 +348,7 @@
           </tbody>
         </table>
         <p>
-          模式选择（M1.M0）：
+          模式选择（M1、M0）：
         </p>
         <table>
           <thead>
@@ -386,7 +386,7 @@
       </section>
 
       <section>
-        <h2>7.串口通信</h2>
+        <h2>7. 串口通信</h2>
         <h3>7.1 串口控制寄存器（SCON）</h3>
         <p>
           SCON（98H）控制串口的工作模式和功能：
@@ -396,7 +396,7 @@
             <tr><th>位</th><th>名称</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td>SM0.SM1</td><td>串口模式选择</td><td>00=模式0（同步移位寄存器），01=模式1（8位UART），10=模式2（9位UART），11=模式3（9位UART）</td></tr>
+            <tr><td>SM0、SM1</td><td>串口模式选择</td><td>00=模式0（同步移位寄存器），01=模式1（8位UART），10=模式2（9位UART），11=模式3（9位UART）</td></tr>
             <tr><td>SM2</td><td>多机通信使能</td><td>模式2/3 中用于多机通信，第9位功能</td></tr>
             <tr><td>REN</td><td>接收使能</td><td>1=允许接收</td></tr>
             <tr><td>TB8</td><td>发送第9位</td><td>模式2/3 中发送的第9位数据</td></tr>
@@ -434,13 +434,13 @@
           串口数据缓冲寄存器 SBUF（99H）是发送和接收共用的缓冲区：
         </p>
         <ul>
-          <li><strong>发送</strong>：向 SBUF 写入数据，硬件自动将数据移位并添加起始位.停止位，通过 TXD 引脚串行输出。</li>
+          <li><strong>发送</strong>：向 SBUF 写入数据，硬件自动将数据移位并添加起始位、停止位，通过 TXD 引脚串行输出。</li>
           <li><strong>接收</strong>：RXD 引脚接收数据，移位寄存器拼成 8 位数据后放入 SBUF，RI 标志置 1 通知软件取走。</li>
         </ul>
       </section>
 
       <section>
-        <h2>8.中断系统</h2>
+        <h2>8. 中断系统</h2>
         <h3>8.1 中断源</h3>
         <p>
           标准 8051 有 5 个中断源（增强型 8051 可能更多）：
@@ -499,7 +499,7 @@
           <li>执行中断服务程序，最后用 RETI 指令返回。RETI 会从堆栈弹出返回地址并恢复中断状态。</li>
         </ol>
         <p>
-          注意：8051 的中断响应不会自动保存和恢复寄存器现场。如果中断服务程序使用了 A.PSW.R0~R7 等寄存器，需要手动用 PUSH/POP 保存和恢复。
+          注意：8051 的中断响应不会自动保存和恢复寄存器现场。如果中断服务程序使用了 A、PSW、R0~R7 等寄存器，需要手动用 PUSH/POP 保存和恢复。
         </p>
         <div class="article-note">
           8051 的中断向量只有 8 字节，通常放一条 LJMP 跳转到实际的中断处理代码。中断服务程序中使用哪组寄存器，需要在入口处通过 PSW 的 RS1:RS0 位切换，或直接用 PUSH/PO 保护现场。
@@ -507,7 +507,7 @@
       </section>
 
       <section>
-        <h2>9.复位与功耗模式</h2>
+        <h2>9. 复位与功耗模式</h2>
         <h3>9.1 复位</h3>
         <p>
           8051 复位后各寄存器的初始状态：
@@ -525,7 +525,7 @@
             <tr><td>SCON</td><td>00H</td><td>串口模式 0</td></tr>
             <tr><td>IE</td><td>00H</td><td>所有中断禁止</td></tr>
             <tr><td>IP</td><td>00H</td><td>所有中断低优先级</td></tr>
-            <tr><td>ACC.B.PSW</td><td>00H</td><td>工作寄存器清零</td></tr>
+            <tr><td>ACC、B、PSW</td><td>00H</td><td>工作寄存器清零</td></tr>
           </tbody>
         </table>
         <p>
@@ -541,18 +541,18 @@
           标准 8051 的 PCON（87H）寄存器用于功耗控制：
         </p>
         <ul>
-          <li><strong>IDL（掉电模式）</strong>：置位 PCON.0 后进入空闲模式。CPU 停止工作，但定时器.串口.中断系统继续运行。任一中断或复位可唤醒。</li>
+          <li><strong>IDL（掉电模式）</strong>：置位 PCON.0 后进入空闲模式。CPU 停止工作，但定时器、串口、中断系统继续运行。任一中断或复位可唤醒。</li>
           <li><strong>PD（掉电模式）</strong>（部分型号支持）：置位 PCON.1 后进入掉电模式。内部振荡器停止，所有外设停止。只有外部中断或复位可唤醒。功耗降到微安级。</li>
         </ul>
         <p>
-          增强型 8051（如 STC 系列）可能有更多功耗模式，例如低速模式.空闲模式等，可通过设置内部时钟分频降低功耗。
+          增强型 8051（如 STC 系列）可能有更多功耗模式，例如低速模式、空闲模式等，可通过设置内部时钟分频降低功耗。
         </p>
       </section>
 
       <section>
-        <h2>10.增强型 8051 简介</h2>
+        <h2>10. 增强型 8051 简介</h2>
         <p>
-          相比标准 8051（12 时钟/机器周期），各厂商推出的增强型 8051 在性能.外设.功能上有显著提升：
+          相比标准 8051（12 时钟/机器周期），各厂商推出的增强型 8051 在性能、外设、功能上有显著提升：
         </p>
         <table>
           <thead>
@@ -577,7 +577,7 @@
       </section>
 
       <section>
-        <h2>11.工程实践要点</h2>
+        <h2>11. 工程实践要点</h2>
         <ul>
           <li><strong>晶振选择</strong>：串口通信推荐 11.0592MHz，可精确产生标准波特率。定时器精确定时推荐 12MHz 或 11.0592MHz。</li>
           <li><strong>堆栈初始化</strong>：复位后 SP 默认为 07H，会占用寄存器组 1 的空间。建议在程序开始时设置 SP 到更高的 RAM 地址（如 60H 或更高）。</li>
@@ -590,10 +590,10 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

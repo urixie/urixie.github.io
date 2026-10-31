@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 组合逻辑与时序逻辑 - XYJ</title>
   <meta name="description" content="整理 Verilog 组合逻辑、时序逻辑、锁存器、寄存器、复位、计数器、边沿检测、流水线和 FPGA 时序设计注意事项。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#fpga/hdl-basic">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#fpga/hdl-basic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#fpga/hdl-basic">返回 Verilog专题</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#fpga/hdl-basic">返回 Verilog专题</a>
     </div>
 
     <article class="article card">
@@ -42,7 +42,7 @@
         <p>
           组合逻辑没有记忆能力，输出只取决于当前输入。常见组合逻辑包括选择器、译码器、比较器、加法器、优先级编码器等。
         </p>
-        <pre><code>always @(*) begin
+        <pre><code class="language-verilog">always @(*) begin
     case (sel)
         2'd0: y = a;
         2'd1: y = b;
@@ -59,7 +59,7 @@ end</code></pre>
         <p>
           如果组合逻辑中某些条件下没有给输出赋值，硬件为了保持之前的值，就可能生成 latch。大多数 FPGA 同步设计中应避免意外 latch。
         </p>
-        <pre><code>// 错误示例：en 为 0 时 y 没有赋值，可能推断 latch
+        <pre><code class="language-verilog">// 错误示例：en 为 0 时 y 没有赋值，可能推断 latch
 always @(*) begin
     if (en)
         y = a;
@@ -78,7 +78,7 @@ end</code></pre>
         <p>
           时序逻辑由时钟边沿触发，常用于寄存器、计数器、状态机、流水线和数据同步。时序逻辑的核心是“时钟边沿更新”。
         </p>
-        <pre><code>always @(posedge clk or negedge rst_n) begin
+        <pre><code class="language-verilog">always @(posedge clk or negedge rst_n) begin
     if (!rst_n)
         data_q &lt;= 8'd0;
     else
@@ -107,7 +107,7 @@ end</code></pre>
         <p>
           异步复位不依赖时钟，复位信号有效时立即复位；同步复位只在时钟边沿判断复位条件。工程中两种都常见，关键是整个项目风格要统一。
         </p>
-        <pre><code>// 异步低有效复位
+        <pre><code class="language-verilog">// 异步低有效复位
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n)
         q &lt;= 1'b0;
@@ -128,7 +128,7 @@ end</code></pre>
         <h2>五、计数器</h2>
         <p>
           计数器是最常见的时序逻辑。LED 闪烁、采样节拍、超时判断、波特率分频都可能用到计数器。</p>
-        <pre><code>reg [15:0] cnt;
+        <pre><code class="language-verilog">reg [15:0] cnt;
 
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n)
@@ -144,7 +144,7 @@ end</code></pre>
         <h2>六、边沿检测</h2>
         <p>
           边沿检测通常通过打一拍实现。把当前信号和上一拍信号比较，就能得到上升沿或下降沿脉冲。</p>
-        <pre><code>reg trig_d;
+        <pre><code class="language-verilog">reg trig_d;
 
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n)
@@ -160,7 +160,7 @@ assign trig_rise = trig &amp; ~trig_d;</code></pre>
         <h2>七、流水线</h2>
         <p>
           流水线通过插入寄存器把长组合路径拆短，提高时钟频率。代价是增加延迟，也就是数据要多等几个时钟周期才输出。</p>
-        <pre><code>always @(posedge clk) begin
+        <pre><code class="language-verilog">always @(posedge clk) begin
     stage1 &lt;= a + b;
     stage2 &lt;= stage1 * c;
     stage3 &lt;= stage2 + d;
@@ -180,10 +180,10 @@ end</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#fpga/hdl-basic">返回 Verilog专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#fpga/hdl-basic">返回 Verilog专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

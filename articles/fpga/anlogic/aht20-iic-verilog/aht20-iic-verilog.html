@@ -7,17 +7,17 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Verilog 实现 AHT20 温湿度传感器读取 - XYJ</title>
-  <meta name="description" content="基于 Verilog 实现 IIC 主机.AHT20 温湿度传感器读取.CRC8/ITU 校验和数据解析的 FPGA 调试记录。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <meta name="description" content="基于 Verilog 实现 IIC 主机、AHT20 温湿度传感器读取、CRC8/ITU 校验和数据解析的 FPGA 调试记录。">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#fpga/anlogic">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#fpga/anlogic">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,16 +26,16 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#fpga/hdl-basic">返回 FPGA 平台</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#fpga/hdl-basic">返回 FPGA 平台</a>
     </div>
 
     <article class="article card">
       <h1>Verilog 实现 AHT20 温湿度传感器读取</h1>
 
       <p>
-        本文记录基于 Verilog 实现 AHT20 温湿度传感器读取的过程。整体设计包括 IIC 主机时序模块.AHT20 读取状态机.
-        CRC8/ITU 校验模块.温湿度 20bit 原始数据解析以及多次采样平均滤波。
+        本文记录基于 Verilog 实现 AHT20 温湿度传感器读取的过程。整体设计包括 IIC 主机时序模块、AHT20 读取状态机.
+        CRC8/ITU 校验模块、温湿度 20bit 原始数据解析以及多次采样平均滤波。
       </p>
 
       <div class="article-note">
@@ -43,20 +43,20 @@
       </div>
 
       <section>
-        <h2>1.设计目标</h2>
+        <h2>1. 设计目标</h2>
         <ul>
           <li>使用 FPGA 直接驱动 AHT20 温湿度传感器。</li>
           <li>系统时钟为 20MHz，IIC SCL 目标频率为 200kHz。</li>
-          <li>实现 IIC 起始.停止.写字节.读字节.ACK.NACK 等基础操作。</li>
+          <li>实现 IIC 起始、停止、写字节、读字节、ACK、NACK 等基础操作。</li>
           <li>按照 AHT20 协议发送测量命令并读取 7 字节返回数据。</li>
-          <li>对 Status.湿度数据.温度数据进行 CRC8/ITU 校验。</li>
+          <li>对 Status、湿度数据、温度数据进行 CRC8/ITU 校验。</li>
           <li>解析 20bit 湿度原始值和 20bit 温度原始值。</li>
           <li>对最近 8 次采样结果做平均，降低瞬时抖动。</li>
         </ul>
       </section>
 
       <section>
-        <h2>2.AHT20 通信流程</h2>
+        <h2>2. AHT20 通信流程</h2>
         <p>
           AHT20 上电后需要等待一段时间，再通过 IIC 发送测量命令。本文的状态机按照以下流程执行：
         </p>
@@ -86,7 +86,7 @@
 Status + SRH[19:0] + ST[19:0] + CRC</code></pre>
 
         <figure>
-          <img src="images/aht20-iic-01-measure-command.png?v=eaa93cb23547" alt="AHT20 IIC 发送测量命令 AC 33 00 的逻辑分析仪波形" loading="lazy" decoding="async">
+          <img src="images/aht20-iic-01-measure-command.png?v=ee009e36b0e5" alt="AHT20 IIC 发送测量命令 AC 33 00 的逻辑分析仪波形" loading="lazy" decoding="async">
           <figcaption>发送测量命令波形：主机向 AHT20 写入 0xAC.0x33.0x00，用于触发一次温湿度测量。</figcaption>
         </figure>
 
@@ -100,8 +100,8 @@ Data write：0x33
 Data write：0x00</code></pre>
 
         <figure>
-          <img src="images/aht20-iic-02-read-calibration-data.png?v=eaa93cb23547" alt="AHT20 IIC 读取温湿度校准数据的逻辑分析仪波形" loading="lazy" decoding="async">
-          <figcaption>读取温湿度校准数据波形：主机读取状态字.湿度数据.温度数据和 CRC 校验字节。</figcaption>
+          <img src="images/aht20-iic-02-read-calibration-data.png?v=ee009e36b0e5" alt="AHT20 IIC 读取温湿度校准数据的逻辑分析仪波形" loading="lazy" decoding="async">
+          <figcaption>读取温湿度校准数据波形：主机读取状态字、湿度数据、温度数据和 CRC 校验字节。</figcaption>
         </figure>
 
         <p>
@@ -123,14 +123,14 @@ Data read：01</code></pre>
       </section>
 
       <section>
-        <h2>3.IIC 主机模块设计</h2>
+        <h2>3. IIC 主机模块设计</h2>
 
         <p>
-          IIC 主机模块负责把上层命令转换成实际的 SDA / SCL 时序。命令位包括 WR.STA.RD.STO.ACK 和 NACK。
+          IIC 主机模块负责把上层命令转换成实际的 SDA / SCL 时序。命令位包括 WR、STA、RD、STO、ACK 和 NACK。
           SDA 使用开漏方式实现：输出 0 时主动拉低，总线为 1 时释放为高阻态，由外部上拉电阻拉高。
         </p>
 
-        <pre><code>assign IO_i2c_sdat = (!i2c_sdat_o &amp;&amp; i2c_sdat_oe) ? 1'b0 : 1'bz;</code></pre>
+        <pre><code class="language-verilog">assign IO_i2c_sdat = (!i2c_sdat_o &amp;&amp; i2c_sdat_oe) ? 1'b0 : 1'bz;</code></pre>
 
         <p>
           IIC 模块的主要状态包括：
@@ -146,7 +146,7 @@ Data read：01</code></pre>
           <li>GEN_STO：产生停止信号。</li>
         </ul>
 
-        <pre><code>module IIC_MODULE(
+        <pre><code class="language-verilog">module IIC_MODULE(
     input I_clk,
     input I_rst_n,
 
@@ -430,14 +430,14 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>4.CRC8/ITU 校验模块</h2>
+        <h2>4. CRC8/ITU 校验模块</h2>
 
         <p>
           AHT20 返回的最后 1 字节是 CRC。本文采用 CRC8/ITU 算法，初始值为 0xFF，多项式为 0x31。
           FPGA 侧通过状态机逐 bit 计算 CRC，与传感器返回的 CRC 字节比较。
         </p>
 
-        <pre><code>module CRC8_ITU (
+        <pre><code class="language-verilog">module CRC8_ITU (
     input  wire [7:0] I_data_in,
     input  wire I_crc_en,
     input  wire I_rst,
@@ -505,7 +505,7 @@ endmodule</code></pre>
       </section>
 
       <section>
-        <h2>5.AHT20 顶层读取状态机</h2>
+        <h2>5. AHT20 顶层读取状态机</h2>
 
         <p>
           顶层模块负责按照 AHT20 的通信流程调度 IIC 模块。它会先发送测量命令，再等待 80ms，
@@ -534,7 +534,7 @@ temperature_raw &lt;= temperature_sum[22:3];</code></pre>
       </section>
 
       <section>
-        <h2>6.关键状态机流程</h2>
+        <h2>6. 关键状态机流程</h2>
 
         <p>
           顶层状态机的核心状态如下：
@@ -569,14 +569,14 @@ temperature_raw &lt;= temperature_sum[22:3];</code></pre>
       </section>
 
       <section>
-        <h2>7.温湿度转换公式</h2>
+        <h2>7. 温湿度转换公式</h2>
 
         <p>
-          AHT20 返回的是 20bit 原始值，需要在后级显示模块.MCU 或上位机中换算成实际温湿度。
+          AHT20 返回的是 20bit 原始值，需要在后级显示模块、MCU 或上位机中换算成实际温湿度。
           常用换算公式如下：
         </p>
 
-        <pre><code>相对湿度：
+        <pre><code class="language-ini">相对湿度：
 RH = humidity_raw / 2^20 * 100%
 
 温度：
@@ -588,25 +588,25 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
       </section>
 
       <section>
-        <h2>8.调试注意事项</h2>
+        <h2>8. 调试注意事项</h2>
 
         <div class="article-warning">
           AHT20 的 SDA 为双向开漏总线，FPGA 不能直接强推高电平。输出 1 时应释放为高阻态，由外部上拉电阻拉高。
         </div>
 
         <ul>
-          <li>SDA.SCL 需要外部上拉电阻。</li>
+          <li>SDA、SCL 需要外部上拉电阻。</li>
           <li>AHT20 上电后建议等待 5ms 再通信。</li>
           <li>发送测量命令后应等待约 80ms 再读取。</li>
           <li>读取 7 字节时，前 6 字节参与 CRC8 校验。</li>
           <li>最后 1 字节读取后主机应发送 NACK 并产生 STOP。</li>
           <li>若读到状态字 Bit7 为 1，说明传感器仍在忙，可能读到上一次数据。</li>
-          <li>IIC 时序问题优先用逻辑分析仪观察 SDA.SCL。</li>
+          <li>IIC 时序问题优先用逻辑分析仪观察 SDA、SCL。</li>
         </ul>
       </section>
 
       <section>
-        <h2>9.源码说明</h2>
+        <h2>9. 源码说明</h2>
 
         <p>
           完整工程建议拆成三个文件：
@@ -619,21 +619,21 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
         </ul>
 
         <p>
-          当前页面保留了核心代码和关键状态机说明。后续可以继续补充仿真波形.SignalTap 抓图.温湿度换算显示模块和板级连接图。
+          当前页面保留了核心代码和关键状态机说明。后续可以继续补充仿真波形、SignalTap 抓图、温湿度换算显示模块和板级连接图。
         </p>
       </section>
 
       <section>
-        <h2>10.经验总结</h2>
+        <h2>10. 经验总结</h2>
 
         <p>
-          这个设计的关键在于把 IIC 基础时序和 AHT20 业务流程分层。底层 IIC 模块只负责起始.停止.读写和 ACK/NACK；
-          顶层 AHT20 状态机只负责命令流程.延时.CRC 和数据解析。这样后续更换其他 IIC 传感器时，可以复用底层 IIC 模块。
+          这个设计的关键在于把 IIC 基础时序和 AHT20 业务流程分层。底层 IIC 模块只负责起始、停止、读写和 ACK/NACK；
+          顶层 AHT20 状态机只负责命令流程、延时、CRC 和数据解析。这样后续更换其他 IIC 传感器时，可以复用底层 IIC 模块。
         </p>
 
         <p>
-          对 FPGA 来说，IIC 虽然是低速协议，但双向开漏 SDA.ACK 采样时刻.NACK + STOP 收尾.CRC 校验和传感器忙状态判断都容易出错。
-          因此调试时建议先验证单字节写.单字节读，再扩展到完整 7 字节读取流程。
+          对 FPGA 来说，IIC 虽然是低速协议，但双向开漏 SDA、ACK 采样时刻、NACK + STOP 收尾、CRC 校验和传感器忙状态判断都容易出错。
+          因此调试时建议先验证单字节写、单字节读，再扩展到完整 7 字节读取流程。
         </p>
       </section>
 
@@ -648,13 +648,13 @@ T = temperature_raw / 2^20 * 200 - 50</code></pre>
           </a>
         </p>
         <p>
-          <a href="docs/aht20-datasheet.pdf?v=eaa93cb23547" target="_blank" rel="noopener">
+          <a href="docs/aht20-datasheet.pdf?v=ee009e36b0e5" target="_blank" rel="noopener">
             查看 AHT20 说明书
           </a>
         </p>
       </section>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

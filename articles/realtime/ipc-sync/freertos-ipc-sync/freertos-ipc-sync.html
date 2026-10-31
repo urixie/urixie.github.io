@@ -6,18 +6,18 @@
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-  <title>FreeRTOS 队列.信号量与互斥锁 - XYJ</title>
-  <meta name="description" content="整理 FreeRTOS 队列.二值信号量.计数信号量.互斥锁.优先级继承.任务通知和中断到任务的数据同步方式。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <title>FreeRTOS 队列、信号量与互斥锁 - XYJ</title>
+  <meta name="description" content="整理 FreeRTOS 队列、二值信号量、计数信号量、互斥锁、优先级继承、任务通知和中断到任务的数据同步方式。">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#realtime/ipc-sync">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#realtime/ipc-sync">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,15 +26,15 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#realtime/ipc-sync">返回 FreeRTOS专题</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#realtime/ipc-sync">返回 FreeRTOS专题</a>
     </div>
 
     <article class="article card">
-      <h1>FreeRTOS 队列.信号量与互斥锁</h1>
+      <h1>FreeRTOS 队列、信号量与互斥锁</h1>
 
       <p>
-        多任务系统中，最容易出问题的地方不是任务创建，而是任务之间如何传递数据.如何等待事件.如何保护共享资源。FreeRTOS 提供队列.信号量.互斥锁和任务通知来解决这些问题。
+        多任务系统中，最容易出问题的地方不是任务创建，而是任务之间如何传递数据、如何等待事件、如何保护共享资源。FreeRTOS 提供队列、信号量、互斥锁和任务通知来解决这些问题。
       </p>
 
       <div class="article-note">
@@ -42,11 +42,11 @@
       </div>
 
       <section>
-        <h2>1.队列：任务间传递数据</h2>
+        <h2>1. 队列：任务间传递数据</h2>
         <p>
-          队列适合在任务之间传递结构体.消息.命令.采样值或事件。发送方把数据复制进队列，接收方从队列中取出数据。
+          队列适合在任务之间传递结构体、消息、命令、采样值或事件。发送方把数据复制进队列，接收方从队列中取出数据。
         </p>
-        <pre><code>typedef struct {
+        <pre><code class="language-c">typedef struct {
     uint8_t cmd;
     uint16_t value;
 } app_msg_t;
@@ -55,13 +55,13 @@ static QueueHandle_t s_msg_queue;
 
 s_msg_queue = xQueueCreate(8, sizeof(app_msg_t));</code></pre>
         <p>
-          队列是 FreeRTOS 中最常用.最安全的数据通道之一。它能减少全局变量共享带来的并发问题。
+          队列是 FreeRTOS 中最常用、最安全的数据通道之一。它能减少全局变量共享带来的并发问题。
         </p>
       </section>
 
       <section>
-        <h2>2.队列发送与接收</h2>
-        <pre><code>app_msg_t msg = {
+        <h2>2. 队列发送与接收</h2>
+        <pre><code class="language-c">app_msg_t msg = {
     .cmd = 1,
     .value = 100,
 };
@@ -78,11 +78,11 @@ if (xQueueReceive(s_msg_queue, &amp;rx_msg, portMAX_DELAY) == pdPASS) {
       </section>
 
       <section>
-        <h2>3.中断到任务：FromISR 接口</h2>
+        <h2>3. 中断到任务：FromISR 接口</h2>
         <p>
           中断中不能随便调用普通 FreeRTOS API，需要使用带 <code>FromISR</code> 后缀的接口。中断里通常只做最小处理，然后把数据或事件交给任务。
         </p>
-        <pre><code>void uart_rx_isr(void)
+        <pre><code class="language-c">void uart_rx_isr(void)
 {
     BaseType_t high_task_woken = pdFALSE;
     uint8_t data = uart_read_byte();
@@ -96,9 +96,9 @@ if (xQueueReceive(s_msg_queue, &amp;rx_msg, portMAX_DELAY) == pdPASS) {
       </section>
 
       <section>
-        <h2>4.信号量：事件同步</h2>
+        <h2>4. 信号量：事件同步</h2>
         <p>
-          二值信号量适合表达“某个事件发生了”。例如 DMA 完成.中断接收完成.按键触发等。任务等待信号量，中断或其它任务释放信号量。
+          二值信号量适合表达“某个事件发生了”。例如 DMA 完成、中断接收完成、按键触发等。任务等待信号量，中断或其它任务释放信号量。
         </p>
         <pre><code>static SemaphoreHandle_t s_dma_done_sem;
 
@@ -112,9 +112,9 @@ xSemaphoreGiveFromISR(s_dma_done_sem, &amp;high_task_woken);</code></pre>
       </section>
 
       <section>
-        <h2>5.计数信号量</h2>
+        <h2>5. 计数信号量</h2>
         <p>
-          计数信号量适合表示多个同类资源或累计事件。例如缓冲区数量.连接数.多个数据块可用等。
+          计数信号量适合表示多个同类资源或累计事件。例如缓冲区数量、连接数、多个数据块可用等。
         </p>
         <pre><code>SemaphoreHandle_t sem = xSemaphoreCreateCounting(10, 0);
 
@@ -126,11 +126,11 @@ xSemaphoreTake(sem, pdMS_TO_TICKS(100));</code></pre>
       </section>
 
       <section>
-        <h2>6.互斥锁：保护共享资源</h2>
+        <h2>6. 互斥锁：保护共享资源</h2>
         <p>
-          互斥锁用于保护共享资源，例如 SPI 总线.I2C 总线.文件系统.全局配置结构体.日志输出等。互斥锁和二值信号量很像，但互斥锁带有优先级继承机制，更适合保护资源。
+          互斥锁用于保护共享资源，例如 SPI 总线、I2C 总线、文件系统、全局配置结构体、日志输出等。互斥锁和二值信号量很像，但互斥锁带有优先级继承机制，更适合保护资源。
         </p>
-        <pre><code>static SemaphoreHandle_t s_i2c_mutex;
+        <pre><code class="language-c">static SemaphoreHandle_t s_i2c_mutex;
 
 s_i2c_mutex = xSemaphoreCreateMutex();
 
@@ -144,7 +144,7 @@ if (xSemaphoreTake(s_i2c_mutex, pdMS_TO_TICKS(100)) == pdPASS) {
       </section>
 
       <section>
-        <h2>7.优先级反转与优先级继承</h2>
+        <h2>7. 优先级反转与优先级继承</h2>
         <p>
           优先级反转是指高优先级任务等待低优先级任务释放资源，而中优先级任务又抢占低优先级任务，导致高优先级任务迟迟无法运行。互斥锁的优先级继承可以缓解这个问题。
         </p>
@@ -168,9 +168,9 @@ if (xSemaphoreTake(s_i2c_mutex, pdMS_TO_TICKS(100)) == pdPASS) {
       </section>
 
       <section>
-        <h2>8.任务通知：轻量事件机制</h2>
+        <h2>8. 任务通知：轻量事件机制</h2>
         <p>
-          任务通知是 FreeRTOS 中非常轻量的同步机制。它不需要额外创建队列或信号量，适合一对一事件通知.计数通知.bit 事件标志等场景。
+          任务通知是 FreeRTOS 中非常轻量的同步机制。它不需要额外创建队列或信号量，适合一对一事件通知、计数通知、bit 事件标志等场景。
         </p>
         <pre><code>// 任务中等待通知
 ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -186,7 +186,7 @@ vTaskNotifyGiveFromISR(s_task_handle, &amp;high_task_woken);</code></pre>
       </section>
 
       <section>
-        <h2>9.选择建议</h2>
+        <h2>9. 选择建议</h2>
         <ul>
           <li>传递数据：队列。</li>
           <li>中断唤醒任务：任务通知或二值信号量。</li>
@@ -197,10 +197,10 @@ vTaskNotifyGiveFromISR(s_task_handle, &amp;high_task_woken);</code></pre>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#realtime/ipc-sync">返回 FreeRTOS专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#realtime/ipc-sync">返回 FreeRTOS专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

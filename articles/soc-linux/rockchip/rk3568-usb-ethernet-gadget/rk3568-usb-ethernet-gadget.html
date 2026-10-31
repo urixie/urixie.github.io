@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>RK3568 USB Ethernet Gadget 配置记录 - XYJ</title>
   <meta name="description" content="基于 RK3568.Linux 4.19 和 Ubuntu Base 22 的 USB Ethernet Gadget / RNDIS / usb0 配置记录。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#soc-linux/rockchip">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/rockchip">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#soc-linux/rockchip">返回 SOC 平台</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#soc-linux/rockchip">返回 SOC 平台</a>
     </div>
 
     <article class="article card">
@@ -43,7 +43,7 @@
       </div>
 
       <section>
-        <h2>1.实验环境</h2>
+        <h2>1. 实验环境</h2>
         <ul>
           <li>硬件平台：讯为 RK3568 开发板</li>
           <li>内核版本：Linux 4.19.232</li>
@@ -54,10 +54,10 @@
       </section>
 
       <section>
-        <h2>2.功能目标</h2>
+        <h2>2. 功能目标</h2>
         <p>
           USB Ethernet Gadget 的作用是让开发板在 USB Device / OTG 模式下表现为一张 USB 虚拟网卡。
-          主机端识别后，可以通过该虚拟网卡与开发板通信，用于调试.数据传输.设备配置或无传统网口场景下的网络连接。
+          主机端识别后，可以通过该虚拟网卡与开发板通信，用于调试、数据传输、设备配置或无传统网口场景下的网络连接。
         </p>
 
         <p>
@@ -70,7 +70,7 @@ DNS：8.8.8.8.114.114.114.114</code></pre>
       </section>
 
       <section>
-        <h2>3.内核配置路径</h2>
+        <h2>3. 内核配置路径</h2>
         <p>
           首先进入 Linux 4.19 内核配置界面，进入 USB Gadget Support 配置路径：
         </p>
@@ -80,43 +80,43 @@ DNS：8.8.8.8.114.114.114.114</code></pre>
     -> USB Gadget Support</code></pre>
 
         <figure>
-          <img src="images/rk3568-usb-gadget-01.png?v=eaa93cb23547" alt="RK3568 Linux 4.19 USB Gadget Support 中启用 RNDIS" loading="lazy" decoding="async">
+          <img src="images/rk3568-usb-gadget-01.png?v=ee009e36b0e5" alt="RK3568 Linux 4.19 USB Gadget Support 中启用 RNDIS" loading="lazy" decoding="async">
           <figcaption>USB Gadget Support 中启用 RNDIS。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/rk3568-usb-gadget-02.png?v=eaa93cb23547" alt="RK3568 USB Gadget Support 中启用 ECM.RNDIS.EEM.FunctionFS 等功能" loading="lazy" decoding="async">
-          <figcaption>建议同时启用 ECM.ECM subset.RNDIS.EEM.Mass storage.FunctionFS 等相关选项。</figcaption>
+          <img src="images/rk3568-usb-gadget-02.png?v=ee009e36b0e5" alt="RK3568 USB Gadget Support 中启用 ECM.RNDIS.EEM.FunctionFS 等功能" loading="lazy" decoding="async">
+          <figcaption>建议同时启用 ECM、ECM subset.RNDIS.EEM.Mass storage.FunctionFS 等相关选项。</figcaption>
         </figure>
 
         <p>
-          关键配置包括 USB Gadget.ConfigFS.RNDIS 和 libcomposite。脚本中会检查以下配置：
+          关键配置包括 USB Gadget、ConfigFS、RNDIS 和 libcomposite。脚本中会检查以下配置：
         </p>
 
-        <pre><code>CONFIG_USB_CONFIGFS=y
+        <pre><code class="language-ini">CONFIG_USB_CONFIGFS=y
 CONFIG_USB_CONFIGFS_RNDIS=y
 CONFIG_USB_LIBCOMPOSITE=y</code></pre>
       </section>
 
       <section>
-        <h2>4.USB Gadget 预组合配置</h2>
+        <h2>4. USB Gadget 预组合配置</h2>
         <p>
           在 USB Gadget Support 中，还需要进入 USB gadget precomposed configurations，并选择 Ethernet Gadget。
         </p>
 
         <figure>
-          <img src="images/rk3568-usb-gadget-03.png?v=eaa93cb23547" alt="USB gadget precomposed configurations 菜单入口" loading="lazy" decoding="async">
+          <img src="images/rk3568-usb-gadget-03.png?v=ee009e36b0e5" alt="USB gadget precomposed configurations 菜单入口" loading="lazy" decoding="async">
           <figcaption>进入 USB gadget precomposed configurations。</figcaption>
         </figure>
 
         <figure>
-          <img src="images/rk3568-usb-gadget-04.png?v=eaa93cb23547" alt="选择 Ethernet Gadget with CDC Ethernet support" loading="lazy" decoding="async">
+          <img src="images/rk3568-usb-gadget-04.png?v=ee009e36b0e5" alt="选择 Ethernet Gadget with CDC Ethernet support" loading="lazy" decoding="async">
           <figcaption>选择 Ethernet Gadget with CDC Ethernet support。</figcaption>
         </figure>
       </section>
 
       <section>
-        <h2>5.系统侧配置思路</h2>
+        <h2>5. 系统侧配置思路</h2>
         <p>
           内核配置完成并烧录后，系统侧主要通过 ConfigFS 创建 USB Gadget 设备，并绑定 UDC 控制器。整体流程如下：
         </p>
@@ -131,17 +131,17 @@ CONFIG_USB_LIBCOMPOSITE=y</code></pre>
           <li>将 RNDIS 功能链接到配置项。</li>
           <li>绑定 UDC 控制器，使 USB Gadget 生效。</li>
           <li>等待 usb0 网络接口生成。</li>
-          <li>为 usb0 配置静态 IP.网关和 DNS。</li>
+          <li>为 usb0 配置静态 IP、网关和 DNS。</li>
         </ol>
       </section>
 
       <section>
-        <h2>6.自动配置脚本</h2>
+        <h2>6. 自动配置脚本</h2>
         <p>
-          下面的脚本用于在 Ubuntu Base 22 系统中自动创建 USB Gadget 初始化脚本.配置 systemd 服务，并生成 usb0 网络接口配置。
+          下面的脚本用于在 Ubuntu Base 22 系统中自动创建 USB Gadget 初始化脚本、配置 systemd 服务，并生成 usb0 网络接口配置。
         </p>
 
-        <pre><code>#!/bin/bash
+        <pre><code class="language-c">#!/bin/bash
 # Auto USB0 Network Configuration Script for Ubuntu Base 22 (Kernel 4.19)
 
 # 检测root权限
@@ -288,29 +288,29 @@ main</code></pre>
       </section>
 
       <section>
-        <h2>7.网口冲突处理</h2>
+        <h2>7. 网口冲突处理</h2>
 
         <div class="article-warning">
-          配置 usb0 时需要注意：建议禁用其他网口，防止默认路由.DNS 或网关冲突，导致 usb0 虽然生成但无法正常通信。
+          配置 usb0 时需要注意：建议禁用其他网口，防止默认路由、DNS 或网关冲突，导致 usb0 虽然生成但无法正常通信。
         </div>
 
         <p>
           如果开发板同时存在 eth0.wlan0.usb0 等多个网络接口，系统可能会自动选择其他接口作为默认路由。
-          这时即使 usb0 已经配置成功，也可能出现 ping 不通主机.DNS 不生效或访问外网失败的情况。
+          这时即使 usb0 已经配置成功，也可能出现 ping 不通主机、DNS 不生效或访问外网失败的情况。
         </p>
 
         <p>
           调试时可以临时关闭其他网口，只保留 usb0：
         </p>
 
-        <pre><code>ip link set eth0 down
+        <pre><code class="language-bash">ip link set eth0 down
 ip link set wlan0 down</code></pre>
 
         <p>
           然后检查路由表：
         </p>
 
-        <pre><code>ip route show</code></pre>
+        <pre><code class="language-bash">ip route show</code></pre>
 
         <p>
           确认默认路由是否走 usb0：
@@ -320,11 +320,11 @@ ip link set wlan0 down</code></pre>
       </section>
 
       <section>
-        <h2>8.验证方式</h2>
+        <h2>8. 验证方式</h2>
 
         <p>配置完成后，可以通过以下命令检查状态：</p>
 
-        <pre><code>ip -4 addr show usb0
+        <pre><code class="language-bash">ip -4 addr show usb0
 ip route show
 cat /etc/resolv.conf
 ping 192.168.137.1
@@ -336,11 +336,11 @@ ping www.baidu.com</code></pre>
       </section>
 
       <section>
-        <h2>9.经验总结</h2>
+        <h2>9. 经验总结</h2>
 
         <p>
-          这次配置的关键不只是启用内核选项，还包括系统启动阶段的 ConfigFS 初始化.RNDIS 功能创建.
-          UDC 绑定.usb0 网络配置和路由冲突处理。
+          这次配置的关键不只是启用内核选项，还包括系统启动阶段的 ConfigFS 初始化、RNDIS 功能创建.
+          UDC 绑定、usb0 网络配置和路由冲突处理。
         </p>
 
         <p>
@@ -362,6 +362,6 @@ ping www.baidu.com</code></pre>
       </section>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

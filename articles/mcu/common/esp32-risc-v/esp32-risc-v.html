@@ -7,17 +7,17 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>ESP32 RISC-V 架构详解 - XYJ</title>
-  <meta name="description" content="详细整理 ESP32-C3 ESP32-C6 ESP32-H2 所使用的 RISC-V 内核架构.寄存器.指令集.中断机制.内存布局和低功耗特性。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <meta name="description" content="详细整理 ESP32-C3 ESP32-C6 ESP32-H2 所使用的 RISC-V 内核架构、寄存器、指令集、中断机制、内存布局和低功耗特性。">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,30 +26,30 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#mcu/espressif">返回 ESP32专题</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#mcu/espressif">返回 ESP32专题</a>
     </div>
 
     <article class="article card">
       <h1>ESP32 RISC-V 架构详解</h1>
 
       <p>
-        ESP32-C3 和 ESP32-C6 是乐鑫科技（Espressif）推出的基于 RISC-V 架构的 WiFi+蓝牙 SoC，代表了 ESP32 系列从 Xtensa 架构向开源 RISC-V 架构的演进。RISC-V 是基于精简指令集计算机（RISC）原则的开源指令集架构（ISA），具有模块化.可扩展.无授权费用等优点。本文以 RISC-V ISA Specification 和 ESP32-C3 Technical Reference Manual 为主要参考，详细整理 ESP32 所使用的 RISC-V 内核架构。
+        ESP32-C3 和 ESP32-C6 是乐鑫科技（Espressif）推出的基于 RISC-V 架构的 WiFi+蓝牙 SoC，代表了 ESP32 系列从 Xtensa 架构向开源 RISC-V 架构的演进。RISC-V 是基于精简指令集计算机（RISC）原则的开源指令集架构（ISA），具有模块化、可扩展、无授权费用等优点。本文以 RISC-V ISA Specification 和 ESP32-C3 Technical Reference Manual 为主要参考，详细整理 ESP32 所使用的 RISC-V 内核架构。
       </p>
 
       <div class="article-note">
-        ESP32 系列使用的 RISC-V 内核是定制的 32 位 RISC-V 处理器，实现了 RV32IMC 指令集（32 位整数指令 + 乘法 + 原子操作 + 压缩指令）。不同芯片的具体实现有差异（如中断控制器数量.本地中断.Lowpower 特性等）。学习时重点关注 ESP32-C3/C6/H2 实际使用的配置。
+        ESP32 系列使用的 RISC-V 内核是定制的 32 位 RISC-V 处理器，实现了 RV32IMC 指令集（32 位整数指令 + 乘法 + 原子操作 + 压缩指令）。不同芯片的具体实现有差异（如中断控制器数量、本地中断、Lowpower 特性等）。学习时重点关注 ESP32-C3/C6/H2 实际使用的配置。
       </div>
 
       <section>
-        <h2>1.RISC-V 架构概述</h2>
+        <h2>1. RISC-V 架构概述</h2>
         <h3>1.1 RISC-V 特点</h3>
         <p>
           RISC-V 是由加州大学伯克利分校于 2010 年设计的开源指令集架构，如今已成为业界标准。RISC-V 的核心设计原则：
         </p>
         <ul>
-          <li><strong>模块化</strong>：基础 ISA（RV32I/RV64I）加上可选扩展模块（M.A.F.D.C 等），芯片厂商可以根据需求选择实现哪些扩展。</li>
-          <li><strong>简洁性</strong>：相比 ARM.MIPS，RISC-V 指令格式更少（只有 4 种基本格式），硬件实现更简单。</li>
+          <li><strong>模块化</strong>：基础 ISA（RV32I/RV64I）加上可选扩展模块（M、A、F、D、C 等），芯片厂商可以根据需求选择实现哪些扩展。</li>
+          <li><strong>简洁性</strong>：相比 ARM、MIPS，RISC-V 指令格式更少（只有 4 种基本格式），硬件实现更简单。</li>
           <li><strong>可扩展性</strong>：支持自定义指令扩展（如 ESP32-C3 添加了中断控制器相关指令）。</li>
           <li><strong>开源免费</strong>：无授权费用，适合物联网和低成本芯片。</li>
           <li><strong>32/64/128 位变体</strong>：RV32I（32 位）.RV64I（64 位）.RV128I（128 位）。</li>
@@ -97,7 +97,7 @@
       </section>
 
       <section>
-        <h2>2.寄存器模型</h2>
+        <h2>2. 寄存器模型</h2>
         <h3>2.1 通用寄存器</h3>
         <p>
           RISC-V 有 32 个 32 位通用寄存器（x0~x31），每个都有约定的用途和别名：
@@ -133,13 +133,13 @@
           </thead>
           <tbody>
             <tr><td>mstatus</td><td>Machine Status</td><td>全局中断使能（MIE）.MPIE（前一个 MIE）.MPP（之前特权模式）等。</td></tr>
-            <tr><td>mie</td><td>Machine Interrupt Enable</td><td>各中断源的独立使能位（MEIE.MTIE.MSIE 等）。</td></tr>
+            <tr><td>mie</td><td>Machine Interrupt Enable</td><td>各中断源的独立使能位（MEIE、MTIE、MSIE 等）。</td></tr>
             <tr><td>mip</td><td>Machine Interrupt Pending</td><td>各中断源的挂起标志位。</td></tr>
             <tr><td>mepc</td><td>Machine Exception PC</td><td>发生异常时的 PC 值（返回地址）。</td></tr>
             <tr><td>mcause</td><td>Machine Cause</td><td>异常/中断原因编码。</td></tr>
-            <tr><td>mtval</td><td>Machine Trap Value</td><td>辅助信息（访问地址.非法指令等）。</td></tr>
+            <tr><td>mtval</td><td>Machine Trap Value</td><td>辅助信息（访问地址、非法指令等）。</td></tr>
             <tr><td>mhartid</td><td>Hardware Thread ID</td><td>当前硬件线程 ID（多核系统中区分不同核心）。</td></tr>
-            <tr><td>misa</td><td>ISA</td><td>指示支持的指令集扩展（M.I.A.C 等）。</td></tr>
+            <tr><td>misa</td><td>ISA</td><td>指示支持的指令集扩展（M、I、A、C 等）。</td></tr>
             <tr><td>pmpcfg0</td><td>Physical Memory Protection Config</td><td>物理内存保护配置。</td></tr>
             <tr><td>pmpaddr0~15</td><td>PMP Address</td><td>物理内存保护地址寄存器。</td></tr>
           </tbody>
@@ -164,7 +164,7 @@
       </section>
 
       <section>
-        <h2>3.指令系统</h2>
+        <h2>3. 指令系统</h2>
         <h3>3.1 指令格式</h3>
         <p>
           RISC-V 只有 4 种基本指令格式，简洁明了：
@@ -186,18 +186,18 @@
             <tr><th>类别</th><th>指令</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td rowspan="2">整数运算</td><td>ADD.SUB.MUL.DIV.REM</td><td>加减乘除取模（有符号）</td></tr>
-            <tr><td>ADDI.SLLI.SRLI.SRAI</td><td>立即数运算.移位（逻辑.算术）</td></tr>
-            <tr><td rowspan="2">逻辑运算</td><td>AND.OR.XOR</td><td>位操作</td></tr>
-            <tr><td>ANDI.ORI.XORI</td><td>立即数位操作</td></tr>
-            <tr><td rowspan="2">加载存储</td><td>LW.LH.LB.LHU.LBU</td><td>加载（字.半字.字节，有无符号扩展）</td></tr>
-            <tr><td>SW.SH.SB</td><td>存储（字.半字.字节）</td></tr>
-            <tr><td rowspan="2">分支跳转</td><td>BEQ.BNE.BLT.BGE.BLTU.BGEU</td><td>条件分支（有无符号比较）</td></tr>
-            <tr><td>JAL.JALR</td><td>跳转并链接（用于函数调用）</td></tr>
+            <tr><td rowspan="2">整数运算</td><td>ADD、SUB、MUL、DIV、REM</td><td>加减乘除取模（有符号）</td></tr>
+            <tr><td>ADDI、SLLI、SRLI、SRAI</td><td>立即数运算、移位（逻辑、算术）</td></tr>
+            <tr><td rowspan="2">逻辑运算</td><td>AND、OR、XOR</td><td>位操作</td></tr>
+            <tr><td>ANDI、ORI、XORI</td><td>立即数位操作</td></tr>
+            <tr><td rowspan="2">加载存储</td><td>LW、LH、LB、LHU、LBU</td><td>加载（字、半字、字节，有无符号扩展）</td></tr>
+            <tr><td>SW、SH、SB</td><td>存储（字、半字、字节）</td></tr>
+            <tr><td rowspan="2">分支跳转</td><td>BEQ、BNE、BLT、BGE、BLTU、BGEU</td><td>条件分支（有无符号比较）</td></tr>
+            <tr><td>JAL、JALR</td><td>跳转并链接（用于函数调用）</td></tr>
             <tr><td rowspan="2">高位立即数</td><td>LUI</td><td>加载高位立即数（用于设置 32 位常量）</td></tr>
             <tr><td>AUIPC</td><td>PC 加高位立即数（用于 PC 相对寻址）</td></tr>
-            <tr><td>CSR 操作</td><td>CSRRW.CSRRS.CSRRC</td><td>原子读写 CSR</td></tr>
-            <tr><td>特权指令</td><td>ECALL.EBREAK.MRET</td><td>系统调用.断点.异常返回</td></tr>
+            <tr><td>CSR 操作</td><td>CSRRW、CSRRS、CSRRC</td><td>原子读写 CSR</td></tr>
+            <tr><td>特权指令</td><td>ECALL、EBREAK、MRET</td><td>系统调用、断点、异常返回</td></tr>
           </tbody>
         </table>
         <h3>3.3 乘法除法扩展（M 扩展）</h3>
@@ -224,7 +224,7 @@
           <li><strong>c.jal</strong>：压缩 JAL（但 RISC-V 规定 JAL 必须保存返回地址到 ra，c.jal 只在 RV32C 中有效）。</li>
           <li><strong>c.j</strong>：绝对跳转。</li>
           <li><strong>c.beqz</strong>.<strong>c.bnez</strong>：条件分支（PC 相对）。</li>
-          <li><strong>c.mv</strong>.<strong>c.li</strong>.<strong>c.add</strong>：寄存器移动.加载立即数.加法。</li>
+          <li><strong>c.mv</strong>.<strong>c.li</strong>.<strong>c.add</strong>：寄存器移动、加载立即数、加法。</li>
         </ul>
         <p>
           C 扩展可以将代码体积减少约 30%，对嵌入式场景非常有价值。
@@ -232,13 +232,13 @@
       </section>
 
       <section>
-        <h2>4.中断机制</h2>
+        <h2>4. 中断机制</h2>
         <h3>4.1 中断类型</h3>
         <p>
           RISC-V 中断分为三类（按来源）：
         </p>
         <ul>
-          <li><strong>外部中断</strong>（External Interrupt）：来自外设的中断，如 GPIO.UART.Timer 等。</li>
+          <li><strong>外部中断</strong>（External Interrupt）：来自外设的中断，如 GPIO、UART、Timer 等。</li>
           <li><strong>计时器中断</strong>（Timer Interrupt）：来自定时器。</li>
           <li><strong>软件中断</strong>（Software Interrupt）：由软件触发，可用于核间通信。</li>
         </ul>
@@ -305,7 +305,7 @@
       </section>
 
       <section>
-        <h2>5.内存布局</h2>
+        <h2>5. 内存布局</h2>
         <h3>5.1 ESP32-C3 内存映射</h3>
         <table>
           <thead>
@@ -315,8 +315,8 @@
             <tr><td>0x0000_0000 ~ 0x3FFF_FFFF</td><td>1GB</td><td>Virtual Memory</td><td>RISC-V MMU 映射区（未使用）。</td></tr>
             <tr><td>0x3C00_0000 ~ 0x3C3F_FFFF</td><td>4MB</td><td>ROM</td><td>固化引导程序（0x3C00_0000 ~ 0x3C05_0000）和安全引导相关。</td></tr>
             <tr><td>0x3C40_0000 ~ 0x3C7F_FFFF</td><td>4MB</td><td>SRAM</td><td>数据 RAM（0x3C00_0000 开始的高地址）。</td></tr>
-            <tr><td>0x4000_0000 ~ 0x4FFF_FFFF</td><td>256MB</td><td>Peripheral</td><td>外设寄存器（GPIO.UART.I2C.SPI 等）。</td></tr>
-            <tr><td>0x5000_0000 ~ 0x5000_1FFF</td><td>8KB</td><td>DPORT</td><td>WiFi.BT.DMA 等高速外设寄存器。</td></tr>
+            <tr><td>0x4000_0000 ~ 0x4FFF_FFFF</td><td>256MB</td><td>Peripheral</td><td>外设寄存器（GPIO、UART、I2C、SPI 等）。</td></tr>
+            <tr><td>0x5000_0000 ~ 0x5000_1FFF</td><td>8KB</td><td>DPORT</td><td>WiFi、BT、DMA 等高速外设寄存器。</td></tr>
             <tr><td>0x6000_0000 ~ 0x600D_FFFF</td><td>—</td><td>Reserved</td><td>—</td></tr>
             <tr><td>0x600E_0000 ~ 0x600E_FFFF</td><td>64KB</td><td>RTC FAST Memory</td><td>ULP 协处理器和 RTC 快速内存。</td></tr>
             <tr><td>0x600F_0000 ~ 0x600F_FFFF</td><td>64KB</td><td>RTC SLOW Memory</td><td>RTC 慢速内存，存放历史数据。</td></tr>
@@ -337,14 +337,14 @@
         </p>
         <ul>
           <li>最多 16 个 PMP 区域（pmpcfg0~pmp15）。</li>
-          <li>每个区域可配置为 R.W.X（读.写.执行）权限。</li>
+          <li>每个区域可配置为 R、W、X（读、写、执行）权限。</li>
           <li>支持 A（地址匹配模式）：TOR（顶-of-range）.NA4（4字节对齐）.NAPOT（大范围对齐）。</li>
           <li>可用于隔离安全世界和非安全世界代码。</li>
         </ul>
       </section>
 
       <section>
-        <h2>6.低功耗特性</h2>
+        <h2>6. 低功耗特性</h2>
         <h3>6.1 功耗模式</h3>
         <p>
           ESP32-C3/C6 支持多种功耗模式：
@@ -368,7 +368,7 @@
         <ul>
           <li>不活跃的外设模块可以独立关闭时钟，降低动态功耗。</li>
           <li>CPU 支持动态频率调节（80MHz/160MHz）。</li>
-          <li>WiFi.BT.蓝牙等子系统有独立的时钟管理。</li>
+          <li>WiFi、BT、蓝牙等子系统有独立的时钟管理。</li>
         </ul>
         <h3>6.3 协处理器</h3>
         <p>
@@ -377,12 +377,12 @@
         <ul>
           <li>独立的 RISC-V 协处理器，可在主 CPU 深度睡眠时运行。</li>
           <li>使用专用的 RTC slow memory 存储代码和数据。</li>
-          <li>支持 GPIO 检测.ADC 读取.I2C 通信等，可在不唤醒主 CPU 的情况下处理传感器数据。</li>
+          <li>支持 GPIO 检测、ADC 读取、I2C 通信等，可在不唤醒主 CPU 的情况下处理传感器数据。</li>
         </ul>
       </section>
 
       <section>
-        <h2>7.开发工具链</h2>
+        <h2>7. 开发工具链</h2>
         <h3>7.1 ESP-IDF</h3>
         <p>
           与 Xtensa 版本相同，ESP-IDF 完全支持 RISC-V 版本：
@@ -390,7 +390,7 @@
         <ul>
           <li><strong>编译器</strong>：riscv32-esp-elf-gcc（RISC-V 工具链）。</li>
           <li><strong>构建系统</strong>：CMake + Ninja。</li>
-          <li><strong>SDK</strong>：WiFi.BT.BLE.外设驱动等。</li>
+          <li><strong>SDK</strong>：WiFi、BT、BLE、外设驱动等。</li>
           <li><strong>调试</strong>：OpenOCD + GDB，支持 JTAG。</li>
         </ul>
         <h3>7.2 与 Xtensa 版本差异</h3>
@@ -413,10 +413,10 @@
       </section>
 
       <section>
-        <h2>8.工程实践要点</h2>
+        <h2>8. 工程实践要点</h2>
         <ul>
           <li><strong>中断使能时机</strong>：进入中断后，MIE 被自动清零（屏蔽中断）。中断处理完成后使用 MRET 返回，MIE 会自动恢复（MPIE 机制）。</li>
-          <li><strong>CSR 访问</strong>：使用 CSRRW.CSRRS.CSRC 等指令访问 CSR。注意 CSR 指令是 4 字节指令，不支持压缩形式。</li>
+          <li><strong>CSR 访问</strong>：使用 CSRRW、CSRRS、CSRC 等指令访问 CSR。注意 CSR 指令是 4 字节指令，不支持压缩形式。</li>
           <li><strong>堆栈对齐</strong>：RISC-V 要求堆栈指针 16 字节对齐，违反对齐可能触发异常。</li>
           <li><strong>函数调用约定</strong>：a0~a7 传参，a0~a1 返回值，t0~t6 和 a0~a7 是调用者保存，s0~s11 是被调用者保存。</li>
           <li><strong>PLIC 中断优先级</strong>：PLIC 支持为每个外设中断设置优先级，但 ESP32-C3 的 PLIC 通常只有 2 级优先级（高/低）。</li>
@@ -425,10 +425,10 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#mcu/espressif">返回 ESP32专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#mcu/espressif">返回 ESP32专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>

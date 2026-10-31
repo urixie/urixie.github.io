@@ -7,17 +7,17 @@
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>PIC32 MIPS 架构详解 - XYJ</title>
-  <meta name="description" content="详细整理 Microchip PIC32 系列使用的 MIPS M4K 内核架构.寄存器.指令系统.存储管理和开发环境。">
-  <script src="../../../../assets/js/theme-init.js?v=eaa93cb23547"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=eaa93cb23547">
+  <meta name="description" content="详细整理 Microchip PIC32 系列使用的 MIPS M4K 内核架构、寄存器、指令系统、存储管理和开发环境。">
+  <script src="../../../../assets/js/theme-init.js?v=ee009e36b0e5"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=ee009e36b0e5">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-          <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+          <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=eaa93cb23547">← 返回首页</a>
-      <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=ee009e36b0e5">← 返回首页</a>
+      <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -42,11 +42,11 @@
       </div>
 
       <section>
-        <h2>1.MIPS 架构概述</h2>
+        <h2>1. MIPS 架构概述</h2>
         <h3>1.1 MIPS 特点</h3>
         <ul>
           <li><strong>RISC 设计原则</strong>：固定 32 位指令长度（所有指令都是 32 位），简单的指令格式，Load-Store 架构（运算指令只对寄存器操作）。</li>
-          <li><strong>5 级流水线</strong>：Fetch.Decode.Execute.Memory.Writeback，每周期一条指令流出。</li>
+          <li><strong>5 级流水线</strong>：Fetch、Decode、Execute、Memory、Writeback，每周期一条指令流出。</li>
           <li><strong>互锁流水线</strong>：标准 MIPS 要求指令按序执行，数据/结构冒险由硬件互锁检测解决（Microchip 的 M4K 可能简化了这部分）。</li>
           <li><strong>32 个通用寄存器</strong>：$0~$31，每个 32 位。</li>
           <li><strong>无条件延迟槽</strong>：分支跳转指令后有一条延迟槽（delay slot），通常放一条不依赖分支结果的指令。</li>
@@ -68,7 +68,7 @@
       </section>
 
       <section>
-        <h2>2.寄存器模型</h2>
+        <h2>2. 寄存器模型</h2>
         <h3>2.1 通用寄存器</h3>
         <p>
           MIPS 有 32 个 32 位通用寄存器 $0~$31：
@@ -100,7 +100,7 @@
         </ul>
         <h3>2.3 CP0 寄存器（系统控制）</h3>
         <p>
-          CP0 是 MIPS 的系统控制协处理器，包含缓存管理.异常处理.内存管理等功能：
+          CP0 是 MIPS 的系统控制协处理器，包含缓存管理、异常处理、内存管理等功能：
         </p>
         <table>
           <thead>
@@ -118,7 +118,7 @@
             <tr><td>$9</td><td>Count</td><td>计数寄存器（Timer）。</td></tr>
             <tr><td>$10</td><td>EntryHi</td><td>TLB 虚地址高半部分。</td></tr>
             <tr><td>$11</td><td>Compare</td><td>定时器比较寄存器（与 Count 配合产生中断）。</td></tr>
-            <tr><td>$12</td><td>Status</td><td>状态寄存器（全局中断使能.IE.运行模式等）。</td></tr>
+            <tr><td>$12</td><td>Status</td><td>状态寄存器（全局中断使能、IE、运行模式等）。</td></tr>
             <tr><td>$13</td><td>Cause</td><td>最近异常原因编码。</td></tr>
             <tr><td>$14</td><td>EPC</td><td>异常程序计数器（Exception PC）。</td></tr>
             <tr><td>$15</td><td>PRId</td><td>处理器标识。</td></tr>
@@ -127,13 +127,13 @@
       </section>
 
       <section>
-        <h2>3.指令系统</h2>
+        <h2>3. 指令系统</h2>
         <h3>3.1 指令格式</h3>
         <p>
           MIPS 所有指令都是 32 位，分为三种格式：
         </p>
         <ul>
-          <li><strong>I 类型</strong>（立即数）：[opcode(6)][rs(5)][rt(5)][imm(16)] — 用于加载存储.条件分支.立即数运算。</li>
+          <li><strong>I 类型</strong>（立即数）：[opcode(6)][rs(5)][rt(5)][imm(16)] — 用于加载存储、条件分支、立即数运算。</li>
           <li><strong>J 类型</strong>（跳转）：[opcode(6)][target(26)] — 用于绝对跳转 J/JAL。</li>
           <li><strong>R 类型</strong>（寄存器）：[opcode(6)][rs(5)][rt(5)][rd(5)][shamt(5)][funct(6)] — 用于寄存器-寄存器运算。</li>
         </ul>
@@ -143,12 +143,12 @@
             <tr><th>类别</th><th>指令</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td>算术运算</td><td>ADD.ADDI.SUB.SUBI<br>MULT.MULTU.DIV.DIVU<br>SLT.SLTI（设置小于）</td><td>注意：溢出检测的 ADDV 等指令在 PIC32 中可能简化。</td></tr>
-            <tr><td>逻辑运算</td><td>AND.ANDI.OR.ORI.XOR.XORI<br>NOR.LUI（加载高位立即数）</td><td>LUI 将 16 位立即数加载到寄存器高 16 位，低 16 位清零。</td></tr>
-            <tr><td>移位操作</td><td>SLL.SLLV.SRL.SRLV.SRA.SRAV<br>（逻辑左/右移，算术右移）</td><td>sllv 表示用 rs 的低 5 位作为移位量。</td></tr>
-            <tr><td>加载存储</td><td>LW.LH.LHU.LB.LBU.SW.SH.SB<br>LBU.LHU（无符号加载）</td><td>Load-Store 架构：运算指令只能操作寄存器。</td></tr>
-            <tr><td>分支跳转</td><td>BEQ.BNE.BEQZ（比较为0）<br>J.JR.JAL.JALR<br>BLEZ.BGTZ.BLTZ.BGEZ</td><td>注意分支延迟槽（delay slot）。</td></tr>
-            <tr><td>移动</td><td>MFHI.MFLO.MTHI.MTLO<br>MOVE（伪指令）</td><td>移动 HI/LO 寄存器（乘除法结果）。</td></tr>
+            <tr><td>算术运算</td><td>ADD、ADDI、SUB、SUBI<br>MULT、MULTU、DIV、DIVU<br>SLT、SLTI（设置小于）</td><td>注意：溢出检测的 ADDV 等指令在 PIC32 中可能简化。</td></tr>
+            <tr><td>逻辑运算</td><td>AND、ANDI、OR、ORI、XOR、XORI<br>NOR、LUI（加载高位立即数）</td><td>LUI 将 16 位立即数加载到寄存器高 16 位，低 16 位清零。</td></tr>
+            <tr><td>移位操作</td><td>SLL、SLLV、SRL、SRLV、SRA、SRAV<br>（逻辑左/右移，算术右移）</td><td>sllv 表示用 rs 的低 5 位作为移位量。</td></tr>
+            <tr><td>加载存储</td><td>LW、LH、LHU、LB、LBU、SW、SH、SB<br>LBU、LHU（无符号加载）</td><td>Load-Store 架构：运算指令只能操作寄存器。</td></tr>
+            <tr><td>分支跳转</td><td>BEQ、BNE、BEQZ（比较为0）<br>J、JR、JAL、JALR<br>BLEZ、BGTZ、BLTZ、BGEZ</td><td>注意分支延迟槽（delay slot）。</td></tr>
+            <tr><td>移动</td><td>MFHI、MFLO、MTHI、MTLO<br>MOVE（伪指令）</td><td>移动 HI/LO 寄存器（乘除法结果）。</td></tr>
             <tr><td>特权指令</td><td>ERET（异常返回）<br>WAIT（进入等待模式）</td><td>需要特权模式（Kernel）才能执行。</td></tr>
           </tbody>
         </table>
@@ -166,7 +166,7 @@ label:
       </section>
 
       <section>
-        <h2>4.存储管理</h2>
+        <h2>4. 存储管理</h2>
         <h3>4.1 地址空间</h3>
         <p>
           PIC32 的虚拟地址空间（32 位）：
@@ -194,13 +194,13 @@ label:
       </section>
 
       <section>
-        <h2>5.中断机制</h2>
+        <h2>5. 中断机制</h2>
         <h3>5.1 中断类型</h3>
         <p>
           MIPS 中断分为软件中断和硬件中断：
         </p>
         <ul>
-          <li><strong>软件中断</strong>：SIP（SW Interrupt Pending），可由程序触发（设置 Cause.SIP 位）。</li>
+          <li><strong>软件中断</strong>：SIP（SW Interrupt Pending），可由程序触发（设置 Cause、SIP 位）。</li>
           <li><strong>硬件中断</strong>：IRQ0~IRQ5，共 6 个外部中断源（通过 MIPS CPU 的 INT 引脚输入）。</li>
         </ul>
         <h3>5.2 中断控制</h3>
@@ -228,7 +228,7 @@ label:
       </section>
 
       <section>
-        <h2>6.PIC32 特有外设</h2>
+        <h2>6. PIC32 特有外设</h2>
         <h3>6.1 重要外设</h3>
         <ul>
           <li><strong>PORTA~PORTZ</strong>：最多 16 个 GPIO 端口。</li>
@@ -251,13 +251,13 @@ label:
         </p>
         <ul>
           <li>多个独立 DMA 通道（8~16 个）。</li>
-          <li>支持内存到外设.外设到内存.内存到内存的传输。</li>
+          <li>支持内存到外设、外设到内存、内存到内存的传输。</li>
           <li>与 CPU 并行工作，不占用 CPU 带宽。</li>
         </ul>
       </section>
 
       <section>
-        <h2>7.开发工具链</h2>
+        <h2>7. 开发工具链</h2>
         <h3>7.1 MPLAB X IDE + XC32</h3>
         <p>
           Microchip 官方开发环境：
@@ -275,12 +275,12 @@ label:
       </section>
 
       <section>
-        <h2>8.工程实践要点</h2>
+        <h2>8. 工程实践要点</h2>
         <ul>
           <li><strong>延迟槽</strong>：汇编代码中分支跳转后必须有一条指令（通常放 NOP）。C 编译器会自动处理。</li>
           <li><strong>堆栈对齐</strong>：MIPS ABI 要求堆栈 8 字节对齐。函数调用前后 $sp 必须 8 字节对齐。</li>
           <li><strong>寄存器保存</strong>：$t0~$t9 是调用者保存（caller-saved），$s0~$s7 是被调用者保存（callee-saved）。函数调用时注意哪些寄存器需要保存。</li>
-          <li><strong>乘除法</strong>：MULT 等乘法指令结果在 HI:LO 寄存器对中，需要 MFHI.MFLO 取出。</li>
+          <li><strong>乘除法</strong>：MULT 等乘法指令结果在 HI:LO 寄存器对中，需要 MFHI、MFLO 取出。</li>
           <li><strong>PIC32 的 ERET</strong>：从异常返回使用 ERET 指令，它会恢复 Status 和 EPC 并重新使能中断。</li>
           <li><strong>内存布局</strong>：PIC32 的程序 Flash 和数据 RAM 地址是分开的，链接脚本需要正确配置段（.text/.data/.bss）。</li>
           <li><strong>MIPS16e</strong>：部分 PIC32 支持 MIPS16e 压缩指令模式，可以减少代码体积约 40%。编译器选项 -mips16。</li>
@@ -288,10 +288,10 @@ label:
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=eaa93cb23547#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=ee009e36b0e5#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=eaa93cb23547"></script>
+  <script src="../../../../assets/js/main.js?v=ee009e36b0e5"></script>
 </body>
 </html>
