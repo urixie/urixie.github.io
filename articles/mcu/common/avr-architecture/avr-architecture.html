@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>AVR 架构详解 - XYJ</title>
   <meta name="description" content="详细整理 AVR ATmega ATtiny 内核架构、寄存器、指令系统、中断机制、存储布局和低功耗特性。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -313,7 +313,39 @@
       </section>
 
       <section>
-        <h2>8. 工程实践要点</h2>
+        <h2>8. 工作场景：AVR-GCC 工程要点</h2>
+        <p>AVR 是哈佛结构，程序存储器和数据存储器地址空间独立，这直接影响 C 代码的写法。</p>
+        <p><strong>常量要放进 Flash</strong>：在 AVR 上，普通的 <code>const</code> 全局变量和字符串常量默认会被拷贝到 SRAM（因为指针无法区分两个地址空间）。ATmega328P 只有 2KB SRAM，几条调试字符串就能耗尽。需要用 <code>PROGMEM</code> 放在 Flash 中，并通过专用函数读取：</p>
+        <pre><code class="language-c">#include &lt;avr/pgmspace.h&gt;
+
+static const uint8_t sine_table[256] PROGMEM = { 128, 131, 134 /* ... */ };
+static const char msg[] PROGMEM = "sensor error\r\n";
+
+uint8_t s = pgm_read_byte(&amp;sine_table[i]);    /* 不能直接 sine_table[i] */
+uart_puts_P(msg);                             /* 使用 _P 版本的字符串函数 */</code></pre>
+        <p>Arduino 中的 <code>F("text")</code> 宏也是同样的原理。</p>
+        <p><strong>16 位寄存器的访问顺序</strong>：AVR 通过一个共享的 TEMP 寄存器访问 16 位定时器寄存器（TCNT1、OCR1A、ICR1 等）。<strong>写入时先写高字节、再写低字节，读取时先读低字节、再读高字节</strong>。avr-gcc 直接访问 <code>TCNT1</code> 这样的 16 位名字时会自动按正确顺序生成指令；但 TEMP 寄存器在主程序和中断之间共享，如果主程序访问过程中被中断打断，而中断也访问了 16 位寄存器，结果就会错乱，需要用临界区保护。</p>
+        <pre><code class="language-c">#include &lt;util/atomic.h&gt;
+
+uint16_t read_timer1(void)
+{
+    uint16_t v;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {          /* 保存 SREG、关中断，结束时恢复 */
+        v = TCNT1;
+    }
+    return v;
+}</code></pre>
+        <p><strong>中断写法</strong>：使用 <code>ISR(TIMER1_COMPA_vect)</code> 宏定义中断，向量名拼错时 avr-gcc 只给出警告，中断会跳到默认处理（复位），表现为“一开中断就重启”。编译时注意 <code>misspelled signal handler</code> 警告。</p>
+        <p><strong>熔丝位的典型坑</strong>：</p>
+        <ul>
+          <li>新芯片出厂默认 CKDIV8 已编程，内部 8MHz RC 被 8 分频为 1MHz，波特率、延时全部不对。</li>
+          <li>把时钟源熔丝改成外部晶振，但板子上没有晶振，芯片就“锁死”了：ISP 也需要芯片有时钟才能工作。恢复方法是给 XTAL1 引脚提供外部时钟后再改回熔丝，或使用高压编程器。</li>
+          <li>修改熔丝前先读出当前值做备份，并使用熔丝计算器核对每一位的含义（AVR 熔丝位中 0 表示“已编程”，与直觉相反）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>9. 工程实践要点</h2>
         <ul>
           <li><strong>熔丝位</strong>：AVR 有丰富的熔丝位（CKSEL、SUT、CKDIV8 等），决定时钟源、启动延时、BOD 电平等。上电复位后首次编程需正确配置熔丝位。</li>
           <li><strong>看门狗</strong>：使能看门狗后，必须定期执行 WDR（喂狗）指令，否则芯片会复位。</li>
@@ -324,10 +356,10 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

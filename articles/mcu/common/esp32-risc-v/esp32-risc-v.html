@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>ESP32 RISC-V 架构详解 - XYJ</title>
   <meta name="description" content="详细整理 ESP32-C3 ESP32-C6 ESP32-H2 所使用的 RISC-V 内核架构、寄存器、指令集、中断机制、内存布局和低功耗特性。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/espressif">返回 ESP32专题</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/espressif">返回 ESP32专题</a>
     </div>
 
     <article class="article card">
@@ -413,22 +413,41 @@
       </section>
 
       <section>
-        <h2>8. 工程实践要点</h2>
+        <h2>8. 工作场景：从 ESP32（Xtensa）迁移到 ESP32-C3 等 RISC-V 系列</h2>
+        <p>ESP-IDF 屏蔽了大部分内核差异，应用层代码通常只需重新选择目标芯片（<code>idf.py set-target esp32c3</code>）即可编译。真正需要关注的是芯片级差异：</p>
+        <table>
+          <thead><tr><th>差异</th><th>ESP32（Xtensa）</th><th>ESP32-C3（RISC-V）</th><th>迁移影响</th></tr></thead>
+          <tbody>
+            <tr><td>CPU 核数</td><td>双核</td><td>单核</td><td>绑定到 Core 1 的任务需修改；单核下临界区开销更小</td></tr>
+            <tr><td>中断优先级</td><td>多级</td><td>1~15 级，可配置</td><td>中断分配 API 基本兼容</td></tr>
+            <tr><td>USB</td><td>需外接 USB 转串口芯片</td><td>内置 USB Serial/JTAG 控制器</td><td>可省去串口芯片，直接通过 USB 下载和调试</td></tr>
+            <tr><td>Strapping 引脚</td><td>GPIO0、2、5、12、15</td><td>GPIO2、GPIO8、GPIO9</td><td>硬件设计需重新核对，GPIO9 决定下载模式</td></tr>
+            <tr><td>ADC</td><td>ADC2 与 Wi-Fi 冲突</td><td>ADC2 功能受限</td><td>优先使用 ADC1</td></tr>
+            <tr><td>引脚数量</td><td>较多</td><td>较少（22 个 GPIO）</td><td>引脚规划更紧张</td></tr>
+          </tbody>
+        </table>
+        <p><strong>内置 USB Serial/JTAG</strong> 是 C3 的一大便利：一根 USB 线即可完成烧录、日志输出和 JTAG 调试（配合 OpenOCD），不需要额外的调试器。但要注意：程序把 USB 引脚（GPIO18、GPIO19）用作普通 GPIO，或者进入深度睡眠时，USB 连接会断开，需要通过拉低 GPIO9 复位进入下载模式恢复。</p>
+        <p><strong>中断处理与 IRAM</strong>：和 ESP32 一样，Flash 操作期间需要响应的中断处理函数要放在 IRAM 中（<code>IRAM_ATTR</code>），这个规则与内核架构无关，迁移时不能省略。</p>
+        <p><strong>对齐与内联汇编</strong>：非对齐访问在不同内核和不同内存区域上的行为与开销并不一致，依赖非对齐访问的旧代码（指针强转读取协议字段）应改为逐字节读取或 <code>memcpy</code>，不要依赖具体芯片的容错行为；为 Xtensa 编写的内联汇编必须重写。</p>
+      </section>
+
+      <section>
+        <h2>9. 工程实践要点</h2>
         <ul>
           <li><strong>中断使能时机</strong>：进入中断后，MIE 被自动清零（屏蔽中断）。中断处理完成后使用 MRET 返回，MIE 会自动恢复（MPIE 机制）。</li>
           <li><strong>CSR 访问</strong>：使用 CSRRW、CSRRS、CSRC 等指令访问 CSR。注意 CSR 指令是 4 字节指令，不支持压缩形式。</li>
           <li><strong>堆栈对齐</strong>：RISC-V 要求堆栈指针 16 字节对齐，违反对齐可能触发异常。</li>
           <li><strong>函数调用约定</strong>：a0~a7 传参，a0~a1 返回值，t0~t6 和 a0~a7 是调用者保存，s0~s11 是被调用者保存。</li>
-          <li><strong>PLIC 中断优先级</strong>：PLIC 支持为每个外设中断设置优先级，但 ESP32-C3 的 PLIC 通常只有 2 级优先级（高/低）。</li>
+          <li><strong>中断优先级</strong>：ESP32-C3 的外设中断先经过中断矩阵映射到 CPU 中断，每个 CPU 中断可配置 1~15 级优先级，并通过阈值寄存器屏蔽低优先级中断。</li>
           <li><strong>RISC-V 与 ARM 的区别</strong>：没有 APSR 没有 CPSR，中断状态通过 mstatus 控制。没有位带操作，没有 LDM/STM 多寄存器加载，但有 AUIPC（PC 相对寻址）和加载立即数到高位等独特指令。</li>
         </ul>
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#mcu/espressif">返回 ESP32专题</a>
+        <a href="../../../../index.html?v=9d252b978179#mcu/espressif">返回 ESP32专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

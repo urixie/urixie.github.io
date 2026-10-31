@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MCU UART、SPI 与 I2C 通信接口 - XYJ</title>
+  <meta name="description" content="对比 UART、SPI、I2C 的选型要点，整理波特率误差、RS-485 方向控制、SPI 模式与片选时序、I2C 上拉选择、地址写法与总线锁死恢复，并给出用逻辑分析仪定位通信问题的方法。">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>MCU UART、SPI 与 I2C 通信接口</h1>
+      <p class="article-summary">对比 UART、SPI、I2C 的选型要点，整理波特率误差、RS-485 方向控制、SPI 模式与片选时序、I2C 上拉选择、地址写法与总线锁死恢复，并给出用逻辑分析仪定位通信问题的方法。</p>
+
+      <section>
+        <h2>1. 三种接口怎么选</h2>
+        <p>UART、SPI、I2C 是 MCU 连接外部器件和其他处理器最常用的三种串行接口。选型时先看对端器件支持什么，再看速率、引脚数和距离：</p>
+        <table>
+          <thead><tr><th>对比项</th><th>UART</th><th>SPI</th><th>I2C</th></tr></thead>
+          <tbody>
+            <tr><td>信号线</td><td>TX、RX（+ GND）</td><td>SCK、MOSI、MISO、CS</td><td>SCL、SDA</td></tr>
+            <tr><td>时钟</td><td>异步，双方约定波特率</td><td>主机提供时钟</td><td>主机提供时钟</td></tr>
+            <tr><td>拓扑</td><td>点对点（RS-485 可多点）</td><td>一主多从，每个从机一根 CS</td><td>多主多从，地址寻址</td></tr>
+            <tr><td>典型速率</td><td>9600 ~ 几 Mbps</td><td>1 ~ 几十 MHz</td><td>100k / 400k / 1MHz</td></tr>
+            <tr><td>距离</td><td>TTL 板内；RS-232/485 可达百米至千米级</td><td>板内，几十厘米</td><td>板内，受总线电容限制</td></tr>
+            <tr><td>应答机制</td><td>无，需要协议层自己做</td><td>无</td><td>每个字节有 ACK</td></tr>
+            <tr><td>典型器件</td><td>调试串口、GPS、4G/Wi-Fi 模组、上位机</td><td>Flash、显示屏、高速 ADC、SD 卡</td><td>传感器、EEPROM、RTC、电源管理芯片</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>2. UART：波特率误差与帧格式</h2>
+        <p>UART 没有时钟线，收发双方各自按约定的波特率采样。只要双方的实际波特率偏差在一定范围内（8N1 格式下累计误差一般要求小于约 ±2%~3%），就能正确接收。</p>
+        <p><strong>波特率误差来自分频不整除</strong>。UART 的波特率由外设时钟分频得到，分频系数不是整数时会有误差：</p>
+        <pre><code class="language-text">分频系数 = f_pclk / (16 × 波特率)      （16 倍过采样）
+例：f_pclk = 72MHz，波特率 115200 → 72000000 / (16 × 115200) = 39.0625
+    STM32 的 BRR 支持小数分频（4 位小数），39.0625 = 39 + 1/16，可精确实现
+    若 f_pclk = 8MHz，波特率 115200 → 4.34，取 4.3125 时误差约 0.6%</code></pre>
+        <ul>
+          <li>使用内部 RC 振荡器（HSI）时，时钟本身有 ±1% 左右的误差，叠加分频误差后，高波特率通信可能不可靠。和其他设备长期通信的产品建议使用外部晶振，或使用工厂校准过的高精度 RC。</li>
+          <li>8 位 MCU 常用 11.0592MHz 晶振，正是因为它能被标准波特率整除。</li>
+        </ul>
+        <p><strong>帧格式</strong>：数据位、校验位、停止位双方必须一致，最常用的是 8N1（8 位数据、无校验、1 位停止）。帧错误（FE）通常意味着波特率不匹配或线路干扰，溢出错误（ORE）意味着软件来不及读取，噪声错误（NE）意味着线路质量差，这些错误标志都应该被统计。</p>
+        <p><strong>接收方式的选择</strong>：低速、少量数据用接收中断；高速或大数据量用 DMA。不定长帧推荐“DMA 循环接收 + 空闲线中断”，实现见 <a href="../../../foundation/embedded-c/c-interrupt-concurrency/c-interrupt-concurrency.html?v=9d252b978179">中断、并发与临界区</a>。</p>
+      </section>
+
+      <section>
+        <h2>3. RS-485：方向控制</h2>
+        <p>RS-485 是半双工差分总线，收发器有一个方向控制引脚（DE/RE）。最常见的 bug 是<strong>发送完最后一个字节之前就切回了接收</strong>，导致最后一两个字节被截断。</p>
+        <pre><code class="language-c">void rs485_send(const uint8_t *buf, size_t len)
+{
+    RS485_DE_HIGH();                              /* 切换为发送 */
+    uart_write_blocking(buf, len);
+    while ((USART2-&gt;SR &amp; USART_SR_TC) == 0U) { }  /* 等待“发送完成” TC，而不是“发送寄存器空” TXE */
+    RS485_DE_LOW();                               /* 最后一个停止位发完后才切回接收 */
+}</code></pre>
+        <p>TXE 只表示数据寄存器空了，此时最后一个字节还在移位寄存器里发送；TC 才表示所有位都已移出。很多 MCU 的 UART 支持硬件自动控制 DE 引脚，可以从根本上避免这个问题。</p>
+      </section>
+
+      <section>
+        <h2>4. SPI：模式、片选与时序</h2>
+        <p>SPI 的四种模式由 CPOL（空闲时钟极性）和 CPHA（采样边沿）决定，必须与从机手册一致：</p>
+        <table>
+          <thead><tr><th>模式</th><th>CPOL</th><th>CPHA</th><th>空闲时 SCK</th><th>采样边沿</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>0</td><td>0</td><td>低</td><td>第一个边沿（上升沿）</td></tr>
+            <tr><td>1</td><td>0</td><td>1</td><td>低</td><td>第二个边沿（下降沿）</td></tr>
+            <tr><td>2</td><td>1</td><td>0</td><td>高</td><td>第一个边沿（下降沿）</td></tr>
+            <tr><td>3</td><td>1</td><td>1</td><td>高</td><td>第二个边沿（上升沿）</td></tr>
+          </tbody>
+        </table>
+        <p>大多数 Flash、显示屏支持模式 0 和模式 3。模式配错时的表现往往是“数据偶尔对、偶尔错”或“读回的数据整体错一位”。</p>
+        <p>工程要点：</p>
+        <ul>
+          <li><strong>片选用软件控制更灵活</strong>：硬件 NSS 在多从机、需要跨多次传输保持片选时不方便。软件控制 CS 时，拉低 CS 后、拉高 CS 前，要确认满足从机要求的建立和保持时间，并在拉高 CS 前等待 SPI 的 BSY 标志清零。</li>
+          <li><strong>SPI 是全双工的</strong>：每发送一个字节同时接收一个字节。只读操作也要发送哑元字节（通常为 0xFF 或 0x00）来产生时钟；只写操作要读出接收数据寄存器或清除溢出标志，否则 OVR 错误会影响后续接收。</li>
+          <li><strong>速率与走线</strong>：几十 MHz 的 SPI 对走线长度和信号完整性敏感，飞线调试正常、换成长排线就出错很常见。先降速验证功能，再逐步提高。</li>
+          <li><strong>多个从机共用总线</strong>：确认所有从机的 MISO 在 CS 无效时为高阻态，否则会互相干扰。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. I2C：上拉、地址与总线恢复</h2>
+        <p>I2C 两根线都是开漏结构，依靠上拉电阻产生高电平。</p>
+        <p><strong>上拉电阻的选择</strong>：电阻越小，上升沿越快，但低电平时灌入的电流越大。上升时间由上拉电阻和总线电容（器件引脚 + 走线，通常几十 pF）决定。经验值：</p>
+        <table>
+          <thead><tr><th>速率</th><th>常用上拉（3.3V）</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>100kHz</td><td>4.7kΩ ~ 10kΩ</td><td>总线短、器件少时可用较大值</td></tr>
+            <tr><td>400kHz</td><td>2.2kΩ ~ 4.7kΩ</td><td>器件多或走线长时取小值</td></tr>
+            <tr><td>1MHz</td><td>1kΩ ~ 2.2kΩ</td><td>需核算低电平灌电流不超过器件规格</td></tr>
+          </tbody>
+        </table>
+        <p>用示波器看 SCL 的上升沿：如果波形明显是“鲨鱼鳍”形状，说明上拉偏大或总线电容偏大。</p>
+        <p><strong>地址的两种写法</strong>：手册中的 7 位地址（如 0x50）在总线上要左移一位，再加读写位（0xA0 写、0xA1 读）。驱动接口有的要求传 7 位地址，有的要求传左移后的 8 位地址，用错了会出现“设备不应答”。</p>
+        <p><strong>总线锁死与恢复</strong>：MCU 在读操作中途复位，从机可能正处于输出 0 的状态并一直拉低 SDA，等待剩余的时钟。此时主机无法产生起始条件，总线“锁死”。标准的恢复方法是：把 SCL 配置为 GPIO，手动产生最多 9 个时钟脉冲，直到从机释放 SDA，再产生一个停止条件。</p>
+        <pre><code class="language-c">void i2c_bus_recover(void)
+{
+    gpio_set_open_drain_output(I2C_SCL);
+    gpio_set_input(I2C_SDA);
+    for (int i = 0; i &lt; 9 &amp;&amp; !gpio_read(I2C_SDA); i++) {
+        gpio_write(I2C_SCL, 0); delay_us(5);
+        gpio_write(I2C_SCL, 1); delay_us(5);
+    }
+    /* 手动产生 STOP：SCL 高时 SDA 由低变高 */
+    gpio_set_open_drain_output(I2C_SDA);
+    gpio_write(I2C_SDA, 0); delay_us(5);
+    gpio_write(I2C_SCL, 1); delay_us(5);
+    gpio_write(I2C_SDA, 1); delay_us(5);
+    i2c_peripheral_reinit();                       /* 恢复为外设复用功能并重新初始化 */
+}</code></pre>
+        <p>建议在 I2C 初始化时和每次通信超时后都执行一次总线恢复。另外要注意：</p>
+        <ul>
+          <li><strong>时钟拉伸</strong>：部分从机（如某些传感器在转换期间）会拉低 SCL 让主机等待。软件模拟 I2C 时要检查 SCL 是否真的被释放为高电平，硬件 I2C 一般自动支持。</li>
+          <li><strong>所有操作都要有超时</strong>：I2C 驱动中等待标志位的循环一旦没有超时，总线异常就会让整个系统卡死。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 工作场景：用逻辑分析仪定位通信问题</h2>
+        <p>通信不通时，最快的定位方式不是反复改代码，而是<strong>直接看线上的波形</strong>。逻辑分析仪（几十元的 USB 逻辑分析仪配合 PulseView / sigrok 即可）可以解码 UART、SPI、I2C 协议。</p>
+        <table>
+          <thead><tr><th>现象</th><th>看什么</th><th>常见原因</th></tr></thead>
+          <tbody>
+            <tr><td>UART 收到乱码</td><td>测量一个位的宽度，换算实际波特率</td><td>时钟配置错误、晶振频率不对</td></tr>
+            <tr><td>UART 最后一个字节丢失</td><td>RS-485 DE 信号与 TX 波形的时序</td><td>过早切换方向</td></tr>
+            <tr><td>SPI 读回全是 0xFF 或 0x00</td><td>CS 是否拉低、MISO 是否有波形</td><td>CS 未生效、模式错误、从机未上电</td></tr>
+            <tr><td>SPI 数据错一位</td><td>SCK 边沿与数据变化的相对位置</td><td>CPOL / CPHA 配错</td></tr>
+            <tr><td>I2C 无应答（NACK）</td><td>地址字节和第 9 个时钟的 SDA</td><td>地址未左移或多移了一位、从机地址引脚配置不同</td></tr>
+            <tr><td>I2C 总线一直为低</td><td>复位前后 SDA 的状态</td><td>总线锁死，需要恢复时钟</td></tr>
+            <tr><td>偶发错误</td><td>边沿是否有振铃、上升沿是否过缓</td><td>上拉不当、走线过长、干扰</td></tr>
+          </tbody>
+        </table>
+        <p>逻辑分析仪只能看逻辑电平，看不到信号质量；怀疑上升沿过缓、振铃、电平不足时，需要用示波器测量模拟波形。</p>
+      </section>
+
+      <section>
+        <h2>7. 通信接口检查清单</h2>
+        <ul>
+          <li>UART 波特率误差是否在允许范围内，使用内部 RC 时是否评估过温度漂移。</li>
+          <li>UART 错误标志（FE、ORE、NE）是否被清除和统计，大数据量接收是否使用 DMA。</li>
+          <li>RS-485 是否在 TC（发送完成）后才切换为接收。</li>
+          <li>SPI 模式是否与从机手册一致，软件片选的建立 / 保持时间是否满足，拉高 CS 前是否等待 BSY 清零。</li>
+          <li>SPI 只写时是否处理了接收数据和溢出标志。</li>
+          <li>I2C 上拉电阻是否按速率和总线电容选择，地址是否按驱动要求左移。</li>
+          <li>I2C 是否实现了总线锁死恢复，所有等待是否都有超时。</li>
+          <li>调试阶段是否用逻辑分析仪或示波器验证过实际波形。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+</body>
+</html>

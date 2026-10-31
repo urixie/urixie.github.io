@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MCU 调试接口与量产烧写 - XYJ</title>
+  <meta name="description" content="整理 SWD / JTAG 调试接口设计、调试器连不上的排查与救砖方法、SWO / RTT / 数据断点 / DWT 等调试手段、命令行烧录、量产烧录流程与唯一数据写入，以及产线测试固件的设计。">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>MCU 调试接口与量产烧写</h1>
+      <p class="article-summary">整理 SWD / JTAG 调试接口设计、调试器连不上的排查与救砖方法、SWO / RTT / 数据断点 / DWT 等调试手段、命令行烧录、量产烧录流程与唯一数据写入，以及产线测试固件的设计。</p>
+
+      <section>
+        <h2>1. 调试接口：SWD 与 JTAG</h2>
+        <p>ARM Cortex-M 芯片普遍支持两种调试接口：</p>
+        <table>
+          <thead><tr><th>对比</th><th>SWD</th><th>JTAG</th></tr></thead>
+          <tbody>
+            <tr><td>信号线</td><td>SWDIO、SWCLK（+ 可选 SWO、NRST）</td><td>TMS、TCK、TDI、TDO（+ 可选 TRST、NRST）</td></tr>
+            <tr><td>引脚数</td><td>2 根</td><td>4~5 根</td></tr>
+            <tr><td>菊花链</td><td>不支持</td><td>支持多芯片串联</td></tr>
+            <tr><td>适用</td><td>Cortex-M 首选，节省引脚</td><td>多芯片调试、FPGA、部分非 ARM 芯片</td></tr>
+          </tbody>
+        </table>
+        <p>硬件设计建议：</p>
+        <ul>
+          <li>预留 <strong>SWDIO、SWCLK、NRST、GND、VCC（参考电压）</strong>，有条件再加 <strong>SWO</strong>（用于 printf 输出和性能分析）。NRST 能让调试器在芯片“锁死”时强制复位连接。</li>
+          <li>使用标准接口座（如 2×5 1.27mm 的 Cortex Debug 接口），方便直接连接调试器；量产板可以只留测试点，由治具上的顶针连接。</li>
+          <li>VCC 引脚是给调试器做电平参考的，大多数调试器不会通过它给目标板供电，目标板需要自己上电。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. 调试器连不上怎么办</h2>
+        <table>
+          <thead><tr><th>现象</th><th>常见原因</th><th>解决方法</th></tr></thead>
+          <tbody>
+            <tr><td>新板子完全连不上</td><td>供电、复位电路、SWD 走线问题</td><td>测量 VDD、NRST 电平；降低 SWD 时钟频率</td></tr>
+            <tr><td>以前能连，烧了某个程序后连不上</td><td>程序把 SWD 引脚配置成了 GPIO，或很快进入了低功耗模式</td><td>使用 Connect Under Reset：调试器在复位期间建立连接，抢在用户程序运行前停住 CPU</td></tr>
+            <tr><td>连接后马上断开</td><td>程序频繁复位（看门狗、HardFault 后复位）</td><td>Connect Under Reset，或拉高 BOOT0 从系统存储器启动后再擦除</td></tr>
+            <tr><td>提示芯片被保护</td><td>开启了读保护</td><td>解除读保护（会整片擦除），Level 2 则不可恢复</td></tr>
+            <tr><td>低功耗产品调试困难</td><td>进入 Stop / Standby 后调试接口断开</td><td>调试时开启“低功耗模式下保持调试连接”（STM32 的 DBGMCU 配置位）</td></tr>
+          </tbody>
+        </table>
+        <p><strong>避免把自己锁在外面</strong>：初始化代码中不要轻易把 PA13/PA14（STM32 的 SWD 引脚）复用为普通 GPIO；如果确实需要，就在上电后延时一两秒再切换，给调试器留出连接窗口，或者在软件中提供“进入调试模式”的方式。</p>
+      </section>
+
+      <section>
+        <h2>3. 调试手段：断点之外</h2>
+        <ul>
+          <li><strong>SWO / ITM 输出</strong>：通过 SWO 引脚输出 printf，不占用 UART，几乎不影响程序时序。Cortex-M3/M4/M7 支持，M0/M0+ 不支持。</li>
+          <li><strong>RTT（SEGGER Real Time Transfer）</strong>：通过调试器读写 RAM 中的缓冲区实现双向通信，速度快、开销小，只需 SWD 两根线，J-Link 上使用非常方便。</li>
+          <li><strong>数据断点（Watchpoint）</strong>：当某个变量被写入时停下来，定位“谁改了我的变量”这类内存踩踏问题非常有效。</li>
+          <li><strong>实时查看变量</strong>：调试器在程序运行时读取 RAM（如 STM32CubeMonitor、J-Scope），适合观察控制环中的变量变化。注意不要实时读取“读清零”的寄存器。</li>
+          <li><strong>性能分析</strong>：用 DWT 周期计数器测量一段代码的执行时间，比用 GPIO 翻转配合示波器更方便。</li>
+        </ul>
+        <pre><code class="language-c">/* Cortex-M3/M4/M7：使用 DWT 周期计数器测量执行时间 */
+static inline void cycle_counter_init(void)
+{
+    CoreDebug-&gt;DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT-&gt;CYCCNT = 0;
+    DWT-&gt;CTRL  |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+uint32_t t0 = DWT-&gt;CYCCNT;
+filter_process(samples, n);
+uint32_t cycles = DWT-&gt;CYCCNT - t0;          /* 主频 168MHz 时，cycles / 168 即为微秒数 */</code></pre>
+      </section>
+
+      <section>
+        <h2>4. 烧录方式一览</h2>
+        <table>
+          <thead><tr><th>方式</th><th>接口</th><th>适用阶段</th></tr></thead>
+          <tbody>
+            <tr><td>调试器烧录</td><td>SWD / JTAG</td><td>研发调试、小批量生产</td></tr>
+            <tr><td>系统 Bootloader</td><td>UART、USB DFU、CAN、I2C（需拉 BOOT 引脚）</td><td>无调试器的现场、生产线</td></tr>
+            <tr><td>自定义 Bootloader</td><td>产品已有的通信接口</td><td>产品交付后的升级</td></tr>
+            <tr><td>离线烧录器</td><td>SWD，一键烧录，无需电脑</td><td>量产，多工位并行</td></tr>
+            <tr><td>芯片预烧录</td><td>由芯片代理商或烧录厂在贴片前烧录</td><td>大批量生产</td></tr>
+          </tbody>
+        </table>
+        <p>命令行工具让烧录可以脚本化，便于接入自动化测试和生产工具：</p>
+        <pre><code class="language-bash"># STM32CubeProgrammer：擦除、烧录、校验、复位运行
+STM32_Programmer_CLI -c port=SWD -e all -w app.hex -v -rst
+
+# OpenOCD：通用调试器支持（ST-Link、CMSIS-DAP、J-Link 等）
+openocd -f interface/cmsis-dap.cfg -f target/stm32f4x.cfg \
+        -c "program app.elf verify reset exit"
+
+# J-Link Commander 脚本
+JLinkExe -device STM32F407VG -if SWD -speed 4000 -CommanderScript flash.jlink</code></pre>
+      </section>
+
+      <section>
+        <h2>5. 量产烧录流程</h2>
+        <p>研发阶段“能烧进去”就行，量产要考虑效率、一致性和可追溯：</p>
+        <ol>
+          <li><strong>合并固件</strong>：把 Bootloader、App、默认参数合并为一个 hex 文件，一次烧录完成，避免漏烧。可以用 srec_cat 等工具合并。</li>
+          <li><strong>写入唯一数据</strong>：序列号、MAC 地址、密钥、校准系数等每台设备不同的数据，由生产工具在烧录后写入指定 Flash 地址，或通过串口命令写入。很多 MCU 有出厂唯一 ID（UID），可作为设备标识的来源。</li>
+          <li><strong>配置选项字节</strong>：开启读保护、配置 BOR 阈值、看门狗硬件启动等，放在烧录流程的最后一步。</li>
+          <li><strong>校验与测试</strong>：烧录后读回校验，再运行产线自检程序（检测各接口、传感器、按键、LED），结果上传到生产系统。</li>
+          <li><strong>记录与追溯</strong>：记录每台设备的序列号、固件版本、烧录时间、测试结果，返修时能查到这台设备的完整信息。</li>
+        </ol>
+        <pre><code class="language-c">/* STM32 96 位唯一 ID（地址因系列而异，以手册为准），可派生设备序列号或 MAC */
+#define UID_BASE_ADDR  0x1FFF7A10UL           /* STM32F4 */
+void get_uid(uint32_t out[3])
+{
+    const volatile uint32_t *uid = (const volatile uint32_t *)UID_BASE_ADDR;
+    out[0] = uid[0];
+    out[1] = uid[1];
+    out[2] = uid[2];
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>6. 工作场景：设计一个产线测试固件</h2>
+        <p>产线测试有两种常见做法：一是单独烧录测试固件，测试完成后再烧录正式固件；二是在正式固件中内置“工厂模式”，通过特定条件进入。后者节省一次烧录，更常用：</p>
+        <ul>
+          <li><strong>进入条件</strong>：上电时检测某个测试点被拉低，或串口收到特定命令。条件要足够“不会被用户误触发”。</li>
+          <li><strong>测试项目</strong>：读取各传感器是否在合理范围、通信接口回环测试、按键和指示灯配合治具检测、Flash 读写测试、电压和电流采样校准。</li>
+          <li><strong>输出格式</strong>：机器可解析的结果（如每项一行 <code>ITEM=VOLT,RESULT=PASS,VALUE=3302</code>），便于上位机或测试工装自动判定。</li>
+          <li><strong>退出与锁定</strong>：测试完成、写入序列号和校准数据后，写入“已出厂”标志，正常上电不再进入工厂模式，防止用户误入。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 调试与量产烧录检查清单</h2>
+        <ul>
+          <li>硬件是否预留了 SWDIO、SWCLK、NRST、GND、VCC，量产板是否保留了测试点。</li>
+          <li>软件是否避免过早把 SWD 引脚复用为 GPIO，调试低功耗时是否开启了调试保持。</li>
+          <li>是否掌握 Connect Under Reset 和 BOOT0 等“救砖”手段。</li>
+          <li>是否使用 SWO、RTT、数据断点、DWT 计数器等工具辅助调试，而不仅仅是断点。</li>
+          <li>烧录是否脚本化，量产固件是否合并为单一文件。</li>
+          <li>序列号、校准数据等唯一数据的写入地址和格式是否明确，是否记录可追溯信息。</li>
+          <li>读保护、BOR 等选项字节是否在流程最后配置，并在样品上验证过。</li>
+          <li>产线测试是否覆盖关键接口，工厂模式是否有可靠的进入和退出机制。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+</body>
+</html>

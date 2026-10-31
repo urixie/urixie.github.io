@@ -10,8 +10,8 @@
   <meta name="keywords" content="CW32L011, ADC, NTC, PWM, GTIM, 热敏电阻, 温度频率转换">
   <meta name="author" content="XYJ">
   <title>CW32L011 NTC 热敏电阻采集与 PWM 频率输出 - XYJ</title>
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
   <style>
     .article .file-name {
       display: inline-flex;
@@ -45,8 +45,8 @@
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/wh">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/wh">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -55,8 +55,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU 平台</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU 平台</a>
     </div>
 
     <article class="article card">
@@ -387,8 +387,48 @@ void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
         </p>
       </section>
 
+      <section>
+        <h2>8. 工作场景：从演示程序到可交付产品还要补什么</h2>
+        <p>演示程序验证了“NTC 采样 → 换算 → PWM 输出”的主链路，要变成能长期稳定运行的产品，通常还要补齐下面这些环节：</p>
+        <table>
+          <thead><tr><th>环节</th><th>演示程序</th><th>产品化要求</th></tr></thead>
+          <tbody>
+            <tr><td>传感器故障</td><td>直接换算</td><td>NTC 开路（读数接近满量程）和短路（接近 0）要识别为故障，输出安全值并上报</td></tr>
+            <tr><td>滤波</td><td>单次或简单平均</td><td>去极值平均或一阶低通，滤波参数与温度变化速度匹配</td></tr>
+            <tr><td>换算精度</td><td>公式或粗略查表</td><td>按 NTC 规格书的 R-T 表建表，线性插值，以 0.1℃ 整数输出</td></tr>
+            <tr><td>参考电压</td><td>默认 VDD</td><td>用内部参考校正电源波动，或确认 VDD 由精密 LDO 提供</td></tr>
+            <tr><td>PWM 切换</td><td>直接改寄存器</td><td>开启预装载，频率在周期边界更新，避免切换瞬间出现异常脉冲</td></tr>
+            <tr><td>异常保护</td><td>无</td><td>看门狗、复位原因记录、上电默认输出安全状态</td></tr>
+            <tr><td>参数</td><td>写死在代码里</td><td>温度-频率曲线放在 Flash 参数区，支持标定和现场调整</td></tr>
+          </tbody>
+        </table>
+        <p><strong>查表插值</strong>是 NTC 换算的推荐写法，避免在 MCU 上计算对数：</p>
+        <pre><code class="language-c">typedef struct { uint16_t adc; int16_t temp_x10; } ntc_point_t;
+
+/* 按 ADC 读数降序排列（温度越高，NTC 阻值越小，分压读数越小）；表格由 R-T 规格表离线生成 */
+static const ntc_point_t ntc_table[] = {
+    { 3780, -200 }, { 3420, -100 }, { 2950, 0 }, { 2420, 100 },
+    { 1890, 200 },  { 1410, 300 },  { 1020, 400 }, { 720, 500 },
+};
+
+int16_t ntc_lookup(uint16_t adc)
+{
+    const size_t n = sizeof(ntc_table) / sizeof(ntc_table[0]);
+    if (adc &gt;= ntc_table[0].adc)     return ntc_table[0].temp_x10;      /* 低于表格下限，可视为故障 */
+    if (adc &lt;= ntc_table[n - 1].adc) return ntc_table[n - 1].temp_x10;
+    for (size_t i = 1; i &lt; n; i++) {
+        if (adc &gt;= ntc_table[i].adc) {
+            const ntc_point_t *a = &amp;ntc_table[i - 1], *b = &amp;ntc_table[i];
+            return (int16_t)(a-&gt;temp_x10 + (int32_t)(a-&gt;adc - adc) * (b-&gt;temp_x10 - a-&gt;temp_x10) / (a-&gt;adc - b-&gt;adc));
+        }
+    }
+    return ntc_table[n - 1].temp_x10;
+}</code></pre>
+        <p>表中数值仅为示意，实际应按所用 NTC 的 B 值和分压电阻计算。采样电路的源阻抗、采样时间和滤波方法，见 <a href="../../peripheral/mcu-adc/mcu-adc.html?v=9d252b978179">ADC 采样与模拟前端</a>；PWM 预装载与频率切换，见 <a href="../../peripheral/mcu-timer-pwm/mcu-timer-pwm.html?v=9d252b978179">定时器与 PWM</a>。</p>
+      </section>
+
       <section id="summary">
-        <h2>8. 总结</h2>
+        <h2>9. 总结</h2>
         <ul>
           <li>CW32L011 的 ADC 支持最多 16 通道序列采样，本例使用 12 通道分两批读取</li>
           <li>ADC 采样周期设置为 262 个 ADC 时钟（≥40μs），满足 BGR 采样保持时间要求</li>
@@ -399,11 +439,11 @@ void NTC_To_Frequency(uint16_t adcMin, uint32_t* freqParam)
       </section>
 
       <footer class="article-footer">
-        <p>本文整理自 CW32L011K8T6 StartKit 调试代码，芯片手册参见 <a href="docs/CW32L011_DataSheet_CN_V1.1.pdf?v=591c98cc2ebb" rel="noopener" target="_blank">《CW32L011 数据手册》</a> 和 <a href="docs/CW32L011_UserManual_CN_V1.1.pdf?v=591c98cc2ebb" rel="noopener" target="_blank">《CW32L011 用户手册》</a>。</p>
+        <p>本文整理自 CW32L011K8T6 StartKit 调试代码，芯片手册参见 <a href="docs/CW32L011_DataSheet_CN_V1.1.pdf?v=9d252b978179" rel="noopener" target="_blank">《CW32L011 数据手册》</a> 和 <a href="docs/CW32L011_UserManual_CN_V1.1.pdf?v=9d252b978179" rel="noopener" target="_blank">《CW32L011 用户手册》</a>。</p>
       </footer>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

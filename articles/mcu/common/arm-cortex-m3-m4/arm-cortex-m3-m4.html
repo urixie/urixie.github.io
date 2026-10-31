@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>ARM Cortex-M3 与 Cortex-M4 架构详解 - XYJ</title>
   <meta name="description" content="基于 ARMv7-M 架构参考手册，详细整理 Cortex-M3 和 Cortex-M4 的内核结构、寄存器模型、运行模式、存储映射、中断机制、FPU DSP 和调试组件。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -522,7 +522,46 @@ SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk  // HCLK 时钟
       </section>
 
       <section>
-        <h2>11. 工程实践要点</h2>
+        <h2>11. 工作场景：FPU 的正确开启与使用</h2>
+        <p>Cortex-M4F / M7 带硬件浮点单元，但它默认是关闭的。没有开启 FPU 就执行浮点指令，会立即触发 UsageFault（未使能时升级为 HardFault），这是移植工程时的常见问题。</p>
+        <p><strong>开启 FPU</strong>：在使用任何浮点运算之前（通常在 <code>SystemInit</code> 中）给协处理器 CP10、CP11 完全访问权限：</p>
+        <pre><code class="language-c">SCB-&gt;CPACR |= (3UL &lt;&lt; 20) | (3UL &lt;&lt; 22);     /* CP10、CP11 完全访问 */
+__DSB();
+__ISB();                                     /* 确保设置生效后再执行后续指令 */</code></pre>
+        <p>CMSIS 的 <code>SystemInit</code> 在定义了 <code>__FPU_PRESENT</code> 和 <code>__FPU_USED</code> 时会自动完成这一步，自己写启动代码时不要遗漏。</p>
+        <p><strong>编译选项必须一致</strong>：</p>
+        <table>
+          <thead><tr><th>选项</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td><code>-mfpu=fpv4-sp-d16</code></td><td>Cortex-M4F 的单精度 FPU（M7 可能是 <code>fpv5-sp-d16</code> 或 <code>fpv5-d16</code>）</td></tr>
+            <tr><td><code>-mfloat-abi=hard</code></td><td>浮点参数通过 FPU 寄存器传递，效率最高</td></tr>
+            <tr><td><code>-mfloat-abi=softfp</code></td><td>使用 FPU 指令，但参数按软件浮点规则传递，可与软浮点库混链</td></tr>
+            <tr><td><code>-mfloat-abi=soft</code></td><td>完全不使用 FPU</td></tr>
+          </tbody>
+        </table>
+        <p>工程中所有源文件和链接的库必须使用相同的 float-abi，否则链接时报错“uses VFP register arguments”，或者更隐蔽地出现函数传参错误。</p>
+        <p><strong>RTOS 与中断中的浮点</strong>：开启 FPU 后，异常入栈时可能需要额外保存 18 个浮点寄存器（S0~S15、FPSCR 等），惰性压栈（Lazy Stacking）机制会在中断真正使用浮点时才保存。RTOS 的移植层需要支持 FPU 上下文切换（FreeRTOS 的 <code>ARM_CM4F</code> 移植层），否则多个任务使用浮点时会互相破坏寄存器内容。</p>
+        <p><strong>单精度陷阱</strong>：M4F 的 FPU 只支持单精度。<code>double</code> 运算和带 <code>double</code> 字面量的表达式（如 <code>x * 0.5</code>）会走软件库，速度慢数十倍。写成 <code>0.5f</code>、使用 <code>sqrtf</code> 等单精度函数，并打开 <code>-Wdouble-promotion</code> 让编译器提示，详见 <a href="../../../foundation/c-basic/c-integer-arithmetic/c-integer-arithmetic.html?v=9d252b978179">整数运算、溢出与定点数</a>。</p>
+      </section>
+
+      <section>
+        <h2>12. 工作场景：在 STM32F1、F4 与国产兼容芯片之间迁移</h2>
+        <p>同样是 Cortex-M3 / M4 内核，换芯片时内核相关的代码基本可以复用，真正需要逐项核对的是芯片级差异：</p>
+        <table>
+          <thead><tr><th>核对项</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>时钟树与最高主频</td><td>F103 为 72MHz，F407 为 168MHz，Flash 等待周期随之不同</td></tr>
+            <tr><td>外设寄存器差异</td><td>F1 的 GPIO 使用 CRL/CRH，F4 使用 MODER/OTYPER/OSPEEDR，驱动代码不能直接复用</td></tr>
+            <tr><td>中断向量表</td><td>向量顺序和数量不同，必须使用目标芯片的启动文件</td></tr>
+            <tr><td>国产兼容芯片</td><td>GD32、APM32 等多数“引脚兼容、寄存器高度兼容”，但 Flash 等待、启动时序、部分外设的时序与 ST 有差异，需按各自手册确认；Flash 擦写时间也可能不同</td></tr>
+            <tr><td>优先级位数</td><td>STM32 实现 4 位优先级，其他厂商可能是 3 位，<code>NVIC_SetPriority</code> 的取值范围随之变化</td></tr>
+          </tbody>
+        </table>
+        <p>迁移时推荐先跑通“时钟 + GPIO + 串口 + SysTick”的最小工程，确认主频和串口波特率正确，再逐个移植外设驱动。外设访问如果已经按 <a href="../../../foundation/embedded-c/c-modular-driver-layer/c-modular-driver-layer.html?v=9d252b978179">模块化与驱动分层设计</a> 的方式隔离在 BSP 层，迁移工作量会小很多。</p>
+      </section>
+
+      <section>
+        <h2>13. 工程实践要点</h2>
         <ul>
           <li><strong>工具链匹配</strong>：编译、链接、调试工具链必须与芯片内核匹配。Cortex-M3 用 armv7-m 架构，Cortex-M4（带 FPU）需要 armv7em 架构。Keil/IAR/GCC 都有对应配置项。</li>
           <li><strong>中断优先级</strong>：STM32 使用 4 位（16 级），NXP LPC 可能用 3 位（8 级）。优先级数值越小优先级越高，与直觉相反，容易出错。</li>
@@ -536,10 +575,10 @@ SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk  // HCLK 时钟
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

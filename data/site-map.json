@@ -199,16 +199,8 @@
     "children": [
       {
         "id": "common",
-        "title": "通用基础",
-        "desc": "GPIO、Timer、ADC、UART、SPI、IIC、Flash 和 Bootloader 相关内容后续补充。",
-        "placeholders": [
-          "GPIO",
-          "Timer",
-          "ADC",
-          "UART/SPI/IIC",
-          "Flash",
-          "Bootloader"
-        ],
+        "title": "内核架构",
+        "desc": "主流 MCU 内核架构与工程要点：Cortex-M0/M3/M4、8051、AVR、MSP430、PIC、STM8、MIPS、Xtensa、RISC-V。",
         "articles": [
           {
             "navTitle": "ARM Cortex-M3 与 Cortex-M4 架构详解",
@@ -220,7 +212,7 @@
               "Cortex-M4",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "ARM Cortex-M0 与 Cortex-M0+ 架构详解",
@@ -232,7 +224,7 @@
               "Cortex-M0+",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "8051 内核架构详解",
@@ -244,7 +236,7 @@
               "Intel",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "AVR 架构详解",
@@ -256,7 +248,7 @@
               "Arduino",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "MSP430 架构详解",
@@ -268,7 +260,7 @@
               "16位",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "PIC 架构详解",
@@ -281,7 +273,7 @@
               "16位",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "STM8 架构详解",
@@ -293,7 +285,7 @@
               "8位",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "PIC32 MIPS 架构详解",
@@ -305,7 +297,7 @@
               "32位",
               "架构"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "Xtensa 架构详解",
@@ -316,7 +308,7 @@
               "Xtensa",
               "LX6"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "RISC-V 架构详解",
@@ -327,7 +319,99 @@
               "ESP32-C6",
               "RISC-V"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
+          }
+        ]
+      },
+      {
+        "id": "peripheral",
+        "title": "外设与工程实践",
+        "desc": "跨芯片通用的外设与工程能力：GPIO、定时器与 PWM、ADC、UART/SPI/I2C、Flash 存储、Bootloader、时钟复位低功耗、调试与量产烧写。",
+        "articles": [
+          {
+            "navTitle": "MCU · GPIO 与外部中断",
+            "navDesc": "引脚模式 / 电气特性 / 上电毛刺 / 按键消抖 / EXTI / 未用引脚 / 外围电路设计",
+            "href": "articles/mcu/peripheral/mcu-gpio/mcu-gpio.html",
+            "tags": [
+              "GPIO",
+              "外部中断"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · 定时器与 PWM",
+            "navDesc": "PSC/ARR 计算 / PWM 分辨率 / 预装载 / 死区与刹车 / 输入捕获 / 触发 ADC / 编码器",
+            "href": "articles/mcu/peripheral/mcu-timer-pwm/mcu-timer-pwm.html",
+            "tags": [
+              "定时器",
+              "PWM",
+              "输入捕获"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · ADC 采样与模拟前端",
+            "navDesc": "采样时间与源阻抗 / VREFINT 校准 / 定时触发 + DMA / 滤波与过采样 / 布局 / NTC 采集",
+            "href": "articles/mcu/peripheral/mcu-adc/mcu-adc.html",
+            "tags": [
+              "ADC",
+              "模拟采样"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · UART、SPI 与 I2C",
+            "navDesc": "选型对比 / 波特率误差 / RS-485 方向控制 / SPI 模式 / I2C 上拉与总线恢复 / 逻辑分析仪",
+            "href": "articles/mcu/peripheral/mcu-uart-spi-i2c/mcu-uart-spi-i2c.html",
+            "tags": [
+              "UART",
+              "SPI",
+              "I2C"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · 内部 Flash 与数据存储",
+            "navDesc": "擦写特性 / 擦除停顿 / 写入校验 / A/B 双备份 / EEPROM 模拟与寿命 / 读保护",
+            "href": "articles/mcu/peripheral/mcu-flash-storage/mcu-flash-storage.html",
+            "tags": [
+              "Flash",
+              "数据存储"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · Bootloader 与固件升级",
+            "navDesc": "分区方案 / 跳转流程 / 包头与签名 / 防回滚 / 升级协议 / 掉电保护 / 试运行回退",
+            "href": "articles/mcu/peripheral/mcu-bootloader-ota/mcu-bootloader-ota.html",
+            "tags": [
+              "Bootloader",
+              "OTA",
+              "固件升级"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · 时钟、复位与低功耗",
+            "navDesc": "时钟源与切换顺序 / 复位原因 / BOR / 看门狗 / Sleep-Stop-Standby / 睡眠电流排查",
+            "href": "articles/mcu/peripheral/mcu-clock-reset-lowpower/mcu-clock-reset-lowpower.html",
+            "tags": [
+              "时钟",
+              "复位",
+              "低功耗"
+            ],
+            "updated": "2026-10-31"
+          },
+          {
+            "navTitle": "MCU · 调试接口与量产烧写",
+            "navDesc": "SWD/JTAG / 连接失败排查 / SWO 与 RTT / DWT 计时 / 命令行烧录 / 量产流程 / 产线测试",
+            "href": "articles/mcu/peripheral/mcu-debug-programming/mcu-debug-programming.html",
+            "tags": [
+              "SWD",
+              "调试",
+              "量产烧写"
+            ],
+            "updated": "2026-10-31"
           }
         ]
       },
@@ -355,7 +439,7 @@
               "ADC",
               "PWM"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           }
         ]
       },
@@ -401,7 +485,7 @@
               "8051",
               "C2 Debug"
             ],
-            "updated": "2026-09-02"
+            "updated": "2026-10-31"
           },
           {
             "navTitle": "ESP32 · C2 接口模拟烧写 EFM8 Flash",

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MCU Bootloader 与固件升级 - XYJ</title>
+  <meta name="description" content="整理 MCU 自定义 Bootloader 与远程升级的设计方法：分区方案、启动与跳转流程、升级包头与 CRC / 签名校验、防回滚、分包升级协议、掉电保护与试运行回退，并以 RS-485 批量远程升级为例。">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>MCU Bootloader 与固件升级</h1>
+      <p class="article-summary">整理 MCU 自定义 Bootloader 与远程升级的设计方法：分区方案、启动与跳转流程、升级包头与 CRC / 签名校验、防回滚、分包升级协议、掉电保护与试运行回退，并以 RS-485 批量远程升级为例。</p>
+
+      <section>
+        <h2>1. 为什么需要自己的 Bootloader</h2>
+        <p>很多 MCU 出厂自带系统 Bootloader（固化在 ROM 中，可通过串口、USB、CAN 下载程序），但它通常需要拉高 BOOT 引脚进入，适合生产烧录，不适合产品交付后的远程升级。产品需要以下能力时，就要自己写 Bootloader：</p>
+        <ul>
+          <li>通过产品已有的通信接口（RS-485、CAN、蓝牙、4G、Wi-Fi）升级，不拆机、不接调试器。</li>
+          <li>升级过程中断电或通信中断，设备不能变砖。</li>
+          <li>只接受合法的固件：校验完整性，必要时验证签名。</li>
+          <li>升级失败可以回退到旧版本。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. 分区方案</h2>
+        <table>
+          <thead><tr><th>方案</th><th>布局</th><th>优点</th><th>缺点</th></tr></thead>
+          <tbody>
+            <tr><td>单 App + Bootloader 直接写</td><td>Boot / App</td><td>占用 Flash 少</td><td>升级中断后 App 损坏，只能停在 Boot 等待重新升级</td></tr>
+            <tr><td>下载区 + 运行区</td><td>Boot / App / Download</td><td>App 下载完整、校验通过后才覆盖，失败时旧 App 仍可运行</td><td>需要两倍 App 空间；覆盖过程中断电仍需 Boot 恢复</td></tr>
+            <tr><td>A/B 双分区</td><td>Boot / App A / App B</td><td>新固件写入另一分区，切换只改启动标志，可回退</td><td>App 需要支持在两个地址运行，或 Boot 负责搬运</td></tr>
+            <tr><td>外部 Flash 存放新固件</td><td>Boot / App；新固件在 SPI Flash</td><td>内部 Flash 只需一份 App</td><td>依赖外部存储的可靠性</td></tr>
+          </tbody>
+        </table>
+        <p>内部 Flash 较小的 MCU 常用“下载区 + 运行区”或“外部 Flash 缓存”方案；资源充足、对可靠性要求高的产品（如 ESP32 的 OTA 机制）采用 A/B 双分区。</p>
+        <pre><code class="language-text">例：512KB Flash，下载区 + 运行区方案
+0x08000000  Bootloader   32KB
+0x08008000  参数区        8KB   （升级不擦除）
+0x0800A000  App 运行区   232KB
+0x08044000  App 下载区   232KB
+0x0807E000  升级信息      8KB   （标志、版本、CRC）</code></pre>
+      </section>
+
+      <section>
+        <h2>3. 启动流程与跳转</h2>
+        <p>Bootloader 每次上电的典型流程：</p>
+        <ol>
+          <li>初始化最少的硬件（时钟、看门狗、升级用的通信接口）。</li>
+          <li>读取升级信息区：是否有待安装的新固件？上次升级是否完成？</li>
+          <li>如果下载区有完整、校验通过的新固件，把它拷贝到运行区，校验后更新升级信息。</li>
+          <li>校验运行区 App 的完整性（CRC 或签名）。</li>
+          <li>校验通过则跳转到 App；失败则停留在 Bootloader，等待重新升级。</li>
+        </ol>
+        <p>跳转到 App 前要把 Bootloader 用过的中断、外设、SysTick 恢复到复位状态，设置 <code>VTOR</code> 和 MSP 后再跳转，具体代码和常见坑见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=9d252b978179">编译、链接与启动流程</a>。App 一侧需要修改链接地址和向量表偏移。</p>
+      </section>
+
+      <section>
+        <h2>4. 升级包与校验</h2>
+        <p><strong>固件包头</strong>：给每个升级包加一个头部，Bootloader 和升级工具据此判断能否安装。</p>
+        <pre><code class="language-c">typedef struct {
+    uint32_t magic;          /* 固定值，识别是否为本产品的升级包 */
+    uint32_t hw_id;          /* 适用的硬件型号，防止刷错固件 */
+    uint32_t version;        /* 版本号，可用于防回滚策略 */
+    uint32_t image_size;
+    uint32_t image_crc32;    /* 固件本体的 CRC */
+    uint32_t header_crc32;   /* 头部自身的 CRC */
+    uint8_t  signature[64];  /* 可选：ECDSA 签名 */
+} fw_header_t;</code></pre>
+        <p><strong>完整性 vs 合法性</strong>：</p>
+        <ul>
+          <li>CRC32 只能检查传输错误和存储损坏，任何人都能生成正确的 CRC，不能防止恶意固件。</li>
+          <li>需要防止被刷入非官方固件时，使用数字签名：厂商用私钥对固件哈希签名，Bootloader 内置公钥验签。常用 ECDSA P-256 或 Ed25519，MCU 上可用 mbedTLS、micro-ecc 等库实现。</li>
+          <li>公钥所在的 Bootloader 区域应开启写保护，配合读保护，防止公钥被替换。</li>
+        </ul>
+        <p><strong>防回滚</strong>：如果旧版本存在安全漏洞，攻击者可能故意降级到旧版本。可以在 Bootloader 中记录允许的最低版本号，拒绝更低版本的固件。</p>
+      </section>
+
+      <section>
+        <h2>5. 升级协议</h2>
+        <p>升级协议要解决的问题是：数据可能丢包、乱序、重复，链路可能随时中断。常用做法：</p>
+        <ul>
+          <li><strong>分包传输</strong>：每包带序号和长度，例如每包 256 字节（与 Flash 写入单位对齐），接收端校验每包的 CRC 并回复 ACK / NACK。</li>
+          <li><strong>断点续传</strong>：设备记录已成功写入的偏移，链路中断后上位机从该偏移继续，不必从头再来。</li>
+          <li><strong>整体校验</strong>：全部接收完成后，对整个固件计算 CRC 或验签，通过后才标记为“可安装”。</li>
+          <li><strong>超时与重试</strong>：每包设置应答超时和重试次数，超过后放弃本次升级，设备继续运行旧固件。</li>
+        </ul>
+        <p>串口升级也可以直接使用成熟的 YModem 协议（自带分包、CRC、重传），上位机侧有现成工具（如 SecureCRT、Tera Term）支持。</p>
+      </section>
+
+      <section>
+        <h2>6. 掉电与异常保护</h2>
+        <p>设计升级流程时，假设“任何一步都可能断电”，逐步检查断电后的状态：</p>
+        <table>
+          <thead><tr><th>断电时刻</th><th>风险</th><th>保护手段</th></tr></thead>
+          <tbody>
+            <tr><td>下载过程中</td><td>下载区数据不完整</td><td>下载区未通过整体校验前不标记为可安装，旧 App 不受影响</td></tr>
+            <tr><td>拷贝到运行区过程中</td><td>运行区 App 已损坏</td><td>升级信息区记录“拷贝进行中”，Boot 重启后检测到该状态，重新拷贝</td></tr>
+            <tr><td>新 App 首次运行崩溃</td><td>设备反复重启</td><td>试运行机制：新 App 启动后运行一段时间、确认关键功能正常，才写入“确认”标志；Boot 发现多次启动未确认则回退</td></tr>
+          </tbody>
+        </table>
+        <p><strong>试运行确认</strong>是很多 OTA 方案的关键设计（ESP-IDF 的 <code>esp_ota_mark_app_valid_cancel_rollback()</code> 即为此目的）：新固件“能启动”不代表“能正常工作”，例如新固件里的通信模块初始化失败，设备就再也无法接收下一次升级。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：RS-485 远程升级一批现场设备</h2>
+        <p>需求：现场 200 台设备挂在 RS-485 总线上，通过网关远程升级。</p>
+        <ol>
+          <li><strong>分区</strong>：Bootloader 32KB、运行区、下载区、升级信息区，参数区独立，升级不擦除。</li>
+          <li><strong>App 负责下载</strong>：正常运行时，App 接收升级包写入下载区，业务不中断；全部收到并校验通过后，写升级标志并复位。</li>
+          <li><strong>Bootloader 负责安装</strong>：检测到升级标志，拷贝下载区到运行区，校验后跳转。</li>
+          <li><strong>试运行</strong>：新 App 启动后通信正常、自检通过，写确认标志；连续 3 次启动未确认，Bootloader 回退到备份。</li>
+          <li><strong>批量策略</strong>：先升级 2~3 台观察一天，再分批升级；网关记录每台设备的版本号和升级结果。</li>
+          <li><strong>救砖手段</strong>：Bootloader 自身也支持通过 RS-485 接收固件，即使 App 完全损坏，也能在现场重新升级。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>8. Bootloader 与升级检查清单</h2>
+        <ul>
+          <li>分区方案是否明确，参数区、校准数据在升级时是否会被擦除。</li>
+          <li>App 的链接地址、<code>VTOR</code> 是否与分区一致，跳转前是否清理了中断和外设。</li>
+          <li>升级包是否带硬件型号、版本号、长度和 CRC，是否需要签名和防回滚。</li>
+          <li>升级协议是否支持分包校验、重传、超时和断点续传。</li>
+          <li>每个步骤断电后设备能否恢复，是否有“拷贝进行中”等状态记录。</li>
+          <li>新固件是否有试运行确认和自动回退机制。</li>
+          <li>Bootloader 区域是否写保护，Bootloader 自身能否作为最后的救砖手段。</li>
+          <li>批量升级是否分批进行，是否记录每台设备的版本和升级结果。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+</body>
+</html>

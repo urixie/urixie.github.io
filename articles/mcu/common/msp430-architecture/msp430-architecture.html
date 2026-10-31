@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>MSP430 架构详解 - XYJ</title>
   <meta name="description" content="详细整理 TI MSP430 内核架构、寄存器、指令系统、中断机制、存储布局和低功耗特性。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -296,9 +296,49 @@ __interrupt void Port1_ISR(void) {
       </section>
 
       <section>
-        <h2>7. 工程实践要点</h2>
+        <h2>7. 工作场景：MSP430 低功耗编程模式</h2>
+        <p>MSP430 的设计核心是“平时睡眠、事件唤醒、处理完继续睡”，它的低功耗模式（LPM0~LPM4）直接通过状态寄存器 SR 中的位控制，编程范式与其他 MCU 有明显区别。</p>
+        <p><strong>启动第一件事：处理看门狗</strong>。MSP430 复位后看门狗默认使能，大约 32ms（使用默认时钟时）就会复位芯片。如果启动代码中初始化大数组耗时过长，甚至在进入 <code>main</code> 之前就会被复位。</p>
+        <pre><code class="language-c">#include &lt;msp430.h&gt;
+
+int main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;        /* 停止看门狗：必须带密码 WDTPW */
+    PM5CTL0 &amp;= ~LOCKLPM5;            /* FRAM 系列：解除上电后 GPIO 的高阻锁定，否则端口配置不生效 */
+    /* ... */
+}</code></pre>
+        <p>大型全局数组的初始化发生在 <code>main</code> 之前，可以通过编译器提供的启动钩子（如 TI 编译器的 <code>_system_pre_init()</code>）提前停止看门狗。</p>
+        <p><strong>“睡眠-唤醒”主循环</strong>：主循环进入低功耗模式，中断处理完事件后修改栈上保存的 SR，让 CPU 退出中断时保持唤醒：</p>
+        <pre><code class="language-c">int main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;
+    init_hardware();
+    for (;;) {
+        __bis_SR_register(LPM3_bits | GIE);    /* 进入 LPM3 并开中断，CPU 在此停住 */
+        __no_operation();
+        process_events();                      /* 被中断唤醒后才执行到这里 */
+    }
+}
+
+#pragma vector = TIMER0_A0_VECTOR
+__interrupt void timer_a0_isr(void)
+{
+    event_flags |= EVT_TICK;
+    __bic_SR_register_on_exit(LPM3_bits);      /* 退出中断后不再回到 LPM3，主循环继续执行 */
+}</code></pre>
+        <p>如果中断中没有调用 <code>__bic_SR_register_on_exit</code>，退出中断后 CPU 会恢复进入中断前的状态，继续睡眠，主循环中的处理代码永远不会执行。</p>
+        <p><strong>其他要点</strong>：</p>
         <ul>
-          <li><strong>看门狗</strong>：复位后看门狗默认使能（1s 溢出），程序必须先停止或周期喂狗，否则芯片不断复位。</li>
+          <li>端口中断的触发边沿通过 PxIES 选择，修改 PxIES 可能误置位中断标志，修改后应清除 PxIFG。</li>
+          <li>未使用的引脚配置为输出低电平或开启上下拉，否则 LPM 下的电流会远超手册值。</li>
+          <li>FRAM 系列的 FRAM 默认可能被 MPU 写保护，运行时写入 FRAM 变量前需要配置 MPU 或使用 <code>__attribute__((persistent))</code> 并按手册解除写保护。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. 工程实践要点</h2>
+        <ul>
+          <li><strong>看门狗</strong>：复位后看门狗默认使能（默认时钟下约 32ms 溢出），程序必须先停止或周期喂狗，否则芯片不断复位。</li>
           <li><strong>Flash 写入</strong>：写入 Flash 前必须先解锁（写入特定序列到 FCTL3、FCTL1），写入期间 CPU 暂停。</li>
           <li><strong>堆栈</strong>：堆栈在 SRAM 区，向下增长。调用函数和中断都会压栈，局部变量过多可能导致栈溢出。</li>
           <li><strong>中断向量定位</strong>：中断向量地址由芯片决定，参考数据手册。不同 MSP430 型号向量表可能不同。</li>
@@ -307,10 +347,10 @@ __interrupt void Port1_ISR(void) {
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

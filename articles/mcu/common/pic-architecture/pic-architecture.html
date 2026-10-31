@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>PIC 架构详解 - XYJ</title>
   <meta name="description" content="详细整理 Microchip PIC16 PIC18 PIC24 dsPIC 内核架构、寄存器、指令系统、中断机制、存储布局和外设配置。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -261,7 +261,25 @@
       </section>
 
       <section>
-        <h2>7. 工程实践要点</h2>
+        <h2>7. 工作场景：PIC 8 位单片机（XC8）编程要点</h2>
+        <p><strong>配置位写在代码里</strong>：振荡器类型、看门狗、低压编程、代码保护等配置位通过 <code>#pragma config</code> 写入，烧录时一并编程。配置错误时芯片可能不运行、不断复位，或者调试器无法连接：</p>
+        <pre><code class="language-c">#pragma config FEXTOSC = OFF      /* 不使用外部振荡器 */
+#pragma config RSTOSC = HFINT32   /* 上电使用 32MHz 内部振荡器 */
+#pragma config WDTE = OFF         /* 关闭看门狗（量产时按需开启） */
+#pragma config LVP = ON           /* 保留低压编程，方便 ICSP 烧录 */</code></pre>
+        <p>配置位名称因型号而异，MPLAB X 的“Configuration Bits”窗口可以生成对应的代码。</p>
+        <p><strong>ANSEL 的默认值</strong>：很多 PIC 的 I/O 引脚复位后默认是模拟输入（ANSELx = 1）。此时把引脚当数字输入读取，结果永远是 0；按键、传感器信号“读不到”，往往就是忘了清除 ANSEL。</p>
+        <p><strong>写 LAT，读 PORT</strong>：PIC16 早期型号对 PORT 寄存器的位操作是“读-改-写”：读取的是引脚的实际电平而不是输出锁存值。如果某个输出引脚因为负载重、电容大还没达到目标电平，对同一端口其他位的 <code>PORTB |= 0x01</code> 就会把它的错误电平写回去。有 LAT 寄存器的型号（PIC18 和增强型 PIC16）应始终写 LAT、读 PORT。</p>
+        <pre><code class="language-c">TRISBbits.TRISB0 = 0;    /* RB0 设为输出 */
+ANSELBbits.ANSB1 = 0;    /* RB1 设为数字输入 */
+LATBbits.LATB0 = 1;      /* 输出用 LAT */
+if (PORTBbits.RB1) { }   /* 读取用 PORT */</code></pre>
+        <p><strong>中断</strong>：PIC16 只有一个中断向量，所有中断在同一个函数里按标志位逐个判断；PIC18 有高低两级优先级向量。中断函数中必须检查“使能位 &amp;&amp; 标志位”，并在处理后清除标志位，否则会反复进入中断。</p>
+        <p><strong>硬件堆栈深度有限</strong>：PIC16 的返回地址堆栈只有 8~16 级，函数嵌套过深或在中断中调用多层函数会导致堆栈溢出，程序跑飞且没有任何提示。XC8 的编译报告会给出最大调用深度，应关注该数值。</p>
+      </section>
+
+      <section>
+        <h2>8. 工程实践要点</h2>
         <ul>
           <li><strong>Bank 切换</strong>：PIC16/18 访问 bank 外的寄存器必须先设置 BSR/BANK。频繁切换 bank 会增加代码复杂度和执行时间。</li>
           <li><strong>看门狗</strong>：使能看门狗后必须周期性执行 CLRWDT 指令喂狗，否则芯片复位。</li>
@@ -274,10 +292,10 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

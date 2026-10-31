@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MCU GPIO 与外部中断 - XYJ</title>
+  <meta name="description" content="整理 MCU GPIO 的工程要点：引脚模式与电气特性、上电默认状态与毛刺、按键消抖、外部中断配置、未使用引脚处理，以及 LED、按键、继电器、I2C 等常见外围电路的引脚设计。">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>MCU GPIO 与外部中断</h1>
+      <p class="article-summary">整理 MCU GPIO 的工程要点：引脚模式与电气特性、上电默认状态与毛刺、按键消抖、外部中断配置、未使用引脚处理，以及 LED、按键、继电器、I2C 等常见外围电路的引脚设计。</p>
+
+      <section>
+        <h2>1. GPIO 为什么值得单独讲</h2>
+        <p>GPIO 是每个 MCU 项目最先配置、看起来也最简单的外设：设个方向、写个电平，LED 就亮了。但现场问题里有相当一部分最终追到 GPIO：上电瞬间继电器误动作、按键偶尔触发两次、低功耗电流比手册大几十倍、I2C 总线被拉死、某个引脚一配置就让调试器断开。</p>
+        <p>这些问题的根源都在于没有把“引脚的电气特性”和“软件配置”放在一起考虑。本文按工作中的实际关注点整理 GPIO 和外部中断。</p>
+      </section>
+
+      <section>
+        <h2>2. 引脚模式与电气特性</h2>
+        <table>
+          <thead><tr><th>模式</th><th>特性</th><th>典型用途</th></tr></thead>
+          <tbody>
+            <tr><td>推挽输出</td><td>能主动输出高和低，驱动能力强</td><td>LED、使能脚、片选、数字信号</td></tr>
+            <tr><td>开漏输出</td><td>只能拉低，高电平靠外部或内部上拉</td><td>I2C、多设备线与、电平转换（上拉到另一电压）</td></tr>
+            <tr><td>浮空输入</td><td>不接上下拉，悬空时电平不确定</td><td>外部已有确定驱动的信号</td></tr>
+            <tr><td>上拉 / 下拉输入</td><td>内部约 30~50kΩ 电阻提供默认电平</td><td>按键、拨码开关</td></tr>
+            <tr><td>模拟</td><td>关闭数字输入缓冲，漏电最小</td><td>ADC、DAC、比较器引脚，以及低功耗下的未用引脚</td></tr>
+            <tr><td>复用功能</td><td>引脚交给外设控制</td><td>UART、SPI、定时器 PWM</td></tr>
+          </tbody>
+        </table>
+        <p>几个容易忽略的电气参数：</p>
+        <ul>
+          <li><strong>输出速度 / 压摆率</strong>：很多 MCU 可以配置输出翻转速度（如 STM32 的 OSPEEDR）。速度越高边沿越陡，EMI 和信号振铃越严重。普通 LED、继电器控制用最低速度即可，只有 SPI 高速时钟等信号才需要高速档。</li>
+          <li><strong>驱动电流</strong>：单个引脚通常能提供 8~20mA，但整个端口和整颗芯片有总电流上限。多个 LED 同时点亮时要核算总电流，大电流负载一律通过三极管或 MOSFET 驱动。</li>
+          <li><strong>5V 容忍</strong>：标注 FT（Five-volt Tolerant）的引脚在数字输入模式下可以承受 5V，但配置为模拟模式或开启内部上拉时不一定容忍，具体看手册。不容忍的引脚接 5V 信号需要分压或电平转换。</li>
+          <li><strong>施密特触发输入</strong>：数字输入一般带迟滞，对缓慢变化或带噪声的信号更可靠；如果把一个慢速变化的模拟信号直接当数字输入读，可能在阈值附近反复跳变。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. 上电默认状态与引脚毛刺</h2>
+        <p>MCU 上电复位后，大部分引脚处于输入（浮空或模拟）状态，直到软件完成配置。这段时间通常有几毫秒到几百毫秒（等待时钟稳定、Bootloader 运行）。如果引脚控制的是继电器、电机驱动、电源使能，浮空期间就可能误动作。</p>
+        <p>处理原则：</p>
+        <ul>
+          <li><strong>硬件上用外部电阻确定默认状态</strong>：例如电机驱动的使能脚加下拉电阻，确保 MCU 未初始化时电机一定不转。不要依赖软件尽快初始化。</li>
+          <li><strong>先写输出寄存器，再切换为输出模式</strong>：否则切换的瞬间会按寄存器复位值（通常为 0）输出，产生一个毛刺。</li>
+        </ul>
+        <pre><code class="language-c">/* 低电平有效的继电器：希望上电后保持关闭（高电平） */
+GPIOB-&gt;BSRR = GPIO_BSRR_BS5;                 /* 1. 先把输出数据寄存器设为 1 */
+GPIOB-&gt;MODER = (GPIOB-&gt;MODER &amp; ~(3U &lt;&lt; 10)) | (1U &lt;&lt; 10);   /* 2. 再切换为输出模式 */</code></pre>
+        <ul>
+          <li><strong>注意调试引脚和启动配置引脚</strong>：SWD 的 SWDIO/SWCLK、BOOT0、ESP32 的 strapping 引脚在复位期间有特殊功能，外部电路不能把它们拉到错误的电平。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 输入读取与按键消抖</h2>
+        <p>机械按键按下和松开时，触点会弹跳几毫秒到十几毫秒，直接读电平会得到一串 0/1 抖动。软件消抖的两种常用方法：</p>
+        <ul>
+          <li><strong>定时采样</strong>：每 5~10ms 读一次，连续多次一致才认为状态改变。实现简单、可靠，推荐作为默认方案。</li>
+          <li><strong>中断 + 延时确认</strong>：边沿中断只用来唤醒或启动一个定时器，定时器到期后再读电平确认。适合需要低功耗、平时不轮询的设备。</li>
+        </ul>
+        <p>不推荐在边沿中断里直接计数或执行动作：抖动会产生多次中断，还会让 CPU 在中断里频繁进出。完整的按键状态机（短按、长按、松开）见 <a href="../../../foundation/data-structure/c-state-machine/c-state-machine.html?v=9d252b978179">状态机与事件驱动设计</a>。</p>
+        <pre><code class="language-c">/* 定时采样消抖：每 5ms 调用一次，连续 4 次一致才更新稳定状态 */
+typedef struct { uint8_t history; bool stable; } debounce_t;
+
+bool debounce_update(debounce_t *d, bool raw)
+{
+    d-&gt;history = (uint8_t)((d-&gt;history &lt;&lt; 1) | (raw ? 1U : 0U));
+    if ((d-&gt;history &amp; 0x0FU) == 0x0FU) d-&gt;stable = true;
+    if ((d-&gt;history &amp; 0x0FU) == 0x00U) d-&gt;stable = false;
+    return d-&gt;stable;
+}</code></pre>
+        <p>硬件上给按键并联一个 100nF 左右的电容、串一个小电阻，可以滤掉大部分抖动和 ESD 干扰，软件消抖仍然建议保留。</p>
+      </section>
+
+      <section>
+        <h2>5. 外部中断</h2>
+        <p>外部中断（STM32 中叫 EXTI）在引脚电平变化时产生中断，常用于按键唤醒、编码器、传感器数据就绪信号、过流保护等。</p>
+        <p>使用时要注意：</p>
+        <ul>
+          <li><strong>中断线的复用关系</strong>：STM32 的 EXTI0~15 每条线只能连接一个端口的同号引脚，PA0 和 PB0 不能同时作为外部中断。硬件设计阶段就要规划好。</li>
+          <li><strong>触发方式</strong>：上升沿、下降沿或双边沿。电平类信号（如传感器的 DRDY）用边沿触发时，如果中断还没处理完信号又变化了，可能丢失事件，处理函数里要再读一次电平确认。</li>
+          <li><strong>清除挂起位</strong>：进入中断后尽早清除 EXTI 挂起位，否则退出后会立刻再次进入。多条中断线共享一个中断向量（如 EXTI9_5）时，需要在处理函数里逐一判断是哪条线触发的。</li>
+          <li><strong>噪声敏感</strong>：长线、继电器附近的引脚容易产生误触发，必要时加 RC 滤波，或者在中断里做二次确认。</li>
+        </ul>
+        <pre><code class="language-c">void EXTI9_5_IRQHandler(void)
+{
+    uint32_t pending = EXTI-&gt;PR &amp; (EXTI_PR_PR6 | EXTI_PR_PR8);
+    EXTI-&gt;PR = pending;                       /* 写 1 清除，只清本次处理的位 */
+    if (pending &amp; EXTI_PR_PR6) event_post(EV_SENSOR_READY);
+    if (pending &amp; EXTI_PR_PR8) event_post(EV_BUTTON_EDGE);
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>6. 未使用引脚的处理</h2>
+        <p>未使用的引脚如果悬空在数字输入模式，电平会随环境漂移，输入缓冲器在中间电平时会产生贯穿电流，导致功耗增加，甚至引入干扰。常见的处理方式：</p>
+        <table>
+          <thead><tr><th>处理方式</th><th>优点</th><th>注意</th></tr></thead>
+          <tbody>
+            <tr><td>配置为模拟输入</td><td>关闭数字缓冲，漏电最小</td><td>STM32L4、G0 等较新系列复位后即为模拟模式；F1、F4 默认为浮空输入，需要软件配置</td></tr>
+            <tr><td>配置为输出低电平</td><td>状态确定</td><td>万一外部误接电源会形成短路</td></tr>
+            <tr><td>输入 + 内部上拉 / 下拉</td><td>状态确定，较安全</td><td>有几十微安级的静态电流可能（取决于外部）</td></tr>
+          </tbody>
+        </table>
+        <p>低功耗产品中，进入睡眠前应逐个检查每个引脚的状态，这往往是“睡眠电流达不到手册值”的首要原因，详见 <a href="../mcu-clock-reset-lowpower/mcu-clock-reset-lowpower.html?v=9d252b978179">时钟、复位与低功耗</a>。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：常见外围电路的 GPIO 设计</h2>
+        <table>
+          <thead><tr><th>外设</th><th>引脚配置</th><th>硬件要点</th></tr></thead>
+          <tbody>
+            <tr><td>LED</td><td>推挽输出，低速</td><td>串联限流电阻；灌电流（低电平点亮）通常驱动能力更强</td></tr>
+            <tr><td>按键</td><td>输入 + 上拉，按下接地</td><td>并联电容防抖，长线加 ESD 保护</td></tr>
+            <tr><td>继电器 / 电机使能</td><td>推挽输出，经三极管或 MOSFET 驱动</td><td>使能脚外部下拉确定默认关闭；继电器线圈并联续流二极管</td></tr>
+            <tr><td>蜂鸣器</td><td>有源：推挽输出；无源：定时器 PWM</td><td>同样通过三极管驱动</td></tr>
+            <tr><td>I2C</td><td>开漏输出 + 上拉</td><td>外部上拉 2.2k~10kΩ，按速率和总线电容选择</td></tr>
+            <tr><td>3.3V MCU 控制 5V 器件</td><td>开漏输出 + 上拉到 5V（引脚需 FT）</td><td>或使用电平转换芯片</td></tr>
+            <tr><td>光耦输入</td><td>输入 + 上拉</td><td>光耦输出端的上拉电阻决定响应速度</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>8. GPIO 检查清单</h2>
+        <ul>
+          <li>每个引脚的模式、上下拉、速度是否与外部电路匹配，速度是否选择了够用的最低档。</li>
+          <li>控制执行机构的引脚，硬件上是否有确定的默认电平，软件是否先写数据寄存器再切输出。</li>
+          <li>5V 信号是否只接到了 FT 引脚，且在该模式下确实容忍。</li>
+          <li>端口和芯片的总输出电流是否在规格内，大电流负载是否通过驱动管。</li>
+          <li>按键是否做了消抖，外部中断是否尽早清除挂起位、是否做了二次确认。</li>
+          <li>外部中断线是否存在同号引脚冲突。</li>
+          <li>未使用引脚是否配置为模拟或确定电平，低功耗前是否逐个检查。</li>
+          <li>调试引脚、启动配置引脚是否被外部电路或软件误配置。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MCU 定时器与 PWM - XYJ</title>
+  <meta name="description" content="整理 MCU 定时器的工程用法：时钟与预分频计算、PWM 频率与分辨率取舍、预装载、边沿与中心对齐、互补输出与死区、输入捕获测频测宽、定时器触发 ADC，以及常见的定时器资源规划。">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>MCU 定时器与 PWM</h1>
+      <p class="article-summary">整理 MCU 定时器的工程用法：时钟与预分频计算、PWM 频率与分辨率取舍、预装载、边沿与中心对齐、互补输出与死区、输入捕获测频测宽、定时器触发 ADC，以及常见的定时器资源规划。</p>
+
+      <section>
+        <h2>1. 定时器能做什么</h2>
+        <p>定时器是 MCU 里用途最广的外设之一，本质是一个按时钟递增或递减的计数器，加上若干比较 / 捕获通道。同一个定时器可以完成很多看似不相关的任务：</p>
+        <table>
+          <thead><tr><th>用途</th><th>原理</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td>周期中断</td><td>计数到重装值时产生更新中断</td><td>1ms 系统节拍、周期采样、控制环</td></tr>
+            <tr><td>PWM 输出</td><td>计数值与比较值比较，翻转输出电平</td><td>LED 调光、电机调速、蜂鸣器、DC-DC 控制</td></tr>
+            <tr><td>输入捕获</td><td>外部边沿到来时锁存当前计数值</td><td>测频率、测脉宽、红外解码、超声波测距</td></tr>
+            <tr><td>输出比较</td><td>计数到比较值时翻转或产生中断</td><td>精确定时的脉冲、步进电机控制</td></tr>
+            <tr><td>编码器接口</td><td>根据 A/B 两相信号自动加减计数</td><td>旋钮、电机编码器测速与位置</td></tr>
+            <tr><td>触发其他外设</td><td>更新事件或比较事件触发 ADC、DAC、DMA</td><td>定时 ADC 采样、DAC 波形输出</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>2. 时钟、预分频与重装值的计算</h2>
+        <p>定时器的计数频率由时钟源和预分频器（PSC）决定，周期由自动重装值（ARR）决定：</p>
+        <pre><code class="language-text">计数频率 f_cnt = f_timer_clk / (PSC + 1)
+更新频率 f_update = f_cnt / (ARR + 1)</code></pre>
+        <p><strong>第一个坑：定时器时钟不一定等于 APB 总线时钟。</strong> 以 STM32F4 为例，当 APB 预分频系数不为 1 时，挂在该总线上的定时器时钟是 APB 时钟的 2 倍。例如 APB1 = 42MHz（分频系数 4），TIM2~TIM7 的时钟是 84MHz。很多“定时器频率差了一倍”的问题都源于此，计算前务必对照手册的时钟树。</p>
+        <pre><code class="language-c">/* 目标：TIM2 产生 1kHz 更新中断，定时器时钟 84MHz */
+/* 选择计数频率 1MHz（每个计数 1us，便于换算） */
+TIM2-&gt;PSC = 84U - 1U;            /* 84MHz / 84 = 1MHz */
+TIM2-&gt;ARR = 1000U - 1U;          /* 1MHz / 1000 = 1kHz */
+TIM2-&gt;EGR = TIM_EGR_UG;          /* 产生一次更新事件，让 PSC 立即生效 */
+TIM2-&gt;SR  = ~TIM_SR_UIF;         /* 清除 UG 导致的更新标志，避免一启动就进中断 */
+TIM2-&gt;DIER |= TIM_DIER_UIE;
+TIM2-&gt;CR1  |= TIM_CR1_CEN;</code></pre>
+        <p><strong>第二个坑：PSC 和 ARR 的“减 1”。</strong> 寄存器写入 N 时实际分频 / 计数 N+1 次，忘了减 1 会产生千分之一级别的偏差，长时间累积后计时明显不准。</p>
+        <p><strong>第三个坑：PSC 是预装载寄存器。</strong> 写入的 PSC 要等到下一次更新事件才生效。初始化时手动触发一次 UG（如上），否则第一个周期使用的仍是旧值。触发 UG 会置位更新标志，若随后开启更新中断，记得先清除标志。</p>
+      </section>
+
+      <section>
+        <h2>3. PWM：频率、占空比与分辨率的取舍</h2>
+        <p>PWM 模式下，计数值小于比较值（CCR）时输出有效电平，大于时输出无效电平：</p>
+        <pre><code class="language-text">PWM 频率 = f_cnt / (ARR + 1)
+占空比   = CCR / (ARR + 1)
+分辨率   = ARR + 1 级</code></pre>
+        <p>频率和分辨率互相制约：定时器时钟一定时，PWM 频率越高，ARR 越小，可调的占空比级数越少。</p>
+        <table>
+          <thead><tr><th>定时器时钟</th><th>PWM 频率</th><th>ARR + 1</th><th>分辨率</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>84 MHz</td><td>1 kHz</td><td>84000</td><td>约 16.4 位</td><td>LED 调光（需避开人眼可见闪烁时用更高频率）</td></tr>
+            <tr><td>84 MHz</td><td>20 kHz</td><td>4200</td><td>约 12 位</td><td>直流电机（高于人耳可听范围）</td></tr>
+            <tr><td>84 MHz</td><td>100 kHz</td><td>840</td><td>约 9.7 位</td><td>开关电源、D 类功放</td></tr>
+          </tbody>
+        </table>
+        <p>选择 PWM 频率的经验：LED 调光至少 1kHz 以上（摄像头拍摄要求更高）；电机驱动常用 16~25kHz，避免可闻噪声；频率过高会增加功率管的开关损耗。</p>
+        <pre><code class="language-c">/* TIM3 通道 1 输出 20kHz PWM，占空比 30% */
+TIM3-&gt;PSC   = 0;                         /* 不分频，84MHz */
+TIM3-&gt;ARR   = 4200U - 1U;                /* 20kHz */
+TIM3-&gt;CCR1  = 4200U * 30U / 100U;        /* 30% */
+TIM3-&gt;CCMR1 = (6U &lt;&lt; TIM_CCMR1_OC1M_Pos) | TIM_CCMR1_OC1PE;   /* PWM 模式 1，开启 CCR 预装载 */
+TIM3-&gt;CCER |= TIM_CCER_CC1E;             /* 使能通道输出 */
+TIM3-&gt;CR1  |= TIM_CR1_ARPE;              /* ARR 也开启预装载 */
+TIM3-&gt;EGR   = TIM_EGR_UG;
+TIM3-&gt;CR1  |= TIM_CR1_CEN;</code></pre>
+        <p><strong>预装载（影子寄存器）很重要</strong>：开启 OCxPE 和 ARPE 后，新写入的 CCR / ARR 在下一个更新事件才生效，保证占空比切换发生在周期边界，不会出现半个周期的异常脉冲。运行中频繁调整占空比（如电机控制、呼吸灯）时必须开启。</p>
+      </section>
+
+      <section>
+        <h2>4. 边沿对齐与中心对齐</h2>
+        <ul>
+          <li><strong>边沿对齐</strong>：计数器从 0 计到 ARR 后归零，所有通道在周期开始时同时翻转。实现简单，是默认模式。</li>
+          <li><strong>中心对齐</strong>：计数器先递增后递减，脉冲以周期中心对称，PWM 频率是同等 ARR 边沿对齐的一半。多路 PWM 的开关时刻错开，电流纹波和 EMI 更小，电机 FOC、三相逆变器普遍使用。</li>
+        </ul>
+        <p>高级定时器（STM32 的 TIM1/TIM8）还提供<strong>互补输出与死区时间</strong>：同一桥臂的上下管由一对互补信号控制，死区保证一个管子完全关断后另一个才导通，防止上下管直通短路。死区时间要根据功率管和驱动芯片的开关时间设置，并配合<strong>刹车输入</strong>（BKIN），在过流时由硬件立即关闭所有输出，不依赖软件响应。</p>
+      </section>
+
+      <section>
+        <h2>5. 输入捕获：测频率和脉宽</h2>
+        <p>输入捕获在外部边沿到来时把计数值锁存到 CCR，两次捕获的差值就是两个边沿之间的计数个数。</p>
+        <pre><code class="language-c">/* 计数频率 1MHz，16 位定时器，捕获上升沿测周期 */
+static volatile uint16_t last_cap;
+static volatile uint32_t period_us;
+
+void TIM4_IRQHandler(void)
+{
+    if (TIM4-&gt;SR &amp; TIM_SR_CC1IF) {
+        uint16_t cap = (uint16_t)TIM4-&gt;CCR1;              /* 读 CCR 同时清除 CC1IF */
+        period_us = (uint16_t)(cap - last_cap);           /* 无符号差值，跨溢出也正确 */
+        last_cap = cap;
+    }
+}</code></pre>
+        <p>要点：</p>
+        <ul>
+          <li><strong>测量范围</strong>：16 位定时器在 1MHz 下最大可测 65.535ms 的周期。被测信号更慢时降低计数频率，或者在溢出中断里扩展高位计数。被测信号更快时提高计数频率以保证精度。</li>
+          <li><strong>测频率的两种思路</strong>：高频信号用“固定时间内数边沿个数”（测频法，可用外部时钟模式计数），低频信号用“测一个周期的时长”（测周法），两者在中间频段精度相当。</li>
+          <li><strong>测占空比</strong>：STM32 的 PWM 输入模式把同一个引脚映射到两个捕获通道，一个捕获上升沿、一个捕获下降沿，并在上升沿复位计数器，直接读出周期和高电平时间。</li>
+          <li><strong>输入滤波</strong>：捕获通道带数字滤波器（ICxF），可以滤除短于设定时长的毛刺，长线或噪声环境下要启用。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 定时器触发 ADC：让采样时刻精确</h2>
+        <p>用软件在定时中断里启动 ADC，采样时刻会受中断延迟影响而抖动；让定时器的更新事件或比较事件直接触发 ADC 转换，采样间隔由硬件保证，再配合 DMA 搬运结果，CPU 完全不参与。电机控制中常把 ADC 采样点设在 PWM 中心（下管导通期间）以准确测量相电流，正是利用了这个机制。详见 <a href="../mcu-adc/mcu-adc.html?v=9d252b978179">ADC 采样与模拟前端</a>。</p>
+      </section>
+
+      <section>
+        <h2>7. 工作场景：1ms 系统节拍、PWM 调光与编码器测速</h2>
+        <p>一个典型的小型控制板上，定时器资源通常这样分配：</p>
+        <table>
+          <thead><tr><th>定时器</th><th>用途</th><th>配置要点</th></tr></thead>
+          <tbody>
+            <tr><td>SysTick</td><td>1ms 系统节拍 / RTOS 心跳</td><td>内核定时器，不占用外设定时器</td></tr>
+            <tr><td>基本定时器</td><td>100us 控制环、触发 ADC</td><td>更新事件触发 ADC，DMA 搬运</td></tr>
+            <tr><td>通用定时器（PWM）</td><td>LED 调光、风扇调速</td><td>开启预装载；频率按负载选择</td></tr>
+            <tr><td>通用定时器（编码器模式）</td><td>旋钮或电机测速</td><td>开启输入滤波；周期读取计数差值计算速度</td></tr>
+            <tr><td>高级定时器</td><td>电机驱动三相 PWM</td><td>中心对齐、互补输出、死区、刹车</td></tr>
+          </tbody>
+        </table>
+        <p>编码器测速的常用写法：固定周期（如 10ms）读取编码器计数值，与上次的差值就是这段时间内的脉冲数。计数器是 16 位时，同样用 <code>(int16_t)(now - last)</code> 得到带方向的差值，自动处理正反转和溢出。</p>
+      </section>
+
+      <section>
+        <h2>8. 定时器与 PWM 检查清单</h2>
+        <ul>
+          <li>定时器时钟是否按时钟树核实过（APB 分频不为 1 时定时器时钟加倍）。</li>
+          <li>PSC、ARR 是否减 1，初始化时是否用 UG 让预分频立即生效、并清除了随之产生的标志。</li>
+          <li>PWM 频率与分辨率是否满足负载需求，频率是否避开了可见闪烁或可闻噪声。</li>
+          <li>运行中调整占空比时，CCR / ARR 是否开启了预装载。</li>
+          <li>驱动桥式电路时，是否配置了互补输出、死区时间和硬件刹车。</li>
+          <li>输入捕获是否用无符号差值处理溢出，测量范围是否覆盖信号的最慢和最快情况，是否启用输入滤波。</li>
+          <li>需要精确采样时刻的 ADC，是否由定时器硬件触发而不是软件启动。</li>
+          <li>定时器资源分配是否在项目初期规划好，避免后期引脚和通道冲突。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+</body>
+</html>

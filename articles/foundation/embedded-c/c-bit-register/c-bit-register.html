@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>嵌入式 C 位运算与寄存器访问 - XYJ</title>
   <meta name="description" content="整理驱动开发中的位运算与寄存器访问：常用位操作宏、volatile 寄存器映射、读改写风险、写 1 清零与读清零寄存器、原子置位寄存器与位带、多位字段操作、字节序打包、常用位技巧与位图，并给出一个可靠的 GPIO 驱动示例。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#foundation/embedded-c">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -241,7 +241,7 @@ static inline bool gpio_read(const gpio_regs_t *port, uint32_t pin)
 {
     return (port-&gt;IDR &amp; BIT(pin)) != 0U;
 }</code></pre>
-        <p><code>irq_save()</code> / <code>irq_restore()</code> 的实现见 <a href="../c-interrupt-concurrency/c-interrupt-concurrency.html?v=591c98cc2ebb">中断、并发与临界区</a>。这个驱动的取舍很典型：输出用原子寄存器、不加锁；模式配置极少调用，读改写时加一个很短的临界区。</p>
+        <p><code>irq_save()</code> / <code>irq_restore()</code> 的实现见 <a href="../c-interrupt-concurrency/c-interrupt-concurrency.html?v=9d252b978179">中断、并发与临界区</a>。这个驱动的取舍很典型：输出用原子寄存器、不加锁；模式配置极少调用，读改写时加一个很短的临界区。</p>
       </section>
 
       <section>
@@ -259,11 +259,11 @@ static inline bool gpio_read(const gpio_regs_t *port, uint32_t pin)
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#foundation/embedded-c">返回对应专题</a>
+        <a href="../../../../index.html?v=9d252b978179#foundation/embedded-c">返回对应专题</a>
       </div>
     </article>
   </main>
 
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

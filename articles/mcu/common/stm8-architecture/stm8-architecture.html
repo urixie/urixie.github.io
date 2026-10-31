@@ -8,16 +8,16 @@
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>STM8 架构详解 - XYJ</title>
   <meta name="description" content="详细整理 STM8 内核架构、寄存器、指令系统、中断机制、存储布局和低功耗特性。">
-  <script src="../../../../assets/js/theme-init.js?v=591c98cc2ebb"></script>
-  <link rel="stylesheet" href="../../../../assets/css/style.css?v=591c98cc2ebb">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
 </head>
 <body>
   <main class="article-page-shell">
     <aside class="article-sidebar" aria-label="文章导航">
       <div class="article-nav-card">
         <div class="article-nav-actions">
-          <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-          <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回对应专题</a>
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/common">返回对应专题</a>
         </div>
         <div class="article-nav-title">文章目录</div>
         <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
@@ -26,8 +26,8 @@
 
 
     <div class="article-topbar">
-      <a href="../../../../index.html?v=591c98cc2ebb">← 返回首页</a>
-      <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+      <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+      <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
     </div>
 
     <article class="article card">
@@ -267,7 +267,36 @@
       </section>
 
       <section>
-        <h2>7. 工程实践要点</h2>
+        <h2>7. 工作场景：STM8 工程要点</h2>
+        <p><strong>16 位寄存器的读写顺序</strong>：STM8 是 8 位总线，访问 16 位定时器寄存器需要分两次。为保证一致性，硬件做了缓冲：</p>
+        <ul>
+          <li><strong>写入</strong>计数器、自动重装、比较寄存器时，<strong>先写高字节（MSB），再写低字节（LSB）</strong>；写入 LSB 时 16 位值才一起更新。</li>
+          <li><strong>读取</strong>计数器、捕获寄存器时，<strong>先读高字节</strong>，此时低字节被锁存，<strong>再读低字节</strong>。</li>
+        </ul>
+        <p>顺序反了会得到“高低字节来自不同时刻”的错误值。用寄存器名直接操作时，要显式按顺序写两条语句：</p>
+        <pre><code class="language-c">TIM1_ARRH = (uint8_t)(arr &gt;&gt; 8);    /* 先高 */
+TIM1_ARRL = (uint8_t)arr;           /* 后低 */
+
+uint8_t h = TIM1_CNTRH;             /* 先读高字节，低字节被锁存 */
+uint8_t l = TIM1_CNTRL;
+uint16_t cnt = (uint16_t)((h &lt;&lt; 8) | l);</code></pre>
+        <p>不同定时器、不同寄存器的缓冲规则略有差异（TIM2/TIM3 的部分寄存器规则与 TIM1 不同），以参考手册为准。</p>
+        <p><strong>GPIO 配置寄存器</strong>：除了 DDR / ODR / IDR，STM8 还有 CR1、CR2 两个配置寄存器，它们的含义随方向不同而变化：</p>
+        <table>
+          <thead><tr><th>模式</th><th>DDR</th><th>CR1</th><th>CR2</th></tr></thead>
+          <tbody>
+            <tr><td>浮空输入</td><td>0</td><td>0</td><td>0 不带中断 / 1 带中断</td></tr>
+            <tr><td>上拉输入</td><td>0</td><td>1</td><td>0 / 1 同上</td></tr>
+            <tr><td>开漏输出</td><td>1</td><td>0</td><td>0 慢速 / 1 快速</td></tr>
+            <tr><td>推挽输出</td><td>1</td><td>1</td><td>0 慢速 / 1 快速</td></tr>
+          </tbody>
+        </table>
+        <p><strong>选项字节与 SWIM</strong>：读保护、看门狗硬件启动、引脚复用（AFR）等都在选项字节中配置，通过 ST-Link 的 SWIM 接口写入。SWIM 引脚（PD1）被程序复用为普通 GPIO 后，调试器可能无法连接，需要在复位期间连接。开启读保护后再关闭会擦除整片 Flash。</p>
+        <p><strong>工具链选择</strong>：常用的有 IAR、Cosmic（有免费版）、SDCC（开源）。SDCC 生成的代码相对较大，Flash 较小（8KB）的型号要留意代码体积；ST 的标准外设库在不同编译器下需要使用对应的头文件宏。</p>
+      </section>
+
+      <section>
+        <h2>8. 工程实践要点</h2>
         <ul>
           <li><strong>看门狗</strong>：STM8 的看门狗（IWDG）一旦使能无法关闭，必须周期性喂狗。WWDG（窗口看门狗）可设置窗口范围。</li>
           <li><strong>GPIO 配置</strong>：每个 GPIO 端口有 DDR（方向）、ODR（输出）、IDR（输入）寄存器。配置输出时需设置 DDR=1。</li>
@@ -278,10 +307,10 @@
       </section>
 
       <div class="article-footer">
-        <a href="../../../../index.html?v=591c98cc2ebb#mcu/common">返回 MCU专题</a>
+        <a href="../../../../index.html?v=9d252b978179#mcu/common">返回 MCU专题</a>
       </div>
     </article>
   </main>
-  <script src="../../../../assets/js/main.js?v=591c98cc2ebb"></script>
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
 </body>
 </html>

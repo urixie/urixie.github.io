@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <title>MCU 内部 Flash 与数据存储 - XYJ</title>
+  <meta name="description" content="整理用 MCU 内部 Flash 保存数据的工程要点：擦写特性与系列差异、擦除期间的 CPU 停顿、写入流程与校验、A/B 双备份掉电安全、EEPROM 模拟与磨损均衡、选项字节与读保护，以及参数存储模块设计。">
+  <script src="../../../../assets/js/theme-init.js?v=9d252b978179"></script>
+  <link rel="stylesheet" href="../../../../assets/css/style.css?v=9d252b978179">
+</head>
+<body>
+  <main class="article-page-shell">
+    <aside class="article-sidebar" aria-label="文章导航">
+      <div class="article-nav-card">
+        <div class="article-nav-actions">
+          <a href="../../../../index.html?v=9d252b978179">← 返回首页</a>
+          <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+        </div>
+        <div class="article-nav-title">文章目录</div>
+        <nav id="articleToc" class="article-nav" data-auto-toc aria-label="文章目录"></nav>
+      </div>
+    </aside>
+
+    <article class="article card">
+      <h1>MCU 内部 Flash 与数据存储</h1>
+      <p class="article-summary">整理用 MCU 内部 Flash 保存数据的工程要点：擦写特性与系列差异、擦除期间的 CPU 停顿、写入流程与校验、A/B 双备份掉电安全、EEPROM 模拟与磨损均衡、选项字节与读保护，以及参数存储模块设计。</p>
+
+      <section>
+        <h2>1. 内部 Flash 能存什么</h2>
+        <p>MCU 内部 Flash 除了存放程序，也经常用来保存需要掉电保持的数据：设备参数、校准系数、运行统计、故障记录、升级标志。和 RAM 不同，Flash 的写入有很多约束，不了解这些约束就容易写出“测试时正常、现场用一段时间就坏”的代码。</p>
+      </section>
+
+      <section>
+        <h2>2. Flash 的基本特性</h2>
+        <table>
+          <thead><tr><th>特性</th><th>说明</th><th>工程影响</th></tr></thead>
+          <tbody>
+            <tr><td>擦除后为 1</td><td>擦除后所有位为 1（0xFF），写入只能把 1 变成 0</td><td>修改已写入的数据必须先擦除</td></tr>
+            <tr><td>擦除粒度大</td><td>按页或扇区擦除，从 1KB 到 128KB 不等</td><td>改一个字节也要擦除整页，需先备份整页内容</td></tr>
+            <tr><td>写入粒度</td><td>半字、字、双字或 64 位，因系列而异</td><td>写入地址和长度必须满足对齐要求</td></tr>
+            <tr><td>擦写寿命</td><td>典型 1 万次（部分系列 10 万次）</td><td>频繁写入的数据需要磨损均衡</td></tr>
+            <tr><td>擦除耗时</td><td>页擦除几毫秒到几十毫秒，扇区擦除可达秒级</td><td>擦除期间可能无法执行 Flash 中的代码</td></tr>
+            <tr><td>读等待周期</td><td>主频越高，需要的等待周期越多</td><td>提高主频前必须先设置 Flash 等待周期</td></tr>
+          </tbody>
+        </table>
+        <p><strong>不同系列差异很大</strong>：STM32F1 按 1KB/2KB 页擦除、半字写入；STM32F4 按扇区擦除，扇区大小从 16KB 到 128KB 不等，用来存参数非常浪费；STM32L4、G0 按 2KB 页擦除，必须以 64 位双字写入，并带 ECC，同一个双字写入后不能再次写入（即使只是把剩余的 1 改成 0）。选择存储方案前，务必先看清所用芯片的擦写单位。</p>
+      </section>
+
+      <section>
+        <h2>3. 擦除期间 CPU 会停下来</h2>
+        <p>很多 MCU 只有一个 Flash bank，擦除或写入时整个 Flash 无法读取。CPU 此时若要从 Flash 取指令，会被暂停直到操作完成。这带来几个问题：</p>
+        <ul>
+          <li><strong>中断响应被延迟</strong>：擦除一个扇区可能需要上百毫秒，期间所有中断都无法及时响应，串口可能丢数据，电机控制可能失控。</li>
+          <li><strong>看门狗可能超时</strong>：长时间擦除前要喂狗，必要时把擦除拆成多次。</li>
+          <li><strong>对策</strong>：把 Flash 操作函数和必须及时响应的中断处理函数放到 RAM 中运行（见 <a href="../../../foundation/debug-engineering/c-build-link-startup/c-build-link-startup.html?v=9d252b978179">编译、链接与启动流程</a>）；或选用双 bank 的芯片，在一个 bank 执行代码的同时擦写另一个 bank（Read-While-Write）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 写入流程与错误处理</h2>
+        <p>以 STM32 为例，标准写入流程是：解锁 → 清除错误标志 → 擦除 → 写入 → 校验 → 上锁。每一步都要检查状态。</p>
+        <pre><code class="language-c">int flash_write_page(uint32_t addr, const uint8_t *data, size_t len)
+{
+    int err = 0;
+    HAL_FLASH_Unlock();
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS);      /* 上次操作残留的错误标志会让本次失败 */
+
+    FLASH_EraseInitTypeDef erase = {
+        .TypeErase = FLASH_TYPEERASE_PAGES,
+        .Page      = (addr - FLASH_BASE) / FLASH_PAGE_SIZE,
+        .NbPages   = 1,
+    };
+    uint32_t bad_page;
+    if (HAL_FLASHEx_Erase(&amp;erase, &amp;bad_page) != HAL_OK) {
+        err = -EIO;
+        goto out;
+    }
+    for (size_t i = 0; i &lt; len; i += 8U) {             /* L4 / G0：按 64 位写入 */
+        uint64_t dw;
+        memcpy(&amp;dw, &amp;data[i], sizeof(dw));
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + i, dw) != HAL_OK) {
+            err = -EIO;
+            goto out;
+        }
+    }
+    if (memcmp((const void *)addr, data, len) != 0) {  /* 写后读回校验 */
+        err = -EBADMSG;
+    }
+out:
+    HAL_FLASH_Lock();
+    return err;
+}</code></pre>
+        <p>写入前还应检查供电电压：电池电压过低时写 Flash 可能失败或写入错误数据，很多芯片也有最低编程电压要求。</p>
+      </section>
+
+      <section>
+        <h2>5. 掉电安全：A/B 双备份</h2>
+        <p>写 Flash 的过程中掉电（擦除完还没写入，或写入一半），数据就会损坏。参数存储至少应做到“掉电后要么是旧数据，要么是新数据，不会是坏数据”。最常用的方案是两页轮流写：</p>
+        <ol>
+          <li>每份数据带<strong>序号、长度、CRC</strong>。</li>
+          <li>写入时选择“非当前有效”的那一页：先擦除，再写入新数据，最后写入（或更新）CRC 和序号。</li>
+          <li>读取时检查两页，选择 CRC 正确且序号较大的一份。</li>
+          <li>任何时刻至少有一页是完整有效的，掉电后最多丢失最后一次修改。</li>
+        </ol>
+        <pre><code class="language-c">typedef struct {
+    uint32_t magic;
+    uint32_t seq;            /* 每次写入 +1，比较时同样注意回绕 */
+    uint16_t version;
+    uint16_t length;
+    uint8_t  payload[48];
+    uint32_t crc32;          /* 覆盖前面所有字段 */
+} param_record_t;</code></pre>
+        <p>结构体版本兼容和迁移方法见 <a href="../../../foundation/data-structure/c-struct-data-layout/c-struct-data-layout.html?v=9d252b978179">结构体与数据组织</a>。</p>
+      </section>
+
+      <section>
+        <h2>6. EEPROM 模拟与磨损均衡</h2>
+        <p>如果参数需要频繁更新（例如每分钟记录一次累计运行时间），每次都擦除整页，很快就会耗尽擦写寿命：1 万次寿命，每分钟写一次，只能撑 7 天。</p>
+        <p><strong>追加写（日志结构）</strong> 是解决办法：</p>
+        <ul>
+          <li>把一页划分为多个固定大小的记录槽，每次更新只在下一个空槽（全为 0xFF）写入新记录，不擦除。</li>
+          <li>读取时从后往前找最后一条有效记录。</li>
+          <li>一页写满后，把最新记录搬到另一页，再擦除旧页。</li>
+        </ul>
+        <p>假设一页 2KB、每条记录 32 字节，一页能写 64 条记录才擦除一次，寿命提高了 64 倍；两页轮换再翻一倍。ST、NXP 等厂商都提供 EEPROM 模拟的应用笔记和代码，原理相同。</p>
+        <p>还要注意的细节：</p>
+        <ul>
+          <li><strong>减少写入次数</strong>：参数变化后延时几秒再保存，合并连续的修改；累计类数据在 RAM 中累加，定期或在掉电检测时保存。</li>
+          <li><strong>掉电检测</strong>：通过电源电压监测（PVD）在电压下降时触发中断，利用大电容维持的几毫秒完成最后一次保存。要事先测量掉电保持时间够不够写一条记录。</li>
+          <li><strong>数据量大或写入频繁</strong>：考虑外置 EEPROM（寿命百万次、按字节写）、FRAM（几乎无限次、写入无延迟）或 SPI Flash 加文件系统（如 LittleFS，自带磨损均衡和掉电保护）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 选项字节与读保护</h2>
+        <p>选项字节（Option Bytes）是 Flash 中一块特殊区域，用于配置芯片级功能：读保护等级、写保护、看门狗硬件启动、BOR 电压、启动模式等。</p>
+        <p><strong>读保护</strong>（以 STM32 为例）：</p>
+        <table>
+          <thead><tr><th>等级</th><th>效果</th><th>可否回退</th></tr></thead>
+          <tbody>
+            <tr><td>Level 0</td><td>无保护，调试器可以读写</td><td>—</td></tr>
+            <tr><td>Level 1</td><td>调试器无法读取 Flash</td><td>可以回到 Level 0，但会整片擦除</td></tr>
+            <tr><td>Level 2</td><td>永久禁用调试接口</td><td>不可逆，芯片无法再通过调试器访问</td></tr>
+          </tbody>
+        </table>
+        <p>量产时一般开启 Level 1 防止固件被读出。Level 2 不可逆，开启前必须确认产品不再需要通过调试接口升级或返修。修改选项字节需要特定的解锁和加载流程，操作失误可能导致芯片锁死，务必先在样品上验证。</p>
+      </section>
+
+      <section>
+        <h2>8. 工作场景：设计一个参数存储模块</h2>
+        <p>需求：设备有约 40 字节的配置参数（用户偶尔修改），以及每 10 分钟更新一次的累计运行时间。芯片为 STM32G0，2KB 页、64 位写入。</p>
+        <table>
+          <thead><tr><th>数据</th><th>方案</th><th>理由</th></tr></thead>
+          <tbody>
+            <tr><td>配置参数</td><td>两页 A/B 双备份，带版本号和 CRC</td><td>修改频率低，重视掉电安全和版本兼容</td></tr>
+            <tr><td>运行时间</td><td>两页追加写，每条记录 16 字节（时间 + 序号 + CRC）</td><td>每 10 分钟写一次，一页 128 条，约 21 小时擦除一次，10 年内擦除次数远低于寿命</td></tr>
+            <tr><td>出厂校准数据</td><td>单独一页，生产时写入，运行时只读</td><td>与用户数据隔离，避免误擦除</td></tr>
+          </tbody>
+        </table>
+        <p>链接脚本中把这几页从程序区划出去（缩小 FLASH 区域的 LENGTH），防止程序变大后覆盖参数区。固件升级时也要确认升级流程不会擦除参数区。</p>
+      </section>
+
+      <section>
+        <h2>9. Flash 存储检查清单</h2>
+        <ul>
+          <li>是否确认了芯片的擦除单位、写入单位和对齐要求，写入数据是否满足（如 64 位对齐）。</li>
+          <li>提高主频前是否先设置了 Flash 等待周期。</li>
+          <li>擦除期间是否会影响关键中断和看门狗，必要时是否把相关代码放入 RAM。</li>
+          <li>每次操作前是否清除了残留的错误标志，写入后是否读回校验。</li>
+          <li>参数存储是否掉电安全（A/B 双备份、序号和 CRC）。</li>
+          <li>高频写入的数据是否采用追加写或外置存储，寿命是否经过计算。</li>
+          <li>参数区是否在链接脚本中与程序区隔离，固件升级是否会误擦参数区。</li>
+          <li>量产是否开启读保护，选项字节的修改是否在样品上验证过。</li>
+        </ul>
+      </section>
+
+      <div class="article-footer">
+        <a href="../../../../index.html?v=9d252b978179#mcu/peripheral">返回对应专题</a>
+      </div>
+    </article>
+  </main>
+
+  <script src="../../../../assets/js/main.js?v=9d252b978179"></script>
+</body>
+</html>
