@@ -29,7 +29,6 @@
       frame.src = '../articles/foundation/c-basic/c-basic-syntax/c-basic-syntax.html';
 
       const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-      const closeEnough = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance;
 
       async function waitForEnhancements(doc) {
         const deadline = Date.now() + 10000;
@@ -94,26 +93,41 @@
           assert(figure.width <= article.width + 1, 'article figure must remain within article width');
         }
 
+        const isShown = selector => {
+          const node = element(selector);
+          if (!node) return false;
+          const computed = doc.defaultView.getComputedStyle(node);
+          const box = node.getBoundingClientRect();
+          return computed.display !== 'none' && computed.visibility !== 'hidden' && box.width > 0
+            && box.bottom > 0 && box.top < height && box.right > 0 && box.left < width;
+        };
+        const tocLinks = doc.querySelectorAll('#articleToc a');
+        assert(tocLinks.length > 1, 'standalone article TOC must be generated');
+        assert(Boolean(element('.reading-progress')), 'reading progress bar is missing');
+        assert(Boolean(element('.article-nav-actions [data-theme-toggle]')), 'theme toggle must be added to the article navigation');
+        assert(copyButton && copyButton.width >= 44 && copyButton.height >= 26,
+          `copy button too small: ${copyButton?.width}x${copyButton?.height}`);
+
         if (mode === 'article-desktop') {
-          assert(article && article.width >= 900 && article.width <= 965,
-            `desktop article width out of range: ${article?.width}`);
-          assert(shell && article && closeEnough(shell.right - article.right, 28, 2),
-            `desktop article right inset must remain near 28px: ${shell && article ? shell.right - article.right : 'missing'}`);
-          assert(style('.article', 'paddingLeft') === '38px',
-            `desktop article padding changed: ${style('.article', 'paddingLeft')}`);
-          assert(copyButton && closeEnough(copyButton.width, 48, 1) && closeEnough(copyButton.height, 28, 1),
-            `desktop copy button size changed: ${copyButton?.width}x${copyButton?.height}`);
+          const sidebar = rect('.article-sidebar');
+          assert(isShown('.article-sidebar'), 'desktop article TOC sidebar must be visible');
+          assert(style('.article-sidebar', 'position') === 'sticky', 'desktop article TOC must be sticky');
+          assert(sidebar && article && sidebar.right <= article.left - 24, 'desktop TOC must sit left of the article');
+          assert(article && article.width >= 760 && article.width <= 840,
+            `desktop article measure out of range: ${article?.width}`);
+          // 以 clientWidth 计算右侧留白：CI 的 Chrome 有 15px 常规滚动条，iframe 宽度包含滚动条。
+          const viewportWidth = doc.documentElement.clientWidth;
+          assert(sidebar && article && Math.abs(sidebar.left - (viewportWidth - article.right)) <= 4,
+            `desktop layout must stay centered: left=${sidebar?.left}, right=${article ? viewportWidth - article.right : 'missing'}`);
+          assert(!isShown('.reader-dock'), 'desktop must hide the reader dock');
         } else if (mode === 'article-mobile') {
-          assert(shell && article && closeEnough(article.left - shell.left, 16, 2),
-            `mobile article left inset must remain near 16px: ${shell && article ? article.left - shell.left : 'missing'}`);
-          assert(shell && article && closeEnough(shell.right - article.right, 16, 2),
-            `mobile article right inset must remain near 16px: ${shell && article ? shell.right - article.right : 'missing'}`);
-          assert(shell && article && closeEnough(article.width, shell.width - 32, 3),
-            `mobile article width must track shell minus 32px: article=${article?.width}, shell=${shell?.width}`);
-          assert(style('.article', 'paddingLeft') === '24px',
-            `mobile article padding changed: ${style('.article', 'paddingLeft')}`);
-          assert(copyButton && closeEnough(copyButton.width, 44, 1) && closeEnough(copyButton.height, 26, 1),
-            `mobile copy button size changed: ${copyButton?.width}x${copyButton?.height}`);
+          assert(article && article.left >= 8 && article.right <= width - 8,
+            `mobile article must keep side gutters: ${article?.left}..${article?.right}`);
+          assert(!isShown('.article-sidebar'), 'mobile TOC must be hidden until requested');
+          assert(isShown('.reader-dock'), 'mobile must show the reader dock');
+          const tocButton = element('.reader-dock [data-panel-toggle="toc"]');
+          tocButton?.click();
+          assert(doc.body.classList.contains('toc-open'), 'dock TOC button must open the TOC sheet');
         } else {
           failures.push(`unknown mode: ${mode}`);
         }
@@ -130,7 +144,6 @@
             copyButton,
             tableWrap,
             figure,
-            articlePaddingLeft: style('.article', 'paddingLeft'),
             rootScrollWidth: doc.documentElement.scrollWidth,
             rootClientWidth: doc.documentElement.clientWidth,
           },

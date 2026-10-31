@@ -2,68 +2,97 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <meta name="description" content="XYJ 的嵌入式工程项目、技术栈、项目经验与实用工具。">
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)">
   <title>XYJ</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=c4a7228c0fc1">
-  <link rel="stylesheet" href="assets/css/home.css?v=c4a7228c0fc1">
+  <script src="assets/js/theme-init.js?v=a5ff862ebd63"></script>
+  <link rel="stylesheet" href="assets/css/style.css?v=a5ff862ebd63">
+  <link rel="stylesheet" href="assets/css/home.css?v=a5ff862ebd63">
 </head>
-<body>
-  <div class="home-shell">
-    <aside class="primary-sidebar" aria-label="一级导航">
-      <div class="primary-sidebar-body">
-        <div class="profile-compact">
-          <div class="profile-compact-top">
-            <div class="profile-compact-avatar">
-              <img src="assets/img/avatar-surf.jpg?v=c4a7228c0fc1" alt="XYJ 网站头像">
-            </div>
-            <div class="profile-identity">
-              <h1>XYJ</h1>
-              <p class="profile-summary">嵌入式软件工程师<br><span id="work-experience"></span>经验</p>
-            </div>
-          </div>
-          <a class="profile-email" href="mailto:xyj.work@qq.com" aria-label="发送邮件到 xyj.work@qq.com">
-            <svg class="profile-email-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 5h16c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2Zm0 2v.4l8 5.1 8-5.1V7H4Zm0 2.7V17h16V9.7l-7.46 4.76a1 1 0 0 1-1.08 0L4 9.7Z"/>
-            </svg>
-            <span>xyj.work@qq.com</span>
-          </a>
-        </div>
+<body class="home-page">
+  <button class="skip-link" type="button" data-skip-to-main>跳到正文</button>
 
-        <nav id="primaryNav" class="primary-nav" aria-label="一级目录"></nav>
+  <header class="mobile-header" id="mobileHeader">
+    <button class="icon-button" type="button" data-panel-toggle="nav" aria-controls="siteSidebar" aria-label="打开导航">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="mobile-title" id="mobileTitle">XYJ</span>
+    <button class="icon-button" type="button" data-search-open aria-label="搜索文章">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm9 16-4.35-4.35"/></svg>
+    </button>
+    <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题"></button>
+  </header>
+
+  <div class="home-shell">
+    <aside class="site-sidebar" id="siteSidebar" aria-label="站点导航">
+      <div class="sidebar-head">
+        <div class="profile-row">
+          <img class="profile-avatar" src="assets/img/avatar-surf.jpg?v=a5ff862ebd63" alt="XYJ 网站头像" width="44" height="44">
+          <div class="profile-identity">
+            <h1>XYJ</h1>
+            <p class="profile-summary">嵌入式软件工程师 · <span id="work-experience"></span>经验</p>
+          </div>
+        </div>
+        <button class="icon-button sidebar-close" type="button" data-panel-toggle="nav" aria-label="关闭导航" data-panel-focus>
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
+
+      <button class="search-trigger" type="button" data-search-open>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm9 16-4.35-4.35"/></svg>
+        <span>搜索文章与章节</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+
+      <nav id="siteNav" class="site-nav" aria-label="文章目录"></nav>
 
       <div class="sidebar-footer">
-        <span>© <span data-current-year></span> XYJ。</span>
+        <a class="profile-email" href="mailto:xyj.work@qq.com" aria-label="发送邮件到 xyj.work@qq.com">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>
+          <span>xyj.work@qq.com</span>
+        </a>
+        <div class="sidebar-meta">
+          <span>© <span data-current-year></span> XYJ</span>
+          <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题"></button>
+        </div>
       </div>
     </aside>
 
-    <aside class="secondary-sidebar" aria-label="二级导航">
-      <nav id="secondaryNav" class="secondary-nav" aria-label="二级目录"></nav>
-    </aside>
-
-    <main class="content home-content">
-      <section class="section-block home-panel">
-        <div class="section-title">
-          <div>
-            <h2 id="contentTitle">C语言基础</h2>
-          </div>
-        </div>
-
-        <div id="articleList" class="article-list" aria-live="polite"></div>
-        <div id="articleEmpty" class="empty hidden">当前分类暂无文章，后续补充。</div>
-      </section>
+    <main class="home-content" id="main" tabindex="-1">
+      <div id="articleView" class="article-view" aria-live="polite"></div>
     </main>
+
+    <aside class="toc-panel" id="tocPanel" aria-label="本文目录">
+      <div class="toc-panel-head">
+        <span>本文目录</span>
+        <button class="icon-button toc-close" type="button" data-panel-toggle="toc" aria-label="关闭目录">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <nav id="tocNav" class="toc-nav" aria-label="本文章节"></nav>
+    </aside>
   </div>
 
-  <script src="assets/js/home-data.js?v=c4a7228c0fc1"></script>
-  <script src="assets/js/legacy-routes.js?v=c4a7228c0fc1"></script>
-  <script src="assets/js/route-compat.js?v=c4a7228c0fc1"></script>
-  <script src="assets/js/main.js?v=c4a7228c0fc1"></script>
-  <script src="assets/js/article-reader.js?v=c4a7228c0fc1"></script>
-  <script src="assets/js/home.js?v=c4a7228c0fc1"></script>
+  <dialog class="search-dialog" id="searchDialog" aria-label="搜索文章">
+    <div class="search-box">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm9 16-4.35-4.35"/></svg>
+      <input id="searchInput" type="search" placeholder="搜索标题、标签、章节…" autocomplete="off" aria-controls="searchResults" aria-label="搜索关键词">
+      <button class="search-close" id="searchClose" type="button" aria-label="关闭搜索">Esc</button>
+    </div>
+    <ul id="searchResults" class="search-results" role="listbox" aria-label="搜索结果"></ul>
+    <p class="search-hint">↑ ↓ 选择 · Enter 打开 · Esc 关闭</p>
+  </dialog>
+
+  <script src="assets/js/home-data.js?v=a5ff862ebd63"></script>
+  <script src="assets/js/legacy-routes.js?v=a5ff862ebd63"></script>
+  <script src="assets/js/route-compat.js?v=a5ff862ebd63"></script>
+  <script src="assets/js/main.js?v=a5ff862ebd63"></script>
+  <script src="assets/js/article-reader.js?v=a5ff862ebd63"></script>
+  <script src="assets/js/home.js?v=a5ff862ebd63"></script>
 </body>
 </html>

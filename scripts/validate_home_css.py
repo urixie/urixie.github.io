@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate home.css cascade hygiene and intentional breakpoint structure."""
+"""Validate home.css cascade hygiene and its mobile-first breakpoint structure (base, >=900px, >=1280px)."""
 
 from __future__ import annotations
 
@@ -14,6 +14,10 @@ LEGACY_CLASS_SELECTORS = (
     "article-lead",
     "article-meta",
     "inline-article",
+    "inline-section-reader",
+    "inline-section-content",
+    "primary-sidebar",
+    "secondary-sidebar",
     "secondary-article-desc",
     "secondary-article-title",
 )
@@ -206,9 +210,8 @@ def main() -> int:
                         break
 
     breakpoint_expectations = {
-        "@media (min-width: 901px) {": 1,
-        "@media (min-width: 981px) {": 1,
-        "@media (max-width: 640px) {": 1,
+        "@media (min-width: 900px) {": 1,
+        "@media (min-width: 1280px) {": 1,
     }
     for media_header, expected_count in breakpoint_expectations.items():
         actual_count = text.count(media_header)
@@ -217,6 +220,9 @@ def main() -> int:
                 f"breakpoint structure: expected {expected_count} occurrence(s) of '{media_header[:-2]}', "
                 f"found {actual_count}"
             )
+
+    if re.search(r"@media[^{]*max-width", text):
+        errors.append("home.css is mobile-first: use min-width breakpoints instead of max-width")
 
     for class_name in LEGACY_CLASS_SELECTORS:
         if re.search(rf"\.{re.escape(class_name)}(?![A-Za-z0-9_-])", text):
