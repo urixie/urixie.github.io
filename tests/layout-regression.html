@@ -48,6 +48,19 @@
         throw new Error('timed out waiting for inline article');
       }
 
+      /* CI 用 --virtual-time-budget 运行 headless Chrome，CSS 过渡与平滑滚动不会随虚拟时间推进，
+         这里关闭过渡并走“减少动态效果”分支（即时滚动），只校验布局与交互结果，不校验动画时序。 */
+      function disableMotion(doc) {
+        const win = doc.defaultView;
+        const style = doc.createElement('style');
+        style.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }';
+        doc.head.appendChild(style);
+        const nativeMatchMedia = win.matchMedia.bind(win);
+        win.matchMedia = query => (String(query).includes('prefers-reduced-motion')
+          ? { matches: true, media: query, addEventListener() {}, removeEventListener() {} }
+          : nativeMatchMedia(query));
+      }
+
       async function runAssertions(doc) {
         const win = doc.defaultView;
         const failures = [];
@@ -200,6 +213,7 @@
         try {
           const doc = frame.contentDocument;
           await waitForArticle(doc);
+          disableMotion(doc);
           await sleep(150);
           const report = await runAssertions(doc);
           result.dataset.status = report.failures.length ? 'fail' : 'pass';

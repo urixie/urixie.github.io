@@ -115,8 +115,10 @@
           assert(sidebar && article && sidebar.right <= article.left - 24, 'desktop TOC must sit left of the article');
           assert(article && article.width >= 760 && article.width <= 840,
             `desktop article measure out of range: ${article?.width}`);
-          assert(sidebar && article && Math.abs(sidebar.left - (width - article.right)) <= 4,
-            `desktop layout must stay centered: left=${sidebar?.left}, right=${article ? width - article.right : 'missing'}`);
+          // 以 clientWidth 计算右侧留白：CI 的 Chrome 有 15px 常规滚动条，iframe 宽度包含滚动条。
+          const viewportWidth = doc.documentElement.clientWidth;
+          assert(sidebar && article && Math.abs(sidebar.left - (viewportWidth - article.right)) <= 4,
+            `desktop layout must stay centered: left=${sidebar?.left}, right=${article ? viewportWidth - article.right : 'missing'}`);
           assert(!isShown('.reader-dock'), 'desktop must hide the reader dock');
         } else if (mode === 'article-mobile') {
           assert(article && article.left >= 8 && article.right <= width - 8,
