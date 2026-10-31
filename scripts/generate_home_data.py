@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -110,6 +112,43 @@ def validate_manifest(site_map: object) -> list[dict]:
     return site_map
 
 
+class SectionTitleParser(HTMLParser):
+    """Collect visible <h2> titles inside the article body for client-side search."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.article_depth = 0
+        self.in_h2 = False
+        self.buffer: list[str] = []
+        self.titles: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag == "article":
+            self.article_depth += 1
+        elif tag == "h2" and self.article_depth:
+            self.in_h2 = True
+            self.buffer = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "article" and self.article_depth:
+            self.article_depth -= 1
+        elif tag == "h2" and self.in_h2:
+            self.in_h2 = False
+            title = re.sub(r"\s+", " ", "".join(self.buffer)).strip()
+            if title:
+                self.titles.append(title)
+
+    def handle_data(self, data: str) -> None:
+        if self.in_h2:
+            self.buffer.append(data)
+
+
+def article_sections(href: str) -> list[str]:
+    parser = SectionTitleParser()
+    parser.feed((ROOT / href).read_text(encoding="utf-8"))
+    return parser.titles
+
+
 def runtime_site_map(manifest: list[dict]) -> list[dict]:
     runtime = copy.deepcopy(manifest)
     for topic in runtime:
@@ -122,6 +161,7 @@ def runtime_site_map(manifest: list[dict]) -> list[dict]:
                         "desc": article["navDesc"],
                         "href": article["href"],
                         "tags": article.get("tags", []),
+                        "sections": article_sections(article["href"]),
                     }
                 )
             category["articles"] = converted_articles

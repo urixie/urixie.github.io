@@ -9,13 +9,9 @@
 </head>
 <body>
   <div class="home-shell">
-    <aside class="primary-sidebar"><nav id="primaryNav"></nav></aside>
-    <aside class="secondary-sidebar"><nav id="secondaryNav"></nav></aside>
-    <main class="home-content">
-      <h2 id="contentTitle"></h2>
-      <div id="articleList"></div>
-      <div id="articleEmpty" class="hidden"></div>
-    </main>
+    <aside class="site-sidebar" id="siteSidebar"><nav id="siteNav"></nav></aside>
+    <main class="home-content" id="main"><div id="articleView"></div></main>
+    <aside class="toc-panel" id="tocPanel"><nav id="tocNav"></nav></aside>
   </div>
   <pre id="layout-result" data-status="pending">pending</pre>
 
@@ -67,11 +63,13 @@
           window.selectArticle('foundation', 'c-basic', 'fast-b');
           await sleep(500);
 
-          const title = document.querySelector('#contentTitle')?.textContent?.trim();
-          const body = document.querySelector('.inline-section-content')?.textContent?.trim() || '';
-          const active = document.querySelector('.secondary-article-link.active')?.textContent?.trim();
+          const title = document.title;
+          const body = document.querySelector('.inline-article-body')?.textContent?.trim() || '';
+          const active = document.querySelector('.nav-article.active')?.textContent?.trim();
+          const toc = Array.from(document.querySelectorAll('#tocNav a')).map(link => link.textContent.trim());
           const failures = [];
-          if (title !== 'Fast B') failures.push(`expected title Fast B, got ${title}`);
+          if (!title.startsWith('Fast B')) failures.push(`expected title Fast B, got ${title}`);
+          if (toc.join('|') !== 'Fast B') failures.push(`expected TOC for Fast B only, got ${toc.join('|')}`);
           if (!body.includes('Fast B content')) failures.push(`expected Fast B body, got ${body}`);
           if (body.includes('Slow A content')) failures.push('stale Slow A response replaced Fast B');
           if (active !== 'Fast B') failures.push(`expected active Fast B, got ${active}`);

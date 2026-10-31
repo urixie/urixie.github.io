@@ -22,9 +22,11 @@ ARTICLE_RACE_HARNESS = "tests/article-loading-race.html"
 ROUTE_HARNESS = "tests/route-compat-regression.html"
 ARTICLE_TOC_HARNESS = "tests/article-toc-regression.html"
 HOME_SCENARIOS = (
-    {"mode": "desktop", "width": 1440, "height": 900},
-    {"mode": "narrow", "width": 920, "height": 820},
     {"mode": "mobile", "width": 390, "height": 844},
+    {"mode": "tablet", "width": 768, "height": 1024},
+    {"mode": "laptop", "width": 1024, "height": 768},
+    {"mode": "desktop", "width": 1280, "height": 800},
+    {"mode": "wide", "width": 1920, "height": 1080},
 )
 ARTICLE_SCENARIOS = (
     {"mode": "article-desktop", "width": 1280, "height": 900},
@@ -115,7 +117,7 @@ def run_scenario(
                 "--no-default-browser-check",
                 f"--user-data-dir={profile_dir}",
                 "--run-all-compositor-stages-before-draw",
-                "--window-size=1800,1200",
+                "--window-size=2000,1400",
                 "--virtual-time-budget=15000",
                 "--dump-dom",
                 url,
@@ -185,7 +187,7 @@ def main() -> int:
         return 1
 
     print(
-        "Browser regression check passed for home desktop/narrow/mobile, standalone article "
+        "Browser regression check passed for home mobile/tablet/laptop/desktop/wide, standalone article "
         "desktop/mobile, inline article race handling, hash-route compatibility, automatic article TOC, "
         "and keyboard image zoom."
     )

@@ -80,7 +80,7 @@ def validate_index(errors: list[str]) -> None:
         errors.append("javascript layout: home.js must not keep unused articleHref state")
     if "function fetchInlineArticleRoot" in home_js or "function extractArticleSections" in home_js:
         errors.append("javascript layout: home.js must not contain article reader implementation")
-    if "window.articleReader" not in reader_js or "function createSectionedArticleReader" not in reader_js:
+    if "window.articleReader" not in reader_js or "function createInlineArticle" not in reader_js:
         errors.append("javascript layout: article-reader.js must own inline article reader implementation")
     if "initCopyButtons" not in reader_js or "enhanceArticleImageZoom" not in reader_js:
         errors.append("javascript layout: article-reader.js must reuse article enhancements from main.js")
